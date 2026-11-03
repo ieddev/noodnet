@@ -235,6 +235,60 @@ def html_hotspot():
 
 
 # ---------------------------------------------------------------------------
+# Testuitzending (PTT + geluid controleren)
+# ---------------------------------------------------------------------------
+
+def testuitzending(roepnaam, lang=False, wacht=None):
+    """Laat Direwolf een kort testbericht op 2 m uitzenden. Direwolf zet daarvoor
+    de PTT aan, dus dit test PTT en geluid in een keer. Geeft (gelukt, [regels])."""
+    import socket
+    import noodnet_proto as proto
+    if not roepnaam or roepnaam.upper().startswith("N0CALL"):
+        return False, ["Stel eerst je eigen roepnaam in."]
+    if _uit(["systemctl", "is-active", "direwolf"]).strip() != "active":
+        return False, ["Direwolf draait niet. Kies hieronder de geluidskaart en sla op."]
+    tekst = f"Noodnet test {roepnaam.upper()} - geen actie nodig"
+    frames = [tekst] if not lang else [f"{tekst} ({i}/4) " + "-" * 150 for i in range(1, 5)]
+    begin = time.time()
+    try:
+        with socket.create_connection(("127.0.0.1", 8001), timeout=5) as s:
+            for t in frames:
+                s.sendall(proto.kiss_encode(proto.ax25_ui(roepnaam, "TEST", t)))
+            time.sleep(0.5)
+    except (OSError, ValueError) as fout:
+        return False, [f"Geen verbinding met Direwolf (poort 8001): {fout}"]
+    time.sleep(wacht if wacht is not None else (7 if lang else 3))
+    log = _uit(["journalctl", "-u", "direwolf", "--no-pager", "-o", "cat",
+                "--since", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(begin - 1))])
+    regels = [r.strip() for r in log.splitlines() if ">TEST" in r or "PTT" in r or "rror" in r]
+    return True, regels[-8:]
+
+
+def html_testuitzending(verborgen, r=None):
+    r = r or instellingen()
+    ptt = "Er is geen PTT-poort gekozen: de set moet dan op VOX staan." if not r.get("ptt_poort") else ""
+    return f"""<section id="test"><h2>Testuitzending</h2><p class="uitleg">De Pi zendt een kort testbericht uit op 2 m
+(AX.25, met jouw roepnaam). Kijk of de set op <b>zenden</b> gaat. Luister op een tweede ontvanger: je hoort een kort
+packet-geluid. Klinkt dat vervormd of heel zacht, dan staat het geluidsniveau niet goed.
+<b>Lang</b> houdt de zender ongeveer 5 seconden aan, zodat je vermogen en SWR kunt aflezen.</p>
+{f'<div class="melding let">{e(ptt)}</div>' if ptt else ''}
+<form method="post" action="/radiotest" class="balk" style="margin-top:0">{verborgen}
+<button type="submit" name="duur" value="kort">Testuitzending (1 s)</button>
+<button type="submit" name="duur" value="lang" class="licht">Lang (5 s)</button></form></section>"""
+
+
+def html_testuitslag(gelukt, regels):
+    if not gelukt:
+        return "".join(f'<div class="melding fout">{e(r)}</div>' for r in regels)
+    uit = ('<div class="melding ok">Testbericht naar Direwolf gestuurd. Ging de set op zenden? '
+           'Zo niet: controleer de PTT-poort en PTT-methode hieronder.</div>')
+    if regels:
+        uit += '<section><h2>Direwolf meldt</h2><pre class="mono" style="white-space:pre-wrap">' + \
+               e("\n".join(regels)) + "</pre></section>"
+    return uit
+
+
+# ---------------------------------------------------------------------------
 # Tabblad Radio
 # ---------------------------------------------------------------------------
 
@@ -279,7 +333,8 @@ Na opslaan wordt Direwolf opnieuw gestart.</p>
 <label>PTT-methode</label><select name="ptt_methode">{methode_opties}</select>
 <p class="uitleg" style="margin-top:8px">FT-818 met SCU-17: de tweede poort (if01) met RTS. IC-9700: menu USB SEND op RTS en de poort van de set kiezen.</p></section>
 {rnode}
-<div class="balk"><button type="submit">Opslaan en herstarten</button></div></form>"""
+<div class="balk"><button type="submit">Opslaan en herstarten</button></div></form>
+{html_testuitzending(verborgen, r)}"""
 
 
 def verwerk_radio(rol, f, roepnaam, net=None):

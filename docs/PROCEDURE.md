@@ -90,7 +90,7 @@ ook zonder stroomnet en zonder internet. Je thuis-wifi gebruikt de Pi niet meer.
 | Tabblad | Wat doen |
 |---|---|
 | **Steunpunt** | Naam van het steunpunt, aanmeldcode (min. 4 tekens), *Wie mag melden* = **Aan**. Opslaan. |
-| **Radio** | Geluidskaart van de set, PTT-poort (+ RTS), RNode-poort voor 433 en/of 868, zendvermogen. Opslaan. |
+| **Radio** | Geluidskaart van de set, PTT-poort (+ RTS), RNode-poort voor 433 en/of 868, zendvermogen. Opslaan. Dan **Testuitzending**: gaat de set op zenden? |
 | **Netwerk** | Gemeente, disciplines met de roepnaam van hun eindpost, LoRa-instellingen. Gelijk houden op alle steunpunten van de gemeente. Opslaan. |
 | **Kaart** | *Nieuwe kaart maken*. |
 | **Status** | Alles groen? Geen rode melding? |
@@ -115,7 +115,7 @@ lamineren). Staat er IFAC op, dan is de kaart **VERTROUWELIJK**.
 | Tabblad | Wat doen |
 |---|---|
 | **Instellingen** | Naam van de post, roepnaam (= die van de installatie), disciplines (of *Alle meldingen*), eventueel meelezen. Opslaan. |
-| **Radio** | Geluidskaart van de set, PTT-poort (+ RTS). Opslaan. |
+| **Radio** | Geluidskaart van de set, PTT-poort (+ RTS). Opslaan. Dan **Testuitzending**: gaat de set op zenden? |
 | **Status** | Alles groen? |
 
 Laat daarna de beheerder van elk steunpunt in de gemeente jouw roepnaam
@@ -130,6 +130,7 @@ bekijken op een andere pc of telefoon via de hotspot: **http://10.42.0.1:1880/ui
 ## Stap 5 - Testen
 
 - [ ] Status: alle diensten groen, hotspot aan
+- [ ] Radio → *Testuitzending*: de set gaat op zenden, op een tweede ontvanger hoor je packet-geluid
 - [ ] Steunpunt: een telefoon meldt zich aan met de kaart en wordt goedgekeurd
 - [ ] Steunpunt: `LIJST` vanaf de beheertelefoon geeft antwoord
 - [ ] Een M/ETHANE-melding komt aan op de eindpost (scherm + logboek)
@@ -178,7 +179,7 @@ wordt meteen op de downloadpagina gezet.
 | Telefoon ziet de wifi wel, maar verbinden mislukt | Wachtwoord goed? Staat in `~/noodnet/hotspot.json`. Controle: `~/noodnet/hotspot.sh status` en `journalctl -u noodnet-ap -n 30`. |
 | Beheerpagina opent niet | Op de hotspot? Adres **http://10.42.0.1:8080**. Mobiele data even uit. |
 | Direwolf rood | Tabblad Radio: juiste geluidskaart? Set aan en via USB aangesloten? |
-| Set zendt niet | Tabblad Radio: PTT-poort en RTS. IC-9700: menu *USB SEND* op RTS. SCU-17: tweede poort (if01). |
+| Set zendt niet | Tabblad Radio → *Testuitzending*. Geen zenden: PTT-poort en RTS. IC-9700: menu *USB SEND* op RTS. SCU-17: tweede poort (if01). |
 | Rode melding *Kaart en radio komen niet overeen* | Tabblad Netwerk opslaan met het vinkje *RNodes gelijkzetten* aan. Nieuwe kaart maken en opnieuw scannen. |
 | Vrijwilligers komen niet door | Status: staan ze bij *Onbekende telefoons*? Laten aanmelden met de kaart. `rnstatus`: IFAC-overtredingen? → IFAC op kaart en Pi gelijk. |
 | Steunpunt blijft herhalen | De roepnaam van de eindpost op het tabblad Netwerk klopt niet, of de eindpost staat uit. |
