@@ -58,6 +58,7 @@ roepnaam.
 1. Log vanaf je pc in op de Pi:
    - Windows: open *PowerShell*; Mac/Linux: open *Terminal*
    - typ: `ssh noodnet@noodnet-pd3pam-1.local` (jouw hostnaam) en je wachtwoord
+   - gebruik liever de hostnaam dan een IP-adres: dan raakt ssh de Pi's niet door elkaar
 2. Typ (of plak) precies deze regel en druk op Enter:
 
 ```bash
@@ -177,6 +178,7 @@ wordt meteen op de downloadpagina gezet.
 |---|---|
 | Telefoon ziet wifi *Noodnet-…* niet | Pi herstarten. Wacht 2 minuten na het aanzetten. |
 | Telefoon ziet de wifi wel, maar verbinden mislukt | Wachtwoord goed? Staat in `~/noodnet/hotspot.json`. Controle: `~/noodnet/hotspot.sh status` en `journalctl -u noodnet-ap -n 30`. |
+| ssh: *REMOTE HOST IDENTIFICATION HAS CHANGED* | Normaal na een nieuwe SD-kaart of bij een andere Pi op hetzelfde adres (via de hotspot is dat altijd 10.42.0.1). Op je pc: `ssh-keygen -R 10.42.0.1` (of het adres/de hostnaam die je gebruikt), dan opnieuw inloggen en **yes** typen. |
 | Beheerpagina opent niet | Op de hotspot? Adres **http://10.42.0.1:8080**. Mobiele data even uit. |
 | Direwolf rood | Tabblad Radio: juiste geluidskaart? Set aan en via USB aangesloten? |
 | Set zendt niet | Tabblad Radio → *Testuitzending*. Geen zenden: PTT-poort en RTS. IC-9700: menu *USB SEND* op RTS. SCU-17: tweede poort (if01). |
