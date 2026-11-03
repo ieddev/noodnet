@@ -15,6 +15,9 @@ telefoon + RNode ──LoRa 433/868──► NOODSTEUNPUNT (Pi + 2 m-set + RNode
 Op de amateurband gaat niets versleuteld: het steunpunt pakt de melding uit en
 zendt hem als gewone tekst. Op een eindpost draait geen Reticulum.
 
+**Achtergrond en visie:** [ieddev.ddns.net](http://ieddev.ddns.net) (PD3PAM).
+De installatie en de procedure op deze GitHub-pagina zijn leidend.
+
 ## Installeren
 
 1. Zet met de **Raspberry Pi Imager** een image op een SD-kaart

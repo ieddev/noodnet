@@ -4,6 +4,8 @@ Deze procedure is voor zendamateurs die een **Noodsteunpunt** of een **Eindpost*
 willen inrichten met hun eigen transceiver. Voorkennis van Linux is niet nodig.
 Reken op ongeveer een uur, waarvan de meeste tijd wachten.
 
+Achtergrond en visie op het noodnet: [ieddev.ddns.net](http://ieddev.ddns.net).
+
 | | Noodsteunpunt | Eindpost |
 |---|---|---|
 | Doel | Doorgeefluik: vrijwilligers (LoRa) naar 2 m | Ontvangt meldingen bij een hulpdienst |
