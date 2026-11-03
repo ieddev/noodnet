@@ -4,6 +4,7 @@
 #   hotspot.sh aan                                    hotspot nu aanzetten
 #   hotspot.sh thuiswifi                              tijdelijk de gewone wifi (voor updates; tot herstart)
 #   hotspot.sh status
+#   hotspot.sh repareer                               instellingen voor de wifi-chip van de Pi (PMF uit, WPA2)
 # Adres van de Pi op de hotspot: 10.42.0.1
 set -e
 MAP="$(cd "$(dirname "$0")" && pwd)"
@@ -18,6 +19,9 @@ case "$1" in
       802-11-wireless.mode ap 802-11-wireless.band bg 802-11-wireless.channel 6 802-11-wireless.powersave 2 \
       ipv4.method shared ipv4.addresses 10.42.0.1/24 ipv6.method disabled \
       wifi-sec.key-mgmt wpa-psk wifi-sec.psk "$PSK" connection.autoconnect-priority 100 >/dev/null
+    # Wifi-chip van de Pi (brcmfmac): in hotspot-modus geen PMF; alleen WPA2 (RSN/CCMP).
+    # Zonder dit: "802.1X supplicant took too long to authenticate" (Raspberry Pi OS Trixie).
+    "$0" repareer
     # Andere wifi-netwerken niet meer automatisch: de hotspot heeft altijd voorrang
     nmcli -t -f NAME,TYPE con show | awk -F: '$2=="802-11-wireless" && $1!="noodnet-ap"{print $1}' | while read -r n; do
       sudo nmcli con modify "$n" connection.autoconnect no || true
@@ -26,6 +30,11 @@ case "$1" in
     printf '{\n  "ssid": "%s",\n  "wachtwoord": "%s"\n}\n' "$SSID" "$PSK" > "$MAP/hotspot.json"
     chmod 600 "$MAP/hotspot.json"
     echo "   Hotspot '$SSID' ingesteld; actief na de volgende herstart (adres 10.42.0.1)."
+    ;;
+  repareer)
+    nmcli -t -f NAME con show | grep -qx noodnet-ap || exit 0
+    sudo nmcli con modify noodnet-ap wifi-sec.pmf disable wifi-sec.proto rsn \
+      wifi-sec.pairwise ccmp wifi-sec.group ccmp
     ;;
   aan)
     sudo nmcli con up noodnet-ap ;;

@@ -239,6 +239,8 @@ sudo chmod +x /usr/local/bin/noodnet-bijwerken
 if [ "$NIEUW" = "1" ]; then
   stap "Wifi-hotspot"
   bash "$DOEL/hotspot.sh" installeer "Noodnet-$RN" "$HPW"
+else
+  bash "$DOEL/hotspot.sh" repareer || true      # bestaande hotspot: instellingen voor de Pi-wifi bijwerken
 fi
 
 if [ "$NIEUW" = "1" ]; then
