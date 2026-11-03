@@ -202,7 +202,7 @@ def _uit(cmd):
 def hotspot_status():
     h = lees(HOTSPOT_FILE, {}) or {}
     actief = _uit([NMCLI, "-t", "-f", "NAME,TYPE,DEVICE", "con", "show", "--active"])
-    aan = any(r.startswith("noodnet-ap:") for r in actief.splitlines())
+    aan = _uit(["systemctl", "is-active", "noodnet-ap"]).strip() == "active"
     clients = 0
     st = _uit(["iw", "dev", "wlan0", "station", "dump"])
     if st:

@@ -15,6 +15,8 @@ Reken op ongeveer een uur, waarvan de meeste tijd wachten.
 | Voeding | Accu (12 V) voor set én Pi; voor de Pi een goede 5 V-omvormer (Pi 5: 5 A) | Noodstroom van de hulpdienst, of accu |
 | Overig | SD-kaart 32 GB | SD-kaart 32 GB |
 
+Getest met Raspberry Pi OS **Trixie** (Debian 13), november 2026.
+
 Frequenties: 2 m **144,925 MHz** (AX.25 1200 baud). LoRa **434,100 MHz** en
 **869,525 MHz** (ISM). Op de amateurband gaat alles **leesbaar** en onder je eigen
 roepnaam.
@@ -173,6 +175,7 @@ wordt meteen op de downloadpagina gezet.
 | Probleem | Oplossing |
 |---|---|
 | Telefoon ziet wifi *Noodnet-…* niet | Pi herstarten. Wacht 2 minuten na het aanzetten. |
+| Telefoon ziet de wifi wel, maar verbinden mislukt | Wachtwoord goed? Staat in `~/noodnet/hotspot.json`. Controle: `~/noodnet/hotspot.sh status` en `journalctl -u noodnet-ap -n 30`. |
 | Beheerpagina opent niet | Op de hotspot? Adres **http://10.42.0.1:8080**. Mobiele data even uit. |
 | Direwolf rood | Tabblad Radio: juiste geluidskaart? Set aan en via USB aangesloten? |
 | Set zendt niet | Tabblad Radio: PTT-poort en RTS. IC-9700: menu *USB SEND* op RTS. SCU-17: tweede poort (if01). |

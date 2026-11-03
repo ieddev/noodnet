@@ -1,0 +1,17 @@
+[Unit]
+Description=Noodnet: IP-adressen uitdelen op de hotspot (dnsmasq)
+After=noodnet-ap.service
+BindsTo=noodnet-ap.service
+
+[Service]
+Type=simple
+# Alleen DHCP (port=0: geen DNS). Telefoons krijgen 10.42.0.10-100, de Pi is 10.42.0.1.
+ExecStart=dnsmasq --keep-in-foreground --conf-file=/dev/null --port=0 \
+  --interface=wlan0 --bind-interfaces --except-interface=lo \
+  --dhcp-range=10.42.0.10,10.42.0.100,255.255.255.0,12h \
+  --dhcp-leasefile=/run/noodnet-dhcp.leases --dhcp-authoritative
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=noodnet-ap.service

@@ -88,7 +88,7 @@ sudo -E apt-get full-upgrade "${APT_OPT[@]}"
 sudo apt-get autoremove -y -qq || true
 
 stap "Pakketten installeren"
-PAKKETTEN="git python3-venv direwolf alsa-utils iw curl"
+PAKKETTEN="git python3-venv direwolf alsa-utils iw curl hostapd dnsmasq-base rfkill"
 [ "$ROL" = "eindpost" ] && PAKKETTEN="$PAKKETTEN mosquitto mosquitto-clients"
 sudo -E apt-get install "${APT_OPT[@]}" $PAKKETTEN
 sudo usermod -aG dialout,audio,plugdev,systemd-journal "$GEBRUIKER" || true
@@ -240,7 +240,8 @@ if [ "$NIEUW" = "1" ]; then
   stap "Wifi-hotspot"
   bash "$DOEL/hotspot.sh" installeer "Noodnet-$RN" "$HPW"
 else
-  bash "$DOEL/hotspot.sh" repareer || true      # bestaande hotspot: instellingen voor de Pi-wifi bijwerken
+  stap "Wifi-hotspot (hostapd)"
+  bash "$DOEL/hotspot.sh" repareer || rood "   Hotspot bijwerken mislukt: zie hierboven."   # o.a. oude NM-hotspot omzetten naar hostapd
 fi
 
 if [ "$NIEUW" = "1" ]; then
