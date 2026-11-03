@@ -80,11 +80,17 @@ echo "$ROL" > "$DOEL/rol"
 # ---------------------------------------------------------------------------
 # 2. Pakketten
 # ---------------------------------------------------------------------------
-stap "Pakketten installeren (kan een paar minuten duren)"
+export DEBIAN_FRONTEND=noninteractive
+APT_OPT=(-y -qq -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold)
+stap "Raspberry Pi OS bijwerken (update + upgrade; de eerste keer kan dit 10-20 minuten duren)"
+sudo apt-get update -qq
+sudo -E apt-get full-upgrade "${APT_OPT[@]}"
+sudo apt-get autoremove -y -qq || true
+
+stap "Pakketten installeren"
 PAKKETTEN="git python3-venv direwolf alsa-utils iw curl"
 [ "$ROL" = "eindpost" ] && PAKKETTEN="$PAKKETTEN mosquitto mosquitto-clients"
-sudo apt-get update -qq
-sudo apt-get install -y -qq $PAKKETTEN
+sudo -E apt-get install "${APT_OPT[@]}" $PAKKETTEN
 sudo usermod -aG dialout,audio,plugdev,systemd-journal "$GEBRUIKER" || true
 
 stap "Python-omgeving"
@@ -254,4 +260,7 @@ else
   stap "Bijwerken: diensten herstarten"
   for d in $DIENSTEN; do sudo systemctl restart "$d" 2>/dev/null || true; [ "$d" = rnsd ] && sleep 3; done
   groen "   Bijgewerkt naar $(cat "$DOEL/versie.txt"). Instellingen zijn bewaard."
+  if [ -f /var/run/reboot-required ]; then
+    rood "   Er is een nieuwe kernel of systeembibliotheek geïnstalleerd: herstart de Pi (sudo reboot)."
+  fi
 fi
