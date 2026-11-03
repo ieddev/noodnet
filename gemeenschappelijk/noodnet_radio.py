@@ -94,6 +94,10 @@ def seriele_poorten():
             doel = os.path.basename(os.path.realpath(pad))
         except OSError:
             doel = ""
+        if "if00" in naam:
+            kort += "  [poort A]"
+        elif "if01" in naam:
+            kort += "  [poort B]"
         uit.append((pad, f"{kort}  ({doel})" if doel else kort))
     return uit
 
@@ -104,10 +108,11 @@ def raad_aan(kaarten, poorten):
     ptt = ""
     for pad, _ in poorten:
         n = os.path.basename(pad).lower()
-        if "cp2105" in n and "if01" in n:          # SCU-17: tweede poort = PTT
-            ptt = pad
-            break
-        if "ic-9700" in n or "ic9700" in n:
+        if "ic-9700" in n or "ic9700" in n or "ic-7" in n:   # Icom: poort A (if00), menu USB SEND = USB (A) RTS
+            if "if00" in n or not ptt:
+                ptt = pad
+            continue
+        if "cp2105" in n and "if01" in n and not ptt:       # Yaesu SCU-17: tweede poort = PTT
             ptt = pad
     return kaart, ptt
 
@@ -331,7 +336,7 @@ Na opslaan wordt Direwolf opnieuw gestart.</p>
 <label>Geluidskaart van de set</label><select name="geluidskaart">{kaart_opties}</select>
 <label>PTT-poort</label><select name="ptt_poort">{poort_opties}</select>
 <label>PTT-methode</label><select name="ptt_methode">{methode_opties}</select>
-<p class="uitleg" style="margin-top:8px">FT-818 met SCU-17: de tweede poort (if01) met RTS. IC-9700: menu USB SEND op RTS en de poort van de set kiezen.</p></section>
+<p class="uitleg" style="margin-top:8px">FT-818 met SCU-17: poort B (if01) met RTS. IC-9700: in de set <i>MENU &gt; SET &gt; Connectors &gt; USB SEND</i> op <b>USB (A) RTS</b> zetten en hier poort A (if00) met RTS kiezen. Daarna de knop Testuitzending.</p></section>
 {rnode}
 <div class="balk"><button type="submit">Opslaan en herstarten</button></div></form>
 {html_testuitzending(verborgen, r)}"""
