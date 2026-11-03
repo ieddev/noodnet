@@ -1,258 +1,258 @@
 [
- {
-  "id": "01dadc161e213217",
-  "type": "tab",
-  "label": "M/ETHANE scherm",
-  "disabled": false,
-  "info": "Toont M/ETHANE-meldingen van de RNS-MQTT-gateway op het dashboard (/ui)."
- },
- {
-  "id": "5ceae78e2c4c87c0",
-  "type": "comment",
-  "z": "01dadc161e213217",
-  "name": "M/ETHANE meldingen -> dashboard",
-  "info": "Topic reticulum/tbeam/methane/laatste is retained: na een herstart staat de laatste melding direct weer in beeld.\nMet de inject-node 'Testmelding' kun je het scherm testen zonder radio.\nIn de lijst: klik op een melding om alle M/ETHANE-velden te zien (laatste 25).",
-  "x": 400,
-  "y": 60,
-  "wires": []
- },
- {
-  "id": "6870968d80202632",
-  "type": "mqtt in",
-  "z": "01dadc161e213217",
-  "name": "M/ETHANE van gateway",
-  "topic": "reticulum/tbeam/methane/laatste",
-  "qos": "1",
-  "datatype": "json",
-  "broker": "49a287c308869fb8",
-  "nl": false,
-  "rap": false,
-  "rh": 0,
-  "inputs": 0,
-  "x": 180,
-  "y": 160,
-  "wires": [
-   [
-    "a35c87e61b1159b4",
-    "73b2abda16db49c8"
-   ]
-  ]
- },
- {
-  "id": "5148dc7514069393",
-  "type": "inject",
-  "z": "01dadc161e213217",
-  "name": "Testmelding",
-  "props": [
-   {
-    "p": "payload"
-   }
-  ],
-  "repeat": "",
-  "crontab": "",
-  "once": false,
-  "onceDelay": 0.1,
-  "topic": "",
-  "payload": "{\"type\":\"METHANE\",\"meldcode\":\"031140-3C\",\"meldcode_geldig\":true,\"herhaling\":false,\"timestamp\":1791023678.6948984,\"eerst_ontvangen\":1791023678.6948984,\"melding_epoch\":1791020400,\"melding_tijd\":\"2026-10-03 11:40\",\"melding_iso\":\"2026-10-03T09:40:00+00:00\",\"tijd_bron\":\"melding\",\"afzender\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ontvanger\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"rssi\":-97,\"snr\":6.5,\"groot_incident\":\"ja\",\"prioriteit\":\"hoog\",\"slachtoffers_aantal\":3,\"onbekend_velden\":0,\"gemeld_aan\":\"Brandweer, Ambulance, Politie\",\"gemeld_aan_lijst\":[\"Brandweer\",\"Ambulance\",\"Politie\"],\"groot_incident_tekst\":\"Ja, meerdere voertuigen betrokken en brand\",\"locatie\":\"Kruispunt Hengelosestraat / Lonnekerbrugstraat, Enschede\",\"soort_incident\":\"Verkeersongeval met brand\",\"gevaren\":\"Lekkende brandstof\\nverkeer rijdt nog door\",\"bereikbaarheid\":\"Via Hengelosestraat vanaf het centrum, Lonnekerbrugstraat dicht\",\"slachtoffers\":\"3, waarvan 1 ernstig\",\"hulpdiensten\":\"Politie ter plaatse, brandweer en 2 ambulances nodig\",\"regels\":[{\"letter\":\"M\",\"code\":\"m\",\"label\":\"M - Groot incident?\",\"waarde\":\"Ja, meerdere voertuigen betrokken en brand\",\"onbekend\":false},{\"letter\":\"E\",\"code\":\"e\",\"label\":\"E - Exacte locatie\",\"waarde\":\"Kruispunt Hengelosestraat / Lonnekerbrugstraat, Enschede\",\"onbekend\":false},{\"letter\":\"T\",\"code\":\"t\",\"label\":\"T - Soort incident\",\"waarde\":\"Verkeersongeval met brand\",\"onbekend\":false},{\"letter\":\"H\",\"code\":\"h\",\"label\":\"H - Gevaren\",\"waarde\":\"Lekkende brandstof\\nverkeer rijdt nog door\",\"onbekend\":false},{\"letter\":\"A\",\"code\":\"a\",\"label\":\"A - Bereikbaarheid\",\"waarde\":\"Via Hengelosestraat vanaf het centrum, Lonnekerbrugstraat dicht\",\"onbekend\":false},{\"letter\":\"N\",\"code\":\"n\",\"label\":\"N - Aantal slachtoffers\",\"waarde\":\"3, waarvan 1 ernstig\",\"onbekend\":false},{\"letter\":\"E\",\"code\":\"s\",\"label\":\"E - Hulpdiensten\",\"waarde\":\"Politie ter plaatse, brandweer en 2 ambulances nodig\",\"onbekend\":false}],\"afzender_naam\":\"Testmelder\"}",
-  "payloadType": "json",
-  "x": 160,
-  "y": 220,
-  "wires": [
-   [
-    "a35c87e61b1159b4"
-   ]
-  ]
- },
- {
-  "id": "5a919eeec0ee8423",
-  "type": "inject",
-  "z": "01dadc161e213217",
-  "name": "Lijst wissen",
-  "props": [
-   {
-    "p": "payload"
-   }
-  ],
-  "repeat": "",
-  "crontab": "",
-  "once": false,
-  "onceDelay": 0.1,
-  "topic": "",
-  "payload": "",
-  "payloadType": "date",
-  "x": 150,
-  "y": 320,
-  "wires": [
-   [
-    "58a6f62ebcfe6dbd"
-   ]
-  ]
- },
- {
-  "id": "58a6f62ebcfe6dbd",
-  "type": "function",
-  "z": "01dadc161e213217",
-  "name": "Wis scherm en lijst",
-  "func": "flow.set(\"methane_lijst\", []);\nnode.status({});\nreturn [{payload: null, nieuw: false, versie: Date.now()}, {payload: []}];",
-  "outputs": 2,
-  "timeout": 0,
-  "noerr": 0,
-  "initialize": "",
-  "finalize": "",
-  "libs": [],
-  "x": 510,
-  "y": 320,
-  "wires": [
-   [
-    "52b133fc29d3c0f7"
-   ],
-   [
-    "055a899b62e58290"
-   ]
-  ]
- },
- {
-  "id": "a35c87e61b1159b4",
-  "type": "function",
-  "z": "01dadc161e213217",
-  "name": "Verwerk melding",
-  "func": "// Verwerkt M/ETHANE-meldingen van de gateway.\n// Uitgang 1: huidige melding (groot scherm)\n// Uitgang 2: lijst met de laatste meldingen\nconst p = msg.payload;\nif (!p || p.type !== \"METHANE\") return null;\n\nlet lijst = flow.get(\"methane_lijst\") || [];\nconst idx = lijst.findIndex(m => m.meldcode === p.meldcode && m.afzender === p.afzender);\nconst nieuw = idx === -1;\nif (nieuw) {\n    lijst.unshift(p);\n} else {\n    lijst[idx] = p;              // herhaalde verzending: bijwerken, geen nieuwe regel\n}\nlijst = lijst.slice(0, 25);       // laatste 25 bewaren\nflow.set(\"methane_lijst\", lijst);\n\n// Alleen knipperen bij een echt nieuwe melding, niet bij een herhaling\n// en niet bij het retained bericht dat binnenkomt na een herstart.\nconst alarm = nieuw && !p.herhaling && !msg.retain;\n\nnode.status({fill: p.prioriteit === \"hoog\" ? \"red\" : \"yellow\", shape: \"dot\",\n             text: p.meldcode + \" \" + (alarm ? \"NIEUW\" : \"bijgewerkt\")});\n\nreturn [\n    {payload: p, nieuw: alarm, versie: Date.now()},\n    {payload: lijst}\n];",
-  "outputs": 2,
-  "timeout": 0,
-  "noerr": 0,
-  "initialize": "",
-  "finalize": "",
-  "libs": [],
-  "x": 510,
-  "y": 220,
-  "wires": [
-   [
-    "52b133fc29d3c0f7"
-   ],
-   [
-    "055a899b62e58290"
-   ]
-  ]
- },
- {
-  "id": "73b2abda16db49c8",
-  "type": "debug",
-  "z": "01dadc161e213217",
-  "name": "Ruwe melding",
-  "active": false,
-  "tosidebar": true,
-  "console": false,
-  "tostatus": false,
-  "complete": "payload",
-  "targetType": "msg",
-  "statusVal": "",
-  "statusType": "auto",
-  "x": 520,
-  "y": 140,
-  "wires": []
- },
- {
-  "id": "52b133fc29d3c0f7",
-  "type": "ui_template",
-  "z": "01dadc161e213217",
-  "group": "mth_grp_melding",
-  "name": "Huidige melding",
-  "order": 1,
-  "width": 24,
-  "height": 14,
-  "format": "<style>\n.mth { box-sizing:border-box; height:100%; overflow:auto; background:#1b1f24; color:#fff; font-family:Arial, Helvetica, sans-serif; padding:16px; border-radius:8px; }\n.mth-leeg { font-size:2em; color:#8a8f96; padding:60px 20px; text-align:center; }\n.mth-kop { display:flex; justify-content:space-between; align-items:center; gap:20px;\n           padding:16px 24px; border-radius:8px; background:#d35400; }\n.mth-kop.hoog { background:#c0392b; }\n.mth-kop .titel { font-size:2.6em; font-weight:bold; line-height:1.1; }\n.mth-kop .sub { font-size:1.2em; opacity:.85; margin-bottom:4px; letter-spacing:.05em; }\n.mth-kop .info { text-align:right; font-size:1.4em; white-space:nowrap; }\n.mth-knipper { animation: mthknip 1s step-start 0s 30; }\n@keyframes mthknip { 50% { background:#ffffff; color:#c0392b; } }\n.mth-grid { display:grid; grid-template-columns:80px minmax(180px, 260px) 1fr; gap:8px 18px; margin-top:16px; }\n.mth-letter { font-size:2.6em; font-weight:bold; text-align:center; background:#2c3e50;\n              border-radius:6px; display:flex; align-items:center; justify-content:center; }\n.mth-label { font-size:1.3em; color:#aeb4bb; align-self:center; }\n.mth-waarde { font-size:1.9em; white-space:pre-line; align-self:center; line-height:1.25; }\n.mth-waarde.onbekend { color:#6f757c; font-style:italic; }\n.mth-voet { margin-top:14px; color:#aeb4bb; font-size:1.05em; }\n.mth-voet .upd { color:#f1c40f; }\n</style>\n\n<div class=\"mth\">\n  <div ng-if=\"!msg.payload\" class=\"mth-leeg\">Nog geen M/ETHANE-melding ontvangen</div>\n\n  <div ng-if=\"msg.payload\" ng-repeat=\"p in [msg.payload] track by msg.versie\">\n    <div class=\"mth-kop\" ng-class=\"{'hoog': p.prioriteit == 'hoog', 'mth-knipper': msg.nieuw}\">\n      <div>\n        <div class=\"sub\">M/ETHANE MELDING{{ p.prioriteit == 'hoog' ? ' – GROOT INCIDENT' : '' }}</div>\n        <div class=\"titel\">{{ p.soort_incident }}</div>\n      </div>\n      <div class=\"info\">{{ p.melding_tijd }}<br>Meldcode {{ p.meldcode }}</div>\n    </div>\n\n    <div class=\"mth-grid\">\n      <div ng-repeat-start=\"r in p.regels\" class=\"mth-letter\">{{ r.letter }}</div>\n      <div class=\"mth-label\">{{ r.label.substring(4) }}</div>\n      <div ng-repeat-end class=\"mth-waarde\" ng-class=\"{'onbekend': r.onbekend}\">{{ r.waarde }}</div>\n    </div>\n\n    <div class=\"mth-voet\">\n      Gemeld aan: {{ p.gemeld_aan }}\n      · Van {{ p.afzender_naam || ((p.afzender | limitTo:8) + '…') }}\n      <span ng-if=\"p.steunpunt\">· via {{ p.steunpunt }}</span>\n      <span ng-if=\"p.rssi !== null\">· RSSI {{ p.rssi }} dBm</span>\n      <span ng-if=\"p.snr !== null\">· SNR {{ p.snr }} dB</span>\n      <span ng-if=\"p.herhaling\" class=\"upd\">· bijgewerkt door herhaalde verzending</span>\n    </div>\n  </div>\n</div>",
-  "storeOutMessages": true,
-  "fwdInMessages": false,
-  "resendOnRefresh": true,
-  "templateScope": "local",
-  "className": "",
-  "x": 780,
-  "y": 220,
-  "wires": [
-   []
-  ]
- },
- {
-  "id": "055a899b62e58290",
-  "type": "ui_template",
-  "z": "01dadc161e213217",
-  "group": "mth_grp_lijst",
-  "name": "Laatste meldingen",
-  "order": 1,
-  "width": 24,
-  "height": 14,
-  "format": "<style>\n.mth-tab { width:100%; border-collapse:collapse; font-family:Arial, Helvetica, sans-serif; font-size:1.15em; }\n.mth-tab th { text-align:left; padding:8px; background:#2c3e50; color:#fff; }\n.mth-tab td { padding:8px; border-bottom:1px solid #444; vertical-align:top; }\n.mth-tab tr.rij { cursor:pointer; }\n.mth-tab tr.rij:hover td { background:#2a3038; }\n.mth-tab tr.hoog td:first-child { border-left:6px solid #c0392b; }\n.mth-tab tr.normaal td:first-child { border-left:6px solid #d35400; }\n.mth-tab td:nth-child(1), .mth-tab td:nth-child(3) { white-space:nowrap; }\n.mth-tab .leeg { color:#888; font-style:italic; }\n.mth-tab .pijl { display:inline-block; width:1.1em; color:#aeb4bb; }\n.mth-tab tr.detail td { background:#151a1f; padding:12px 18px 16px 18px; }\n.mth-dgrid { display:grid; grid-template-columns:44px minmax(150px, 220px) 1fr; gap:6px 14px; }\n.mth-dl { font-size:1.4em; font-weight:bold; text-align:center; background:#2c3e50; border-radius:4px; }\n.mth-dlab { color:#aeb4bb; align-self:center; }\n.mth-dw { white-space:pre-line; align-self:center; font-size:1.1em; }\n.mth-dw.onbekend { color:#6f757c; font-style:italic; }\n.mth-dvoet { margin-top:10px; color:#aeb4bb; }\n.mth-hint { color:#8a8f96; font-size:0.9em; margin:4px 0 8px 0; }\n</style>\n<div ng-init=\"open = {}\">\n  <div class=\"mth-hint\">Klik op een melding om alle M/ETHANE-velden te zien.</div>\n  <table class=\"mth-tab\">\n    <tr><th>Tijd</th><th>Van</th><th>Meldcode</th><th>Soort</th><th>Locatie</th><th>Slachtoffers</th><th>Groot</th></tr>\n    <tr ng-if=\"!msg.payload || msg.payload.length == 0\"><td colspan=\"7\" class=\"leeg\">Geen meldingen</td></tr>\n    <tr ng-repeat-start=\"m in msg.payload track by $index\" class=\"rij\"\n        ng-class=\"m.prioriteit == 'hoog' ? 'hoog' : 'normaal'\"\n        ng-click=\"open[m.meldcode + '|' + m.afzender] = !open[m.meldcode + '|' + m.afzender]\">\n      <td><span class=\"pijl\">{{ open[m.meldcode + '|' + m.afzender] ? '▾' : '▸' }}</span>{{ m.melding_tijd }}</td>\n      <td>{{ m.afzender_naam || 'onbekend' }}</td>\n      <td>{{ m.meldcode }}</td>\n      <td>{{ m.soort_incident }}</td>\n      <td>{{ m.locatie }}</td>\n      <td>{{ m.slachtoffers }}</td>\n      <td>{{ m.groot_incident }}</td>\n    </tr>\n    <tr ng-repeat-end ng-if=\"open[m.meldcode + '|' + m.afzender]\" class=\"detail\">\n      <td colspan=\"7\">\n        <div class=\"mth-dgrid\">\n          <div ng-repeat-start=\"r in m.regels\" class=\"mth-dl\">{{ r.letter }}</div>\n          <div class=\"mth-dlab\">{{ r.label.substring(4) }}</div>\n          <div ng-repeat-end class=\"mth-dw\" ng-class=\"{'onbekend': r.onbekend}\">{{ r.waarde }}</div>\n        </div>\n        <div class=\"mth-dvoet\">\n          Gemeld aan: {{ m.gemeld_aan }}\n          <span ng-if=\"m.steunpunt\">· via {{ m.steunpunt }}</span>\n          <span ng-if=\"m.rssi !== null && m.rssi !== undefined\">· RSSI {{ m.rssi }} dBm</span>\n          <span ng-if=\"m.snr !== null && m.snr !== undefined\">· SNR {{ m.snr }} dB</span>\n          <span ng-if=\"m.herhaling\">· bijgewerkt door herhaalde verzending</span>\n        </div>\n      </td>\n    </tr>\n  </table>\n</div>\n",
-  "storeOutMessages": true,
-  "fwdInMessages": false,
-  "resendOnRefresh": true,
-  "templateScope": "local",
-  "className": "",
-  "x": 790,
-  "y": 320,
-  "wires": [
-   []
-  ]
- },
- {
-  "id": "49a287c308869fb8",
-  "type": "mqtt-broker",
-  "name": "Lokaal (deze Pi)",
-  "broker": "127.0.0.1",
-  "port": "1883",
-  "clientid": "",
-  "autoConnect": true,
-  "usetls": false,
-  "protocolVersion": "4",
-  "keepalive": "60",
-  "cleansession": true,
-  "autoUnsubscribe": true,
-  "birthTopic": "",
-  "birthQos": "0",
-  "birthRetain": "false",
-  "birthPayload": "",
-  "birthMsg": {},
-  "closeTopic": "",
-  "closeQos": "0",
-  "closeRetain": "false",
-  "closePayload": "",
-  "closeMsg": {},
-  "willTopic": "",
-  "willQos": "0",
-  "willRetain": "false",
-  "willPayload": "",
-  "willMsg": {},
-  "userProps": "",
-  "sessionExpiry": ""
- },
- {
-  "id": "mth_grp_melding",
-  "type": "ui_group",
-  "name": "Huidige melding",
-  "tab": "mth_ui_tab",
-  "order": 1,
-  "disp": false,
-  "width": "24",
-  "collapse": false,
-  "className": ""
- },
- {
-  "id": "mth_grp_lijst",
-  "type": "ui_group",
-  "name": "Laatste meldingen",
-  "tab": "mth_ui_tab",
-  "order": 2,
-  "disp": true,
-  "width": "24",
-  "collapse": false,
-  "className": ""
- },
- {
-  "id": "mth_ui_tab",
-  "type": "ui_tab",
-  "name": "M/ETHANE",
-  "icon": "warning",
-  "order": 10,
-  "disabled": false,
-  "hidden": false
- }
+    {
+        "id": "01dadc161e213217",
+        "type": "tab",
+        "label": "M/ETHANE scherm",
+        "disabled": false,
+        "info": "Toont M/ETHANE-meldingen van de RNS-MQTT-gateway op het dashboard (/ui)."
+    },
+    {
+        "id": "5ceae78e2c4c87c0",
+        "type": "comment",
+        "z": "01dadc161e213217",
+        "name": "M/ETHANE meldingen -> dashboard",
+        "info": "Topic reticulum/tbeam/methane/laatste is retained: na een herstart staat de laatste melding direct weer in beeld.\nMet de inject-node 'Testmelding' kun je het scherm testen zonder radio.\nIn de lijst: klik op een melding om alle M/ETHANE-velden te zien (laatste 25).",
+        "x": 400,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "6870968d80202632",
+        "type": "mqtt in",
+        "z": "01dadc161e213217",
+        "name": "M/ETHANE van gateway",
+        "topic": "reticulum/tbeam/methane/laatste",
+        "qos": "1",
+        "datatype": "json",
+        "broker": "49a287c308869fb8",
+        "nl": false,
+        "rap": false,
+        "rh": 0,
+        "inputs": 0,
+        "x": 180,
+        "y": 160,
+        "wires": [
+            [
+                "a35c87e61b1159b4",
+                "73b2abda16db49c8"
+            ]
+        ]
+    },
+    {
+        "id": "5148dc7514069393",
+        "type": "inject",
+        "z": "01dadc161e213217",
+        "name": "Testmelding",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{\"type\":\"METHANE\",\"meldcode\":\"031140-3C\",\"meldcode_geldig\":true,\"herhaling\":false,\"timestamp\":1791023678.6948984,\"eerst_ontvangen\":1791023678.6948984,\"melding_epoch\":1791020400,\"melding_tijd\":\"2026-10-03 11:40\",\"melding_iso\":\"2026-10-03T09:40:00+00:00\",\"tijd_bron\":\"melding\",\"afzender\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ontvanger\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"rssi\":-97,\"snr\":6.5,\"groot_incident\":\"ja\",\"prioriteit\":\"hoog\",\"slachtoffers_aantal\":3,\"onbekend_velden\":0,\"gemeld_aan\":\"Brandweer, Ambulance, Politie\",\"gemeld_aan_lijst\":[\"Brandweer\",\"Ambulance\",\"Politie\"],\"groot_incident_tekst\":\"Ja, meerdere voertuigen betrokken en brand\",\"locatie\":\"Kruispunt Hengelosestraat / Lonnekerbrugstraat, Enschede\",\"soort_incident\":\"Verkeersongeval met brand\",\"gevaren\":\"Lekkende brandstof\\nverkeer rijdt nog door\",\"bereikbaarheid\":\"Via Hengelosestraat vanaf het centrum, Lonnekerbrugstraat dicht\",\"slachtoffers\":\"3, waarvan 1 ernstig\",\"hulpdiensten\":\"Politie ter plaatse, brandweer en 2 ambulances nodig\",\"regels\":[{\"letter\":\"M\",\"code\":\"m\",\"label\":\"M - Groot incident?\",\"waarde\":\"Ja, meerdere voertuigen betrokken en brand\",\"onbekend\":false},{\"letter\":\"E\",\"code\":\"e\",\"label\":\"E - Exacte locatie\",\"waarde\":\"Kruispunt Hengelosestraat / Lonnekerbrugstraat, Enschede\",\"onbekend\":false},{\"letter\":\"T\",\"code\":\"t\",\"label\":\"T - Soort incident\",\"waarde\":\"Verkeersongeval met brand\",\"onbekend\":false},{\"letter\":\"H\",\"code\":\"h\",\"label\":\"H - Gevaren\",\"waarde\":\"Lekkende brandstof\\nverkeer rijdt nog door\",\"onbekend\":false},{\"letter\":\"A\",\"code\":\"a\",\"label\":\"A - Bereikbaarheid\",\"waarde\":\"Via Hengelosestraat vanaf het centrum, Lonnekerbrugstraat dicht\",\"onbekend\":false},{\"letter\":\"N\",\"code\":\"n\",\"label\":\"N - Aantal slachtoffers\",\"waarde\":\"3, waarvan 1 ernstig\",\"onbekend\":false},{\"letter\":\"E\",\"code\":\"s\",\"label\":\"E - Hulpdiensten\",\"waarde\":\"Politie ter plaatse, brandweer en 2 ambulances nodig\",\"onbekend\":false}],\"afzender_naam\":\"Testmelder\"}",
+        "payloadType": "json",
+        "x": 160,
+        "y": 220,
+        "wires": [
+            [
+                "a35c87e61b1159b4"
+            ]
+        ]
+    },
+    {
+        "id": "5a919eeec0ee8423",
+        "type": "inject",
+        "z": "01dadc161e213217",
+        "name": "Lijst wissen",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 150,
+        "y": 320,
+        "wires": [
+            [
+                "58a6f62ebcfe6dbd"
+            ]
+        ]
+    },
+    {
+        "id": "58a6f62ebcfe6dbd",
+        "type": "function",
+        "z": "01dadc161e213217",
+        "name": "Wis scherm en lijst",
+        "func": "flow.set(\"methane_lijst\", []);\nnode.status({});\nreturn [{payload: null, nieuw: false, versie: Date.now()}, {payload: []}];",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 510,
+        "y": 320,
+        "wires": [
+            [
+                "52b133fc29d3c0f7"
+            ],
+            [
+                "055a899b62e58290"
+            ]
+        ]
+    },
+    {
+        "id": "a35c87e61b1159b4",
+        "type": "function",
+        "z": "01dadc161e213217",
+        "name": "Verwerk melding",
+        "func": "// Verwerkt M/ETHANE-meldingen van de gateway.\n// Uitgang 1: huidige melding (groot scherm)\n// Uitgang 2: lijst met de laatste meldingen\nconst p = msg.payload;\nif (!p || p.type !== \"METHANE\") return null;\n\nlet lijst = flow.get(\"methane_lijst\") || [];\nconst idx = lijst.findIndex(m => m.meldcode === p.meldcode && m.afzender === p.afzender);\nconst nieuw = idx === -1;\nif (nieuw) {\n    lijst.unshift(p);\n} else {\n    lijst[idx] = p;              // herhaalde verzending: bijwerken, geen nieuwe regel\n}\nlijst = lijst.slice(0, 25);       // laatste 25 bewaren\nflow.set(\"methane_lijst\", lijst);\n\n// Alleen knipperen bij een echt nieuwe melding, niet bij een herhaling\n// en niet bij het retained bericht dat binnenkomt na een herstart.\nconst alarm = nieuw && !p.herhaling && !msg.retain;\n\nnode.status({fill: p.prioriteit === \"hoog\" ? \"red\" : \"yellow\", shape: \"dot\",\n             text: p.meldcode + \" \" + (alarm ? \"NIEUW\" : \"bijgewerkt\")});\n\nreturn [\n    {payload: p, nieuw: alarm, versie: Date.now()},\n    {payload: lijst}\n];",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 510,
+        "y": 220,
+        "wires": [
+            [
+                "52b133fc29d3c0f7"
+            ],
+            [
+                "055a899b62e58290"
+            ]
+        ]
+    },
+    {
+        "id": "73b2abda16db49c8",
+        "type": "debug",
+        "z": "01dadc161e213217",
+        "name": "Ruwe melding",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 520,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "52b133fc29d3c0f7",
+        "type": "ui_template",
+        "z": "01dadc161e213217",
+        "group": "mth_grp_melding",
+        "name": "Huidige melding",
+        "order": 1,
+        "width": 24,
+        "height": 14,
+        "format": "<style>\n.mth { box-sizing:border-box; height:100%; overflow:auto; background:#1b1f24; color:#fff; font-family:Arial, Helvetica, sans-serif; padding:16px; border-radius:8px; }\n.mth-leeg { font-size:2em; color:#8a8f96; padding:60px 20px; text-align:center; }\n.mth-kop { display:flex; justify-content:space-between; align-items:center; gap:20px;\n           padding:16px 24px; border-radius:8px; background:#d35400; }\n.mth-kop.hoog { background:#c0392b; }\n.mth-kop .titel { font-size:2.6em; font-weight:bold; line-height:1.1; }\n.mth-kop .sub { font-size:1.2em; opacity:.85; margin-bottom:4px; letter-spacing:.05em; }\n.mth-kop .info { text-align:right; font-size:1.4em; white-space:nowrap; }\n.mth-knipper { animation: mthknip 1s step-start 0s 30; }\n@keyframes mthknip { 50% { background:#ffffff; color:#c0392b; } }\n.mth-grid { display:grid; grid-template-columns:80px minmax(180px, 260px) 1fr; gap:8px 18px; margin-top:16px; }\n.mth-letter { font-size:2.6em; font-weight:bold; text-align:center; background:#2c3e50;\n              border-radius:6px; display:flex; align-items:center; justify-content:center; }\n.mth-label { font-size:1.3em; color:#aeb4bb; align-self:center; }\n.mth-waarde { font-size:1.9em; white-space:pre-line; align-self:center; line-height:1.25; }\n.mth-waarde.onbekend { color:#6f757c; font-style:italic; }\n.mth-voet { margin-top:14px; color:#aeb4bb; font-size:1.05em; }\n.mth-voet .upd { color:#f1c40f; }\n</style>\n\n<div class=\"mth\">\n  <div ng-if=\"!msg.payload\" class=\"mth-leeg\">Nog geen M/ETHANE-melding ontvangen</div>\n\n  <div ng-if=\"msg.payload\" ng-repeat=\"p in [msg.payload] track by msg.versie\">\n    <div class=\"mth-kop\" ng-class=\"{'hoog': p.prioriteit == 'hoog', 'mth-knipper': msg.nieuw}\">\n      <div>\n        <div class=\"sub\">M/ETHANE MELDING{{ p.prioriteit == 'hoog' ? ' – GROOT INCIDENT' : '' }}</div>\n        <div class=\"titel\">{{ p.soort_incident }}</div>\n      </div>\n      <div class=\"info\">{{ p.melding_tijd }}<br>Meldcode {{ p.meldcode }}</div>\n    </div>\n\n    <div class=\"mth-grid\">\n      <div ng-repeat-start=\"r in p.regels\" class=\"mth-letter\">{{ r.letter }}</div>\n      <div class=\"mth-label\">{{ r.label.substring(4) }}</div>\n      <div ng-repeat-end class=\"mth-waarde\" ng-class=\"{'onbekend': r.onbekend}\">{{ r.waarde }}</div>\n    </div>\n\n    <div class=\"mth-voet\">\n      Gemeld aan: {{ p.gemeld_aan }}\n      · Van {{ p.afzender_naam || ((p.afzender | limitTo:8) + '…') }}\n      <span ng-if=\"p.steunpunt\">· via {{ p.steunpunt }}</span>\n      <span ng-if=\"p.rssi !== null\">· RSSI {{ p.rssi }} dBm</span>\n      <span ng-if=\"p.snr !== null\">· SNR {{ p.snr }} dB</span>\n      <span ng-if=\"p.herhaling\" class=\"upd\">· bijgewerkt door herhaalde verzending</span>\n    </div>\n  </div>\n</div>",
+        "storeOutMessages": true,
+        "fwdInMessages": false,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "className": "",
+        "x": 780,
+        "y": 220,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "055a899b62e58290",
+        "type": "ui_template",
+        "z": "01dadc161e213217",
+        "group": "mth_grp_lijst",
+        "name": "Laatste meldingen",
+        "order": 1,
+        "width": 24,
+        "height": 14,
+        "format": "<style>\n.mth-tab { width:100%; border-collapse:collapse; font-family:Arial, Helvetica, sans-serif; font-size:1.15em; }\n.mth-tab th { text-align:left; padding:8px; background:#2c3e50; color:#fff; }\n.mth-tab td { padding:8px; border-bottom:1px solid #444; vertical-align:top; }\n.mth-tab tr.rij { cursor:pointer; }\n.mth-tab tr.rij:hover td { background:rgba(128,128,128,.18); }\n.mth-tab tr.hoog td:first-child { border-left:6px solid #c0392b; }\n.mth-tab tr.normaal td:first-child { border-left:6px solid #d35400; }\n.mth-tab td:nth-child(1), .mth-tab td:nth-child(3) { white-space:nowrap; }\n.mth-tab .leeg { color:#888; font-style:italic; }\n.mth-tab .pijl { display:inline-block; width:1.1em; color:#aeb4bb; }\n.mth-tab tr.detail td { background:#151a1f; color:#ffffff; padding:12px 18px 16px 18px; }\n.mth-dgrid { display:grid; grid-template-columns:44px minmax(150px, 220px) 1fr; gap:6px 14px; }\n.mth-dl { font-size:1.4em; font-weight:bold; text-align:center; background:#2c3e50; color:#ffffff; border-radius:4px; }\n.mth-dlab { color:#aeb4bb; align-self:center; }\n.mth-dw { white-space:pre-line; align-self:center; font-size:1.1em; }\n.mth-dw.onbekend { color:#6f757c; font-style:italic; }\n.mth-dvoet { margin-top:10px; color:#aeb4bb; }\n.mth-hint { color:#8a8f96; font-size:0.9em; margin:4px 0 8px 0; }\n</style>\n<div ng-init=\"open = {}\">\n  <div class=\"mth-hint\">Klik op een melding om alle M/ETHANE-velden te zien.</div>\n  <table class=\"mth-tab\">\n    <tr><th>Tijd</th><th>Van</th><th>Meldcode</th><th>Soort</th><th>Locatie</th><th>Slachtoffers</th><th>Groot</th></tr>\n    <tr ng-if=\"!msg.payload || msg.payload.length == 0\"><td colspan=\"7\" class=\"leeg\">Geen meldingen</td></tr>\n    <tr ng-repeat-start=\"m in msg.payload track by $index\" class=\"rij\"\n        ng-class=\"m.prioriteit == 'hoog' ? 'hoog' : 'normaal'\"\n        ng-click=\"open[m.meldcode + '|' + m.afzender] = !open[m.meldcode + '|' + m.afzender]\">\n      <td><span class=\"pijl\">{{ open[m.meldcode + '|' + m.afzender] ? '▾' : '▸' }}</span>{{ m.melding_tijd }}</td>\n      <td>{{ m.afzender_naam || 'onbekend' }}</td>\n      <td>{{ m.meldcode }}</td>\n      <td>{{ m.soort_incident }}</td>\n      <td>{{ m.locatie }}</td>\n      <td>{{ m.slachtoffers }}</td>\n      <td>{{ m.groot_incident }}</td>\n    </tr>\n    <tr ng-repeat-end ng-if=\"open[m.meldcode + '|' + m.afzender]\" class=\"detail\">\n      <td colspan=\"7\">\n        <div class=\"mth-dgrid\">\n          <div ng-repeat-start=\"r in m.regels\" class=\"mth-dl\">{{ r.letter }}</div>\n          <div class=\"mth-dlab\">{{ r.label.substring(4) }}</div>\n          <div ng-repeat-end class=\"mth-dw\" ng-class=\"{'onbekend': r.onbekend}\">{{ r.waarde }}</div>\n        </div>\n        <div class=\"mth-dvoet\">\n          Gemeld aan: {{ m.gemeld_aan }}\n          <span ng-if=\"m.steunpunt\">· via {{ m.steunpunt }}</span>\n          <span ng-if=\"m.rssi !== null && m.rssi !== undefined\">· RSSI {{ m.rssi }} dBm</span>\n          <span ng-if=\"m.snr !== null && m.snr !== undefined\">· SNR {{ m.snr }} dB</span>\n          <span ng-if=\"m.herhaling\">· bijgewerkt door herhaalde verzending</span>\n        </div>\n      </td>\n    </tr>\n  </table>\n</div>\n",
+        "storeOutMessages": true,
+        "fwdInMessages": false,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "className": "",
+        "x": 790,
+        "y": 320,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "49a287c308869fb8",
+        "type": "mqtt-broker",
+        "name": "Lokaal (deze Pi)",
+        "broker": "127.0.0.1",
+        "port": "1883",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "mth_grp_melding",
+        "type": "ui_group",
+        "name": "Huidige melding",
+        "tab": "mth_ui_tab",
+        "order": 1,
+        "disp": false,
+        "width": "24",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "mth_grp_lijst",
+        "type": "ui_group",
+        "name": "Laatste meldingen",
+        "tab": "mth_ui_tab",
+        "order": 2,
+        "disp": true,
+        "width": "24",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "mth_ui_tab",
+        "type": "ui_tab",
+        "name": "M/ETHANE",
+        "icon": "warning",
+        "order": 10,
+        "disabled": false,
+        "hidden": false
+    }
 ]
