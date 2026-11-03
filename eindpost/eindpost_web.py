@@ -518,8 +518,7 @@ class Handler(BaseHTTPRequestHandler):
                 sys.stderr.write(uit + "\n")
             return self._stuur(uit or "ok", soort="text/plain; charset=utf-8")
         if pad == "radiotest":
-            gelukt, regels = radio.testuitzending(inst.get("roepnaam"), lang=f.get("duur") == "lang")
-            return self._stuur(pagina("radio", radio.html_testuitslag(gelukt, regels) +
+            return self._stuur(pagina("radio", radio.verwerk_test(inst.get("roepnaam"), f) +
                                       radio.html_radio("eindpost", verborgen()), inst))
         if pad == "radio":
             fouten, diensten, r = radio.verwerk_radio("eindpost", f, inst.get("roepnaam"))

@@ -280,17 +280,140 @@ def testuitzending(roepnaam, lang=False, wacht=None):
     return True, regels[-8:]
 
 
+AMIXER = os.environ.get("NOODNET_AMIXER", "amixer")
+
+
+def mixer(kaart):
+    """Regelaars van de geluidskaart: {"zend": (naam, %), "ontvang": (naam, %)} (alleen wat er is)."""
+    if not kaart:
+        return {}
+    tekst = _uit([AMIXER, "-c", kaart, "scontents"])
+    regelaars, huidig = [], None
+    for regel in tekst.splitlines():
+        m = re.match(r"Simple mixer control '(.+)',(\d+)", regel)
+        if m:
+            huidig = {"naam": m.group(1), "caps": "", "p": None, "c": None}
+            regelaars.append(huidig)
+        elif huidig is not None:
+            if "Capabilities:" in regel:
+                huidig["caps"] = regel
+            pct = re.search(r"\[(\d+)%\]", regel)
+            if pct and ":" in regel:
+                soort = "p" if "Playback" in regel else ("c" if "Capture" in regel else None)
+                if soort and huidig[soort] is None:
+                    huidig[soort] = int(pct.group(1))
+
+    def kies(cap, soort, voorkeur):
+        kandidaten = [r for r in regelaars if re.search(rf"\b{cap}\b", r["caps"]) and r[soort] is not None]
+        kandidaten.sort(key=lambda r: next((i for i, v in enumerate(voorkeur) if v in r["naam"].lower()), 99))
+        return (kandidaten[0]["naam"], kandidaten[0][soort]) if kandidaten else None
+
+    uit = {}
+    z = kies("pvolume", "p", ["speaker", "pcm", "headphone", "master"])
+    o = kies("cvolume", "c", ["mic", "capture", "line"])
+    if z:
+        uit["zend"] = z
+    if o:
+        uit["ontvang"] = o
+    return uit
+
+
+def zet_niveaus(r=None):
+    """Zet de opgeslagen niveaus op de geluidskaart (ook bij het starten van Direwolf). Geeft [fouten]."""
+    r = r or instellingen()
+    kaart = r.get("geluidskaart")
+    m = mixer(kaart)
+    fouten = []
+    for sleutel, extra in (("zend", ["unmute"]), ("ontvang", ["cap"])):
+        waarde = r.get(f"niveau_{sleutel}")
+        if waarde is None or sleutel not in m:
+            continue
+        try:
+            subprocess.run([AMIXER, "-q", "-c", kaart, "sset", m[sleutel][0], f"{int(waarde)}%"] + extra,
+                           check=True, capture_output=True, text=True, timeout=5)
+        except Exception as fout:
+            fouten.append(f"Niveau {sleutel} zetten lukte niet: {getattr(fout, 'stderr', '') or fout}")
+    return fouten
+
+
+def ontvangen_niveaus(n=6):
+    """Laatste 'audio level' van Direwolf (ontvangen packets): [(tijd, niveau)]."""
+    log = _uit(["journalctl", "-u", "direwolf", "--no-pager", "-o", "short-iso", "-n", "400"])
+    uit = []
+    for regel in log.splitlines():
+        m = re.search(r"audio level = (\d+)", regel)
+        if m:
+            tijd = regel.split(" ", 1)[0][11:19] if "T" in regel[:20] else ""
+            uit.append((tijd, int(m.group(1))))
+    return uit[-n:]
+
+
+def advies_niveau(niveau):
+    if niveau < 15:
+        return "te zacht: ontvangstniveau omhoog (of volume/AF van de set)"
+    if niveau > 100:
+        return "te hard: ontvangstniveau omlaag"
+    if 30 <= niveau <= 70:
+        return "goed"
+    return "bruikbaar (ideaal is rond 50)"
+
+
 def html_testuitzending(verborgen, r=None):
     r = r or instellingen()
+    m = mixer(r.get("geluidskaart"))
     ptt = "Er is geen PTT-poort gekozen: de set moet dan op VOX staan." if not r.get("ptt_poort") else ""
-    return f"""<section id="test"><h2>Testuitzending</h2><p class="uitleg">De Pi zendt een kort testbericht uit op 2 m
-(AX.25, met jouw roepnaam). Kijk of de set op <b>zenden</b> gaat. Luister op een tweede ontvanger: je hoort een kort
-packet-geluid. Klinkt dat vervormd of heel zacht, dan staat het geluidsniveau niet goed.
-<b>Lang</b> houdt de zender ongeveer 5 seconden aan, zodat je vermogen en SWR kunt aflezen.</p>
+
+    def balk(sleutel, titel, uitleg):
+        if sleutel not in m:
+            return f"<label>{titel}</label><p class='uitleg'>Deze geluidskaart heeft geen regelaar hiervoor; stel het in op de set.</p>"
+        naam, huidig = m[sleutel]
+        waarde = r.get(f"niveau_{sleutel}", huidig)
+        return (f'<label>{titel} <small>{e(uitleg)} (regelaar {e(naam)})</small></label>'
+                f'<div style="display:flex;gap:12px;align-items:center"><input type="range" name="niveau_{sleutel}" min="0" max="100" '
+                f'value="{int(waarde)}" style="flex:1" oninput="this.nextElementSibling.textContent=this.value+\'%\'">'
+                f'<b style="min-width:3em">{int(waarde)}%</b></div>')
+
+    gehoord = ontvangen_niveaus()
+    if gehoord:
+        rijen = "".join(f"<tr><td class='mono'>{e(t)}</td><td><b>{n}</b></td><td>{e(advies_niveau(n))}</td></tr>"
+                        for t, n in gehoord)
+        ontv = f"<table><tr><th>Tijd</th><th>Niveau</th><th>Advies</th></tr>{rijen}</table>"
+    else:
+        ontv = "<p class='uitleg'>Nog geen packets ontvangen. Laat iemand een packet sturen (bijv. een testuitzending van een ander steunpunt of eindpost).</p>"
+    return f"""<section id="test"><h2>Geluidsniveau en testuitzending</h2>
+<form method="post" action="/radiotest">{verborgen}
+{balk("zend", "Zendniveau", "Pi naar de set: bepaalt de zwaai")}
+{balk("ontvang", "Ontvangstniveau", "set naar de Pi")}
+<p class="uitleg" style="margin-top:8px">Met de testknoppen worden eerst de niveaus opgeslagen. De Pi zendt dan een kort
+testbericht uit (AX.25, met jouw roepnaam). Kijk of de set op <b>zenden</b> gaat. Luister op een tweede ontvanger: een
+schoon, niet vervormd packet-geluid. Vervormd of overstuurd: zendniveau omlaag. Komt het bij de ander niet aan: wat
+omhoog. Begin rond 50%. <b>Lang</b> houdt de zender ongeveer 6 seconden aan (vermogen/SWR aflezen).</p>
 {f'<div class="melding let">{e(ptt)}</div>' if ptt else ''}
-<form method="post" action="/radiotest" class="balk" style="margin-top:0">{verborgen}
-<button type="submit" name="duur" value="kort">Testuitzending (1 s)</button>
-<button type="submit" name="duur" value="lang" class="licht">Lang (5 s)</button></form></section>"""
+<div class="balk"><button type="submit" name="duur" value="kort">Opslaan + testuitzending (1 s)</button>
+<button type="submit" name="duur" value="lang" class="licht">Lang (6 s)</button>
+<button type="submit" name="duur" value="opslaan" class="licht">Alleen opslaan</button></div></form>
+<h3 style="margin-top:16px">Ontvangen niveau (gemeten door Direwolf)</h3>{ontv}
+<p class="uitleg">Ideaal rond 50 (tussen 30 en 70). Ververs de pagina na een nieuw ontvangen packet.</p></section>"""
+
+
+def verwerk_test(roepnaam, f):
+    """Formulier van 'Geluidsniveau en testuitzending': niveaus opslaan, dan eventueel testen. Geeft html."""
+    r = instellingen()
+    fouten = []
+    for sleutel in ("zend", "ontvang"):
+        if f.get(f"niveau_{sleutel}") not in (None, ""):
+            try:
+                r[f"niveau_{sleutel}"] = max(0, min(100, int(f[f"niveau_{sleutel}"])))
+            except ValueError:
+                pass
+    schrijf(RADIO_FILE, r)
+    fouten += zet_niveaus(r)
+    uit = "".join(f'<div class="melding fout">{e(x)}</div>' for x in fouten)
+    if f.get("duur") in ("kort", "lang"):
+        uit += html_testuitslag(*testuitzending(roepnaam, lang=f.get("duur") == "lang"))
+    elif not fouten:
+        uit += '<div class="melding ok">Niveaus opgeslagen en ingesteld.</div>'
+    return uit
 
 
 def html_testuitslag(gelukt, regels):
@@ -389,3 +512,10 @@ def verwerk_radio(rol, f, roepnaam, net=None):
     if rol == "steunpunt":
         maak_reticulum(r, net)
     return [], herstart, r
+
+
+if __name__ == "__main__":
+    import sys
+    if "--niveau" in sys.argv:          # door direwolf.service bij het starten
+        for x in zet_niveaus():
+            print(x, file=sys.stderr)
