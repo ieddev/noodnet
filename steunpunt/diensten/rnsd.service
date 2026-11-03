@@ -1,0 +1,13 @@
+[Unit]
+Description=Reticulum (rnsd) - LoRa via de RNodes
+After=network.target
+
+[Service]
+Type=simple
+User=@GEBRUIKER@
+ExecStart=@VENV@/bin/rnsd --service
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

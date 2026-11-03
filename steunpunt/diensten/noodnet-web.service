@@ -1,0 +1,15 @@
+[Unit]
+Description=Noodnet beheerpagina steunpunt (poort 8080)
+After=network.target
+
+[Service]
+Type=simple
+User=@GEBRUIKER@
+WorkingDirectory=@MAP@
+Environment=PYTHONUNBUFFERED=1
+ExecStart=@VENV@/bin/python @MAP@/noodnet_web.py --poort 8080
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,254 @@
+#!/bin/bash
+# =============================================================================
+#  Noodnet - installatie en bijwerken van een Noodsteunpunt of Eindpost
+#
+#  Op een verse Raspberry Pi (gebruiker 'noodnet', internet via wifi of kabel):
+#
+#     bash <(curl -sL https://raw.githubusercontent.com/ieddev/noodnet/main/installeer.sh)
+#
+#  Nog een keer draaien = bijwerken (instellingen blijven bewaard).
+#  Opnieuw alle vragen beantwoorden:   ... installeer.sh --opnieuw
+# =============================================================================
+set -e
+REPO="https://github.com/ieddev/noodnet"
+RAW="https://raw.githubusercontent.com/ieddev/noodnet/main"
+BRON="$HOME/noodnet-bron"
+DOEL="$HOME/noodnet"
+VENV="$HOME/noodnet-venv"
+GEBRUIKER="$(id -un)"
+
+rood()  { printf '\033[1;31m%s\033[0m\n' "$*"; }
+groen() { printf '\033[1;32m%s\033[0m\n' "$*"; }
+stap()  { printf '\n\033[1;34m== %s\033[0m\n' "$*"; }
+
+# ---------------------------------------------------------------------------
+# 0. Bootstrap: haal de nieuwste versie van GitHub en start die
+# ---------------------------------------------------------------------------
+if [ "${NOODNET_UIT_BRON:-0}" != "1" ]; then
+  [ "$(id -u)" = "0" ] && { rood "Start dit NIET met sudo, maar als gebruiker noodnet."; exit 1; }
+  stap "Noodnet ophalen van GitHub"
+  if ! command -v git >/dev/null 2>&1; then sudo apt-get update -qq && sudo apt-get install -y -qq git; fi
+  if [ -d "$BRON/.git" ]; then
+    git -C "$BRON" fetch -q origin main && git -C "$BRON" reset -q --hard origin/main
+  else
+    git clone -q "$REPO" "$BRON"
+  fi
+  echo "   versie: $(git -C "$BRON" log -1 --format='%h %cd' --date=format:'%Y-%m-%d %H:%M')"
+  NOODNET_UIT_BRON=1 exec bash "$BRON/installeer.sh" "$@"
+fi
+
+# ---------------------------------------------------------------------------
+# 1. Vragen (alleen bij de eerste installatie of met --opnieuw)
+# ---------------------------------------------------------------------------
+OPNIEUW=0; [ "$1" = "--opnieuw" ] && OPNIEUW=1
+mkdir -p "$DOEL"
+ROL="$(cat "$DOEL/rol" 2>/dev/null || true)"
+NIEUW=0
+if [ -z "$ROL" ] || [ "$OPNIEUW" = "1" ]; then
+  NIEUW=1
+  clear || true
+  cat <<'TXT'
+ ===========================================================
+   NOODNET - installatie
+ ===========================================================
+   1 = Noodsteunpunt  (Pi + 2 m-set + RNodes; doorgeefluik)
+   2 = Eindpost       (Pi + 2 m-set + scherm bij een hulpdienst)
+TXT
+  while true; do
+    read -r -p "   Wat wordt deze Pi? [1/2]: " k
+    case "$k" in 1) ROL=steunpunt; break;; 2) ROL=eindpost; break;; esac
+  done
+  [ "$GEBRUIKER" = "noodnet" ] || rood "   Let op: je bent '$GEBRUIKER', de handleiding gaat uit van 'noodnet'. Het werkt wel."
+  while true; do
+    read -r -p "   Roepnaam met SSID van deze Pi (bijv. PD3PAM-1): " RN
+    RN="$(echo "$RN" | tr '[:lower:]' '[:upper:]' | tr -d ' ')"
+    [[ "$RN" =~ ^[A-Z0-9]{3,6}-([0-9]|1[0-5])$ ]] && break
+    rood "   Gebruik roepnaam-streepje-SSID, bijvoorbeeld PD3PAM-1"
+  done
+  echo
+  echo "   De Pi maakt een eigen wifi-hotspot 'Noodnet-$RN'."
+  while true; do
+    read -r -p "   Wachtwoord voor die hotspot (min. 8 tekens, Enter = zelf laten kiezen): " HPW
+    [ -z "$HPW" ] && HPW="$(tr -dc 'a-hjkmnp-z2-9' </dev/urandom | head -c 10)"
+    [ ${#HPW} -ge 8 ] && break
+    rood "   Minstens 8 tekens."
+  done
+  echo "   Hotspot-wachtwoord: $HPW   (schrijf dit op; staat ook op de beheerpagina)"
+fi
+echo "$ROL" > "$DOEL/rol"
+
+# ---------------------------------------------------------------------------
+# 2. Pakketten
+# ---------------------------------------------------------------------------
+stap "Pakketten installeren (kan een paar minuten duren)"
+PAKKETTEN="git python3-venv direwolf alsa-utils iw curl"
+[ "$ROL" = "eindpost" ] && PAKKETTEN="$PAKKETTEN mosquitto mosquitto-clients"
+sudo apt-get update -qq
+sudo apt-get install -y -qq $PAKKETTEN
+sudo usermod -aG dialout,audio,plugdev,systemd-journal "$GEBRUIKER" || true
+
+stap "Python-omgeving"
+[ -x "$VENV/bin/python" ] || python3 -m venv "$VENV"
+"$VENV/bin/pip" install -q --upgrade pip
+if [ "$ROL" = "steunpunt" ]; then
+  "$VENV/bin/pip" install -q rns lxmf qrcode
+else
+  "$VENV/bin/pip" install -q paho-mqtt
+fi
+
+# ---------------------------------------------------------------------------
+# 3. Programma's kopiëren (instellingen en gegevens blijven staan)
+# ---------------------------------------------------------------------------
+stap "Noodnet-programma's naar $DOEL"
+cp "$BRON"/gemeenschappelijk/*.py "$BRON"/gemeenschappelijk/hotspot.sh "$DOEL"/
+cp "$BRON/$ROL"/*.py "$DOEL"/
+chmod +x "$DOEL/hotspot.sh"
+mkdir -p "$DOEL/download"
+if [ "$ROL" = "steunpunt" ]; then
+  [ -f "$DOEL/noodnet_netwerk.json" ] || cp "$BRON/steunpunt/noodnet_netwerk.voorbeeld.json" "$DOEL/noodnet_netwerk.json"
+fi
+git -C "$BRON" log -1 --format='%h %cd' --date=format:'%Y-%m-%d' > "$DOEL/versie.txt"
+
+if [ "$NIEUW" = "1" ]; then
+  if [ "$ROL" = "steunpunt" ] && [ ! -f "$DOEL/steunpunt_instellingen.json" ]; then
+    printf '{\n  "steunpunt_naam": "Noodsteunpunt %s",\n  "roepnaam": "%s",\n  "witte_lijst_modus": "aan",\n  "beheerders": []\n}\n' "$RN" "$RN" > "$DOEL/steunpunt_instellingen.json"
+  fi
+  if [ "$ROL" = "eindpost" ] && [ ! -f "$DOEL/eindpost_instellingen.json" ]; then
+    printf '{\n  "eindpost_naam": "Eindpost %s",\n  "roepnaam": "%s",\n  "disciplines": ["alle"],\n  "mqtt_broker": "127.0.0.1"\n}\n' "$RN" "$RN" > "$DOEL/eindpost_instellingen.json"
+  fi
+fi
+
+# Eerste direwolf.conf (daarna via de beheerpagina, tabblad Radio)
+if [ ! -f "$DOEL/direwolf.conf" ]; then
+  RN_NU="$("$VENV/bin/python" -c "import json,sys;print(json.load(open('$DOEL/${ROL}_instellingen.json')).get('roepnaam','N0CALL'))" 2>/dev/null || echo N0CALL)"
+  (cd "$DOEL" && "$VENV/bin/python" -c "
+import noodnet_radio as r
+k, p = r.raad_aan(r.geluidskaarten(), r.seriele_poorten())
+inst = r.instellingen(); inst.update(geluidskaart=k, ptt_poort=p)
+r.maak_direwolf('$RN_NU', inst)
+print('   direwolf.conf: geluidskaart', k or '?', '| PTT', p or 'geen (later kiezen op tabblad Radio)')")
+fi
+
+# Steunpunt: Reticulum zonder RNodes tot de poorten gekozen zijn (tabblad Radio)
+if [ "$ROL" = "steunpunt" ] && [ ! -f "$HOME/.reticulum/config" ]; then
+  (cd "$DOEL" && "$VENV/bin/python" -c "
+import json, noodnet_radio as r
+r.maak_reticulum(r.instellingen(), json.load(open('noodnet_netwerk.json')))
+print('   Reticulum-config gemaakt; RNode-poorten kies je op de beheerpagina (tabblad Radio).')")
+fi
+
+# ---------------------------------------------------------------------------
+# 4. Eindpost: Mosquitto, Node-RED, scherm
+# ---------------------------------------------------------------------------
+if [ "$ROL" = "eindpost" ]; then
+  stap "MQTT (alleen lokaal)"
+  sudo install -m 0644 "$BRON/eindpost/mosquitto_noodnet.conf" /etc/mosquitto/conf.d/noodnet.conf
+  sudo systemctl enable -q mosquitto && sudo systemctl restart mosquitto
+
+  stap "Node-RED (de eerste keer 5-15 minuten)"
+  if ! command -v node-red >/dev/null 2>&1; then
+    NR_TMP=$(mktemp)
+    if curl -fsSL "https://raw.githubusercontent.com/node-red/linux-installers/master/deb/update-nodejs-and-nodered" -o "$NR_TMP" \
+        && head -1 "$NR_TMP" | grep -q '^#!'; then
+      bash "$NR_TMP" --confirm-install --confirm-pi
+    else
+      rood "   Node-RED kon niet gedownload worden. Draai dit script later opnieuw."
+    fi
+    rm -f "$NR_TMP"
+  fi
+  if command -v node-red >/dev/null 2>&1; then
+    mkdir -p "$HOME/.node-red"
+    (cd "$HOME/.node-red" && npm install --no-fund --no-audit --silent node-red-dashboard >/dev/null 2>&1) || true
+    if [ ! -s "$HOME/.node-red/flows.json" ]; then
+      cp "$BRON/eindpost/methane_scherm_flow.json" "$HOME/.node-red/flows.json"
+      echo "   M/ETHANE-scherm in Node-RED gezet."
+    fi
+    sudo systemctl enable -q nodered && sudo systemctl restart nodered
+  fi
+
+  if [ -d /usr/share/xsessions ] || [ -d /usr/share/wayland-sessions ]; then
+    stap "Scherm: M/ETHANE-scherm na het opstarten"
+    mkdir -p "$HOME/.config/autostart"
+    cp "$BRON/eindpost/noodnet-kiosk.desktop" "$HOME/.config/autostart/"
+    sudo raspi-config nonint do_boot_behaviour B4 2>/dev/null || true   # automatisch inloggen op het bureaublad
+    sudo raspi-config nonint do_blanking 1 2>/dev/null || true          # scherm niet uitzetten
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# 5. App (APK) voor de downloadpagina
+# ---------------------------------------------------------------------------
+stap "Noodnet-app voor de downloadpagina"
+if curl -fsSL "$REPO/releases/latest/download/noodnet.apk" -o "$DOEL/download/noodnet.apk.nieuw"; then
+  mv "$DOEL/download/noodnet.apk.nieuw" "$DOEL/download/noodnet.apk"
+  curl -fsSL "$REPO/releases/latest/download/versie.txt" -o "$DOEL/download/versie.txt" 2>/dev/null || true
+  echo "   app opgehaald ($(du -h "$DOEL/download/noodnet.apk" | cut -f1))"
+else
+  rm -f "$DOEL/download/noodnet.apk.nieuw"
+  echo "   (nog geen app op GitHub gevonden; later opnieuw bijwerken)"
+fi
+
+# ---------------------------------------------------------------------------
+# 6. Diensten, rechten, wachtwoord
+# ---------------------------------------------------------------------------
+stap "Diensten"
+plaats() { sed -e "s#@GEBRUIKER@#$GEBRUIKER#g" -e "s#@MAP@#$DOEL#g" -e "s#@VENV@#$VENV#g" "$1" \
+             | sudo tee "/etc/systemd/system/$(basename "$1")" >/dev/null; }
+for f in "$BRON"/gemeenschappelijk/diensten/*.service "$BRON/$ROL"/diensten/*.service; do plaats "$f"; done
+if [ "$ROL" = "steunpunt" ]; then
+  DIENSTEN="direwolf rnsd noodnet-brug noodnet-web noodnet-download"; WEB="noodnet_web.py"
+else
+  DIENSTEN="direwolf noodnet-eindpost noodnet-eindpost-web noodnet-download mosquitto nodered"; WEB="eindpost_web.py"
+fi
+SC="$(command -v systemctl)"
+REGEL="$GEBRUIKER ALL=(root) NOPASSWD:"; EERSTE=1
+for d in $DIENSTEN; do [ $EERSTE = 1 ] && EERSTE=0 || REGEL="$REGEL,"; REGEL="$REGEL $SC restart $d"; done
+TMP=$(mktemp); echo "$REGEL" > "$TMP"
+sudo visudo -cf "$TMP" >/dev/null && sudo install -m 0440 "$TMP" /etc/sudoers.d/noodnet; rm -f "$TMP"
+sudo rm -f /etc/sudoers.d/noodnet-web /etc/sudoers.d/noodnet-eindpost
+
+sudo systemctl daemon-reload
+for d in $DIENSTEN; do
+  case "$d" in mosquitto|nodered) continue;; esac
+  sudo systemctl enable -q "$d"
+done
+
+if [ ! -f "$DOEL/web_wachtwoord.json" ]; then
+  stap "Wachtwoord voor de beheerpagina (gebruiker: beheer)"
+  until (cd "$DOEL" && "$VENV/bin/python" "$WEB" --wachtwoord); do rood "   Probeer opnieuw."; done
+fi
+
+# Opdracht om later bij te werken
+sudo tee /usr/local/bin/noodnet-bijwerken >/dev/null <<EOB
+#!/bin/bash
+exec bash <(curl -sL $RAW/installeer.sh) "\$@"
+EOB
+sudo chmod +x /usr/local/bin/noodnet-bijwerken
+
+# ---------------------------------------------------------------------------
+# 7. Hotspot (als laatste; actief na herstart)
+# ---------------------------------------------------------------------------
+if [ "$NIEUW" = "1" ]; then
+  stap "Wifi-hotspot"
+  bash "$DOEL/hotspot.sh" installeer "Noodnet-$RN" "$HPW"
+fi
+
+if [ "$NIEUW" = "1" ]; then
+  stap "Klaar"
+  groen "   Herstart nu de Pi:  sudo reboot"
+  cat <<TXT
+
+   Na het opstarten:
+   - verbind je telefoon met wifi  Noodnet-$RN  (wachtwoord: $HPW)
+   - beheerpagina:   http://10.42.0.1:8080   (gebruiker: beheer)
+       -> tabblad Radio: geluidskaart, PTT$( [ "$ROL" = steunpunt ] && echo " en RNode-poorten") kiezen
+   - startpagina en app-download:  http://10.42.0.1
+   - ssh werkt via de hotspot:  ssh $GEBRUIKER@10.42.0.1
+   Internet (voor bijwerken) daarna via een netwerkkabel, of tijdelijk:  ~/noodnet/hotspot.sh thuiswifi
+   Bijwerken:  noodnet-bijwerken
+TXT
+else
+  stap "Bijwerken: diensten herstarten"
+  for d in $DIENSTEN; do sudo systemctl restart "$d" 2>/dev/null || true; [ "$d" = rnsd ] && sleep 3; done
+  groen "   Bijgewerkt naar $(cat "$DOEL/versie.txt"). Instellingen zijn bewaard."
+fi

@@ -1,0 +1,1680 @@
+diff --git a/noodnet_constraints.txt b/noodnet_constraints.txt
+new file mode 100644
+index 0000000..6bd21f9
+--- /dev/null
++++ b/noodnet_constraints.txt
+@@ -0,0 +1,3 @@
++# Noodnet: build >= 1.4.3 maakt PYTHONPATH leeg in de bouwomgeving;
++# python-for-android (okt 2025) rekent daar nog op.
++build<1.4.3
+diff --git a/recipes/lxst/__init__.py b/recipes/lxst/__init__.py
+index ec6639c..111dca9 100644
+--- a/recipes/lxst/__init__.py
++++ b/recipes/lxst/__init__.py
+@@ -4,7 +4,10 @@ Android Bluetooth Low Energy
+ from pythonforandroid.recipe import PythonRecipe
+ from pythonforandroid.toolchain import current_directory, info, shprint
+ import sh
+-from os.path import join
++from os.path import join, dirname, abspath
++
++# Noodnet: LXST-bron naast de Sideband-map (~/LXST), zoals de Makefile verwacht
++LXST_SRC = abspath(join(dirname(__file__), '..', '..', '..', 'LXST'))
+ 
+ 
+ class LXSTRecipe(PythonRecipe):
+@@ -19,7 +22,7 @@ class LXSTRecipe(PythonRecipe):
+         shprint(sh.rm, '-rf', build_dir)
+         shprint(sh.mkdir, build_dir)
+ 
+-        srcs = ('/home/markqvist/Information/Source/LXST/LXST', '/home/markqvist/Information/Source/LXST/setup.py', '/home/markqvist/Information/Source/LXST/README.md')
++        srcs = (join(LXST_SRC, 'LXST'), join(LXST_SRC, 'setup.py'), join(LXST_SRC, 'README.md'))
+ 
+         for filename in srcs:
+             print(f"Copy {join(self.get_recipe_dir(), filename)} to {build_dir}")
+diff --git a/recipes/numpy/__init__.py b/recipes/numpy/__init__.py
+new file mode 100644
+index 0000000..cd1d25c
+--- /dev/null
++++ b/recipes/numpy/__init__.py
+@@ -0,0 +1,20 @@
++# Noodnet: numpy 2.3.0 uit python-for-android (develop, okt 2025) is gemaakt voor
++# NDK 28c. Met de NDK 25b van Sideband mist unique.cpp de include van
++# <unordered_map>; die zetten we in de broncode. Verder ongewijzigd.
++from os.path import join, exists
++from pythonforandroid.recipes.numpy import NumpyRecipe
++
++
++class NoodnetNumpyRecipe(NumpyRecipe):
++    def prebuild_arch(self, arch):
++        super().prebuild_arch(arch)
++        bestand = join(self.get_build_dir(arch.arch), "numpy", "_core", "src", "multiarray", "unique.cpp")
++        if exists(bestand):
++            with open(bestand) as f:
++                tekst = f.read()
++            if "#include <unordered_map>" not in tekst:
++                with open(bestand, "w") as f:
++                    f.write("#include <unordered_map>\n" + tekst)
++
++
++recipe = NoodnetNumpyRecipe()
+diff --git a/recipes/python3/__init__.py b/recipes/python3/__init__.py
+index 2a2e07d..7bc3f75 100644
+--- a/recipes/python3/__init__.py
++++ b/recipes/python3/__init__.py
+@@ -350,6 +350,16 @@ class Python3Recipe(TargetPythonRecipe):
+             # better way, although this is probably acceptable
+             sh.cp('pyconfig.h', join(recipe_build_dir, 'Include'))
+ 
++            # Noodnet: python-for-android kopieert later de host-python naar deze
++            # map (PyProjectRecipe). Via pybuilddir.txt zou die dan de ARM-modules
++            # laden en o.a. 'math' niet vinden. Laat hem naar de modules van de
++            # host-python wijzen; create_python_bundle gebruikt een vast pad.
++            host_dir = self.get_recipe('host' + self.name, self.ctx).get_path_to_python()
++            with open(join(host_dir, 'pybuilddir.txt')) as f:
++                host_lib = join(host_dir, f.read().strip())
++            with open('pybuilddir.txt', 'w') as f:
++                f.write(host_lib)
++
+     def compile_python_files(self, dir):
+         '''
+         Compile the python files (recursively) for the python files inside
+diff --git a/sbapp/Makefile b/sbapp/Makefile
+index c5097d2..3dce398 100644
+--- a/sbapp/Makefile
++++ b/sbapp/Makefile
+@@ -1,3 +1,6 @@
++# Noodnet: zie ../noodnet_constraints.txt
++export PIP_CONSTRAINT := $(abspath ../noodnet_constraints.txt)
++
+ all: prepare debug
+ 
+ prepare: cleanrns getrns
+@@ -34,6 +37,8 @@ patchsdl:
+ 	cp patches/PythonActivity.java .buildozer/android/platform/build-arm64-v8a/dists/sideband/src/main/java/org/kivy/android/PythonActivity.java
+ 
+ patchpycodec2:
++	# Noodnet: ook de bron van de bundel patchen; p4a kopieert die bij een nieuwe bouw opnieuw
++	-(for f in .buildozer/android/platform/build-arm64-v8a/build/python-installs/sideband/arm64-v8a/pycodec2/pycodec2*.so; do patchelf --replace-needed libcodec2.so.1.2 libcodec2.so $$f; done)
+ 	patchelf --replace-needed libcodec2.so.1.2 libcodec2.so .buildozer/android/platform/build-arm64-v8a/dists/sideband/_python_bundle__arm64-v8a/_python_bundle/site-packages/pycodec2/pycodec2.so
+ 	# patchelf --replace-needed libcodec2.so.1.2 libcodec2.so .buildozer/android/platform/build-arm64-v8a/dists/sideband/_python_bundle__armeabi-v7a/_python_bundle/site-packages/pycodec2/pycodec2.so
+ 
+diff --git a/sbapp/buildozer.spec b/sbapp/buildozer.spec
+index 83e9631..fe7351e 100644
+--- a/sbapp/buildozer.spec
++++ b/sbapp/buildozer.spec
+@@ -12,9 +12,11 @@ version.regex = __version__ = ['"](.*)['"]
+ version.filename = %(source.dir)s/main.py
+ android.numeric_version = 20251128
+ 
+-requirements = kivy==2.3.0,libbz2,sqlite3,pillow==10.2.0,qrcode==7.3.1,usb4a,usbserial4a,able_recipe,libwebp,libogg,libopus,opusfile,numpy,cryptography,codec2,pycodec2,sh,pynacl,typing-extensions,mistune>=3.0.2,beautifulsoup4,lxst
++requirements = kivy==2.3.0,libbz2,sqlite3,pillow==10.2.0,qrcode==7.3.1,usb4a,usbserial4a,able_recipe,libwebp,libogg,libopus,opusfile,numpy,codec2,pycodec2,sh,pynacl,typing-extensions,mistune>=3.0.2,beautifulsoup4,lxst
+ 
+-android.gradle_dependencies =  com.android.support:support-compat:28.0.0
++android.gradle_dependencies =  com.android.support:support-compat:28.0.0,com.google.android.gms:play-services-code-scanner:16.1.0
++# Noodnet: QR-scanner van Google alvast laten downloaden
++android.meta_data = com.google.mlkit.vision.DEPENDENCIES=barcode_ui
+ #android.enable_androidx = True
+ #android.add_aars = patches/support-compat-28.0.0.aar
+ 
+@@ -35,6 +37,9 @@ android.api = 33
+ android.minapi = 24
+ android.ndk = 25b
+ android.skip_update = False
++# Noodnet: zelfde python-for-android als waarvoor de recepten in ../recipes gemaakt zijn
++p4a.branch = develop
++p4a.commit = ee326409f3141ba17b2223156ac835400060a419
+ android.accept_sdk_license = True
+ android.release_artifact = apk
+ android.archs = arm64-v8a
+diff --git a/sbapp/main.py b/sbapp/main.py
+index f7e9032..9f0f403 100644
+--- a/sbapp/main.py
++++ b/sbapp/main.py
+@@ -1390,12 +1390,23 @@ class SidebandApp(MDApp):
+                 data = intent.getStringExtra(SearchManager.QUERY)
+                 
+                 if data.lower().startswith(LXMF.LXMessage.URI_SCHEMA): action = "lxm_uri"
++                elif data.strip().lower().startswith(("noodnet:", "nn1:")): action = "noodnet_kaart"
+ 
+             if intent_action == "android.intent.action.VIEW":
+                 data = intent.getData().toString()
+                 if data.lower().startswith(LXMF.LXMessage.URI_SCHEMA): action = "lxm_uri"
++                elif data.strip().lower().startswith(("noodnet:", "nn1:")): action = "noodnet_kaart"
+ 
+             if intent_action == "android.intent.action.SEND":
++                try:
++                    shared_text = intent.getStringExtra("android.intent.extra.TEXT")
++                    if shared_text and shared_text.strip().lower().startswith(("noodnet:", "nn1:")):
++                        action = "noodnet_kaart"
++                        data = shared_text.strip()
++                except Exception:
++                    pass
++
++            if intent_action == "android.intent.action.SEND" and action == None:
+                 try:
+                     Intent = autoclass("android.content.Intent")
+                     extras = intent.getExtras()
+@@ -1436,6 +1447,9 @@ class SidebandApp(MDApp):
+         if action == "lxm_uri":
+             self.ingest_lxm_uri(data)
+ 
++        if action == "noodnet_kaart":
++            self.noodnet_kaart_action(data)
++
+         if action == "shared_data":
+             RNS.log("Got shared data from Android intent", RNS.LOG_DEBUG)
+             def cb(dt):
+@@ -1458,6 +1472,7 @@ class SidebandApp(MDApp):
+         self.announces_view = None
+         self.guide_view = None
+         self.keys_view = None
++        self.methane_view = None
+         self.hardware_view = None
+ 
+         if RNS.vendor.platformutils.is_android():
+@@ -4490,6 +4505,61 @@ class SidebandApp(MDApp):
+ 
+     def close_keys_action(self, sender=None): self.open_conversations(direction="right")
+ 
++    def methane_action(self, sender=None, direction="left"):
++        if self.root.ids.screen_manager.has_screen("methane_screen"): self.methane_open(direction=direction)
++        else:
++            self.loader_action(direction=direction)
++            def final(dt):
++                self.init_methane_view()
++                def o(dt): self.methane_open(no_transition=True)
++                Clock.schedule_once(o, ll_ot)
++            Clock.schedule_once(final, ll_ft)
++
++    def init_methane_view(self, sender=None):
++        if not self.methane_view:
++            try: from ui.methane import Methane
++            except ImportError: from .ui.methane import Methane
++            self.methane_view = Methane(self)
++            Clock.schedule_once(lambda dt: self.methane_view.first_open_check(), 0.5)
++
++    def methane_open(self, sender=None, direction="left", no_transition=False):
++        if no_transition: self.root.ids.screen_manager.transition = self.no_transition
++        else:
++            self.root.ids.screen_manager.transition = self.slide_transition
++            self.root.ids.screen_manager.transition.direction = direction
++
++        self.root.ids.screen_manager.current = "methane_screen"
++        self.root.ids.nav_drawer.set_state("closed")
++        self.sideband.setstate("app.displaying", self.root.ids.screen_manager.current)
++        if no_transition: self.root.ids.screen_manager.transition = self.slide_transition
++
++    def close_methane_action(self, sender=None): self.open_conversations(direction="right")
++
++    def noodnet_kaart_action(self, data):
++        # Kaart via noodnet://-link (QR-code), gedeelde tekst of klembord.
++        # Bij een koude start wachten tot de app klaar is met laden.
++        RNS.log("Noodnet-kaart ontvangen via link", RNS.LOG_DEBUG)
++        st = {"pogingen": 0, "scherm_gevraagd": False}
++        def probeer(dt):
++            st["pogingen"] += 1
++            if st["pogingen"] > 90:
++                RNS.log("Noodnet-kaart: app niet op tijd klaar, kaart niet ingelezen", RNS.LOG_ERROR)
++                return
++            try:
++                klaar = self.root != None and "screen_manager" in self.root.ids and getattr(self, "final_load_completed", True)
++            except Exception:
++                klaar = False
++            if not klaar:
++                Clock.schedule_once(probeer, 1); return
++            if self.methane_view == None:
++                if not st["scherm_gevraagd"]:
++                    st["scherm_gevraagd"] = True
++                    self.methane_action()
++                Clock.schedule_once(probeer, 0.5); return
++            self.methane_open()
++            self.methane_view.kaart_inlezen(data, "link")
++        Clock.schedule_once(probeer, 0.5)
++
+ 
+     ### Plugins & Services screen
+     ######################################
+diff --git a/sbapp/patches/intent-filter.xml b/sbapp/patches/intent-filter.xml
+index 37c4df6..7c150b4 100644
+--- a/sbapp/patches/intent-filter.xml
++++ b/sbapp/patches/intent-filter.xml
+@@ -11,6 +11,14 @@
+    <data android:scheme="lxm"/>
+ </intent-filter>
+ 
++<!-- Noodnet: aanmeldkaart van een noodsteunpunt (QR-code met noodnet://-link) -->
++<intent-filter>
++   <action android:name="android.intent.action.VIEW" />
++   <category android:name="android.intent.category.DEFAULT" />
++   <category android:name="android.intent.category.BROWSABLE" />
++   <data android:scheme="noodnet"/>
++</intent-filter>
++
+ <!-- This intent filter allows opening scanned LXM URLs directly in Sideband -->
+ <intent-filter>
+    <action android:name="android.intent.action.WEB_SEARCH" />
+diff --git a/sbapp/sideband/core.py b/sbapp/sideband/core.py
+index baef83b..940188c 100644
+--- a/sbapp/sideband/core.py
++++ b/sbapp/sideband/core.py
+@@ -382,6 +382,13 @@ class SidebandCore():
+             def load_job():
+                 time.sleep(1)
+                 self.__load_plugins()
++                # Noodnet: ingebouwd positie-/signaalbaken (alleen actief na aanmelden bij een steunpunt)
++                try:
++                    from .noodnet_baken import NoodnetBaken
++                    self.noodnet_baken = NoodnetBaken(self)
++                    self.noodnet_baken.start()
++                except Exception as e:
++                    RNS.log("Noodnet-baken kon niet starten: "+str(e), RNS.LOG_ERROR)
+ 
+             threading.Thread(target=load_job, daemon=True).start()
+ 
+diff --git a/sbapp/sideband/noodnet_baken.py b/sbapp/sideband/noodnet_baken.py
+new file mode 100644
+index 0000000..937a7ee
+--- /dev/null
++++ b/sbapp/sideband/noodnet_baken.py
+@@ -0,0 +1,186 @@
++"""
++noodnet_baken.py - zuinig positie- en signaalbaken voor Noodnet (vervangt de plugin).
++
++Draait in de achtergronddienst van Sideband (Android) of in de app (desktop).
++Zendt alleen als er een Noodnet-kaart is EN de telefoon aangemeld is bij dat
++steunpunt. Om zendtijd te sparen:
++
++  - bij verplaatsing van minstens AFSTAND meter, maar niet vaker dan MIN_INTERVAL;
++  - anders alleen een levensteken na MAX_INTERVAL;
++  - met willekeurige spreiding, zodat telefoons rond een steunpunt niet
++    tegelijk zenden.
++
++De waarden kunnen op de kaart staan ("b": [min_s, max_s, afstand_m]); anders
++gelden de standaardwaarden hieronder.
++
++Bericht: tekst "RSSI=..;SNR=..;Q=..;BAT=.." (zoals de oude plugin), met de
++telemetrie van Sideband (positie) als veld. Niet zichtbaar in het gesprek.
++"""
++
++import json
++import math
++import os
++import random
++import threading
++import time
++
++import RNS
++
++KAART_BESTAND = "noodnet_kaart.json"
++OUDE_PLUGIN = "telemetry_beacon"
++
++MIN_INTERVAL = 600      # s: bij verplaatsing niet vaker dan dit
++MAX_INTERVAL = 1800     # s: levensteken als er niets verandert
++AFSTAND = 300           # m: wat telt als verplaatsing
++CONTROLE = 30           # s: hoe vaak er gekeken wordt
++SPREIDING = 0.15        # tot 15% willekeurige extra wachttijd
++
++
++def afstand_m(a, b):
++    """Afstand in meters tussen twee (lat, lon)-paren (haversine)."""
++    r = 6371000.0
++    la1, lo1, la2, lo2 = map(math.radians, (a[0], a[1], b[0], b[1]))
++    d = math.sin((la2 - la1) / 2) ** 2 + math.cos(la1) * math.cos(la2) * math.sin((lo2 - lo1) / 2) ** 2
++    return 2 * r * math.asin(math.sqrt(d))
++
++
++def instellingen(kaart):
++    mn, mx, af = MIN_INTERVAL, MAX_INTERVAL, AFSTAND
++    b = (kaart or {}).get("b")
++    try:
++        if b:
++            mn, mx, af = max(120, int(b[0])), max(300, int(b[1])), max(50, int(b[2]))
++    except Exception:
++        pass
++    return mn, max(mn, mx), af
++
++
++def moet_zenden(nu, laatst, vorige_pos, pos, volgende_teken, mn, af):
++    """Beslisregel (los testbaar). Geeft (zenden, reden)."""
++    if volgende_teken is not None and nu >= volgende_teken:
++        return True, "levensteken"
++    if pos is not None and nu - laatst >= mn:
++        if vorige_pos is None:
++            return True, "eerste positie"
++        if afstand_m(vorige_pos, pos) >= af:
++            return True, "verplaatst"
++    return False, ""
++
++
++class NoodnetBaken:
++    def __init__(self, sideband):
++        self.sb = sideband
++        self.draait = False
++        self.thread = None
++
++    # -- gegevens -------------------------------------------------------
++
++    def kaart(self):
++        try:
++            with open(os.path.join(self.sb.app_dir, KAART_BESTAND), "r", encoding="utf-8") as f:
++                k = json.load(f)
++            return k if isinstance(k, dict) and len(k.get("a", "")) == 32 else None
++        except Exception:
++            return None
++
++    def aangemeld(self, kaart):
++        """Status uit de kaart, of (als de app niet open was) uit de berichten van het steunpunt."""
++        if kaart.get("status") == "aangemeld":
++            return True
++        try:
++            dest = bytes.fromhex(kaart["a"])
++            status = None
++            for m in self.sb.list_messages(dest, limit=40) or []:
++                if m.get("source") != dest:
++                    continue
++                c = m.get("content", b"")
++                if isinstance(c, (bytes, bytearray)):
++                    c = c.decode("utf-8", "replace")
++                if c.startswith("Aangemeld bij") or c.startswith("U bent al aangemeld"):
++                    status = True
++                elif "niet goedgekeurd" in c or "onjuiste aanmeldcode" in c:
++                    status = False
++            return bool(status)
++        except Exception:
++            return False
++
++    def positie(self):
++        try:
++            self.sb.update_telemetry()
++            loc = self.sb.peer_location(self.sb.lxmf_destination.hash)
++            if loc and loc.get("latitude") is not None and loc.get("longitude") is not None:
++                return float(loc["latitude"]), float(loc["longitude"])
++        except Exception as e:
++            RNS.log("Noodnet-baken: positie niet beschikbaar: " + str(e), RNS.LOG_DEBUG)
++        return None
++
++    def signaal(self):
++        parts = []
++        try:
++            for interface in RNS.Transport.interfaces:
++                rssi = getattr(interface, "r_stat_rssi", None)
++                snr = getattr(interface, "r_stat_snr", None)
++                if rssi is None and snr is None:
++                    continue
++                q = getattr(interface, "r_stat_q", None)
++                if rssi is not None: parts.append("RSSI=" + str(rssi))
++                if snr is not None: parts.append("SNR=" + str(snr))
++                if q is not None: parts.append("Q=" + str(q))
++                pct = getattr(interface, "r_battery_percent", None)
++                if pct is not None and not (pct == 0 and getattr(interface, "r_battery_state", None) in (None, 0)):
++                    parts.append("BAT=" + str(pct))
++                break
++        except Exception:
++            pass
++        return ";".join(parts) if parts else "."
++
++    # -- lus --------------------------------------------------------------
++
++    def start(self):
++        if OUDE_PLUGIN in getattr(self.sb, "active_service_plugins", {}):
++            RNS.log("Noodnet-baken: de oude plugin send_Telemetry.py is actief; het ingebouwde "
++                    "baken blijft uit. Verwijder de plugin om dubbel zenden te voorkomen.", RNS.LOG_WARNING)
++            return
++        self.draait = True
++        self.thread = threading.Thread(target=self.lus, daemon=True)
++        self.thread.start()
++        RNS.log("Noodnet-baken gestart", RNS.LOG_NOTICE)
++
++    def stop(self):
++        self.draait = False
++
++    def lus(self):
++        time.sleep(20)
++        laatst = 0.0
++        vorige_pos = None
++        volgende_teken = None
++        adres = None
++        while self.draait:
++            try:
++                kaart = self.kaart()
++                if not kaart or not self.aangemeld(kaart):
++                    volgende_teken = None
++                    time.sleep(CONTROLE)
++                    continue
++                if kaart["a"] != adres:
++                    # nieuw steunpunt: geheugen wissen, eerste bericht binnen enkele minuten
++                    adres, laatst, vorige_pos = kaart["a"], time.time(), None
++                    volgende_teken = time.time() + random.uniform(30, 180)
++
++                mn, mx, af = instellingen(kaart)
++                nu = time.time()
++                pos = self.positie()
++                zenden, reden = moet_zenden(nu, laatst, vorige_pos, pos, volgende_teken, mn, af)
++                if zenden:
++                    tekst = self.signaal()
++                    self.sb.send_message(tekst, bytes.fromhex(adres), False,
++                                         skip_fields=False, no_display=True)
++                    RNS.log(f"Noodnet-baken verstuurd ({reden}; {tekst}; positie {'ja' if pos else 'nee'})",
++                            RNS.LOG_NOTICE)
++                    laatst = nu
++                    if pos is not None:
++                        vorige_pos = pos
++                    volgende_teken = nu + mx * (1 + random.uniform(0, SPREIDING))
++            except Exception as e:
++                RNS.log("Noodnet-baken: fout: " + str(e), RNS.LOG_ERROR)
++            time.sleep(CONTROLE + random.uniform(0, 5))
+diff --git a/sbapp/ui/conversations.py b/sbapp/ui/conversations.py
+index 54694a2..5a7355b 100644
+--- a/sbapp/ui/conversations.py
++++ b/sbapp/ui/conversations.py
+@@ -457,6 +457,15 @@ MDScreen:
+                 ['account-plus', lambda x: root.app.new_conversation_action(self)],
+                 ]
+ 
++        MDRaisedButton:
++            text: "NOODMELDING M/ETHANE"
++            font_size: "20dp"
++            md_bg_color: 0.75, 0.05, 0.05, 1
++            size_hint_x: 1
++            size_hint_y: None
++            height: dp(64)
++            on_release: root.app.methane_action(self)
++
+         MDBoxLayout:
+             orientation: "vertical"
+             id: conversation_list_container
+diff --git a/sbapp/ui/layouts.py b/sbapp/ui/layouts.py
+index 7faf7a4..4b01d0d 100644
+--- a/sbapp/ui/layouts.py
++++ b/sbapp/ui/layouts.py
+@@ -162,6 +162,17 @@ MDNavigationLayout:
+                                 on_release: root.ids.screen_manager.app.hardware_action(self)
+ 
+                                                        
++                        OneLineIconListItem:
++                            text: "Noodmelding"
++                            on_release: root.ids.screen_manager.app.methane_action(self)
++
++                            IconLeftWidget:
++                                icon: "alert-octagon"
++                                theme_icon_color: "Custom"
++                                icon_color: 0.75, 0.05, 0.05, 1
++                                on_release: root.ids.screen_manager.app.methane_action(self)
++
++
+                         OneLineIconListItem:
+                             text: "Backup & Keys"
+                             on_release: root.ids.screen_manager.app.keys_action(self)
+diff --git a/sbapp/ui/methane.py b/sbapp/ui/methane.py
+new file mode 100644
+index 0000000..c33aa61
+--- /dev/null
++++ b/sbapp/ui/methane.py
+@@ -0,0 +1,738 @@
++import os
++import json
++import time
++import random
++import threading
++import RNS
++from kivy.metrics import dp
++from kivy.lang.builder import Builder
++from kivy.effects.scroll import ScrollEffect
++from kivymd.uix.button import MDRaisedButton, MDFlatButton
++from kivymd.uix.dialog import MDDialog
++from kivymd.uix.boxlayout import MDBoxLayout
++from kivymd.uix.gridlayout import MDGridLayout
++from kivymd.uix.label import MDLabel
++from kivymd.uix.textfield import MDTextField
++from kivymd.uix.button import MDIconButton
++from kivy.clock import Clock
++from kivymd.toast import toast
++
++try: from ui import noodnet_kaart as nk
++except ImportError: from . import noodnet_kaart as nk
++try: from ui import noodnet_scan
++except ImportError: from . import noodnet_scan
++
++# Wordt overschreven door <app_dir>/methane_services.json
++# Formaat: {"Meldkamer": "<32 hex tekens LXMF-adres>", "EHBO": "..."}
++# Alleen gebruikt als er GEEN Noodnet-kaart is ingelezen.
++DEFAULT_SERVICES = {}
++
++FIELDS = [
++    ("m", "M - Groot incident?", "Ja/nee, en in een zin waarom"),
++    ("e", "E - Exacte locatie", "Adres, kruispunt of herkenningspunt"),
++    ("t", "T - Soort incident", "Brand, ongeval, instorting, ..."),
++    ("h", "H - Gevaren", "Gas, vuur, verkeer, instortingsgevaar, ..."),
++    ("a", "A - Bereikbaarheid", "Hoe kom je er, welke route is vrij"),
++    ("n", "N - Aantal slachtoffers", "Aantal en hoe ernstig"),
++    ("s", "E - Hulpdiensten", "Wie is er al, wie is er nog nodig"),
++]
++
++ROOD = (0.75, 0.05, 0.05, 1)
++GRIJS = (0.35, 0.35, 0.35, 1)
++GROEN = (0.10, 0.55, 0.20, 1)
++ORANJE = (0.85, 0.45, 0.05, 1)
++
++
++class Methane():
++    def __init__(self, app):
++        self.app = app
++        self.selected = set()
++        self.pending = None
++        self.service_buttons = {}
++        self.kaart = None
++        self.dialog = None
++        self.status_event = None
++        sm = self.app.root.ids.screen_manager
++        if not sm.has_screen("methane_screen"):
++            self.screen = Builder.load_string(layout_methane_screen)
++            self.screen.app = self
++            sm.add_widget(self.screen)
++            self.screen.ids.methane_scrollview.effect_cls = ScrollEffect
++            self.screen.bind(on_enter=lambda *a: self.on_enter(), on_leave=lambda *a: self.on_leave())
++            self.load_services()
++
++    # ------------------------------------------------------------------
++    # Algemeen
++    # ------------------------------------------------------------------
++
++    @property
++    def sb(self):
++        return self.app.sideband
++
++    def app_dir(self):
++        return self.sb.app_dir
++
++    def kaart_modus(self):
++        return self.kaart is not None
++
++    def steunpunt_bytes(self):
++        return bytes.fromhex(self.kaart["a"]) if self.kaart else None
++
++    def sluit_dialog(self, *a):
++        if self.dialog:
++            try: self.dialog.dismiss()
++            except Exception: pass
++            self.dialog = None
++
++    def melding(self, titel, tekst):
++        self.sluit_dialog()
++        ok = MDRaisedButton(text="OK", font_size=dp(18))
++        self.dialog = MDDialog(title=titel, text=tekst, buttons=[ok])
++        ok.bind(on_release=self.sluit_dialog)
++        self.dialog.open()
++
++    def on_enter(self):
++        self.ververs_status()
++        if self.status_event is None:
++            self.status_event = Clock.schedule_interval(lambda dt: self.ververs_status(), 10)
++
++    def on_leave(self):
++        if self.status_event is not None:
++            self.status_event.cancel()
++            self.status_event = None
++
++    # ------------------------------------------------------------------
++    # Diensten: van de kaart (disciplines) of uit methane_services.json
++    # ------------------------------------------------------------------
++
++    def services_path(self):
++        return os.path.join(self.app_dir(), "methane_services.json")
++
++    def save_services(self):
++        try:
++            with open(self.services_path(), "w") as f: json.dump(self.json_services, f, indent=2)
++            return True
++        except Exception as e:
++            RNS.log("Could not save methane_services.json: "+str(e), RNS.LOG_ERROR)
++            toast("Opslaan mislukt")
++            return False
++
++    @staticmethod
++    def parse_address(text):
++        # Accepteert '<abcd...>', met spaties of dubbele punten, hoofdletters
++        hexs = "".join(c for c in text.lower() if c in "0123456789abcdef")
++        if len(hexs) != RNS.Reticulum.TRUNCATED_HASHLENGTH//8*2: return None
++        return hexs
++
++    def load_services(self):
++        self.kaart = nk.laad(self.app_dir())
++
++        json_services = dict(DEFAULT_SERVICES)
++        try:
++            path = self.services_path()
++            if os.path.isfile(path):
++                with open(path, "r") as f: json_services.update(json.load(f))
++        except Exception as e:
++            RNS.log("Could not load methane_services.json: "+str(e), RNS.LOG_ERROR)
++        self.json_services = json_services
++
++        if self.kaart_modus():
++            # Alle disciplines gaan via het steunpunt
++            self.services = {label: self.kaart["a"] for key, label in self.kaart.get("d", [])}
++        else:
++            self.services = dict(json_services)
++
++        box = self.screen.ids.methane_services
++        box.clear_widgets()
++        previous = set(self.selected)
++        self.service_buttons = {}
++        if not self.services and not self.kaart_modus():
++            toast("Lees eerst een Noodnet-kaart in, of stel een hulpdienst in")
++        for name in self.services:
++            b = MDRaisedButton(text=name, font_size=dp(17), size_hint_x=1, size_hint_y=None, height=dp(56))
++            b.bind(on_release=lambda btn, n=name: self.toggle(n))
++            self.service_buttons[name] = b
++            box.add_widget(b)
++        self.selected = set(n for n in previous if n in self.services)
++        self.refresh_selection()
++        self.ververs_status()
++
++    def first_open_check(self):
++        if not self.kaart_modus() and not self.services:
++            self.kaart_menu()
++
++    def manage_action(self, sender=None, edit=None):
++        if self.kaart_modus():
++            self.melding("Hulpdiensten",
++                         "De hulpdiensten komen van de kaart van "+self.kaart["sp"]+". "
++                         "Alle meldingen gaan via dit steunpunt.\n\n"
++                         "Wilt u weer zelf hulpdiensten met een eigen adres instellen, "
++                         "verwijder dan de kaart (kaart-knop bovenaan).")
++            return
++        # edit = naam van de dienst die bewerkt wordt (None = nieuwe dienst toevoegen)
++        content = MDBoxLayout(orientation="vertical", spacing=dp(8), size_hint_y=None)
++        rows = 0
++        for name, addr in self.json_services.items():
++            row = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(48))
++            mark = "  [b](wordt bewerkt)[/b]" if name == edit else ""
++            lbl = MDLabel(text=name+mark+"\n[size=12sp]"+addr[:8]+"..."+addr[-4:]+"[/size]", markup=True)
++            ed = MDIconButton(icon="pencil", pos_hint={"center_y": .5})
++            ed.bind(on_release=lambda b, n=name: self.edit_service(n, dialog))
++            dele = MDIconButton(icon="delete", pos_hint={"center_y": .5})
++            dele.bind(on_release=lambda b, n=name: self.delete_service(n, dialog))
++            row.add_widget(lbl); row.add_widget(ed); row.add_widget(dele)
++            content.add_widget(row); rows += 1
++
++        name_f = MDTextField(hint_text="Naam (bijv. Meldkamer)", font_size=dp(18),
++                             text=(edit or ""))
++        addr_f = MDTextField(hint_text="LXMF-adres (plak hier)", font_size=dp(16),
++                             helper_text="32 hexadecimale tekens", helper_text_mode="on_focus",
++                             text=(self.json_services[edit] if edit else ""))
++        content.add_widget(name_f); content.add_widget(addr_f)
++        content.height = rows*dp(56) + dp(150)
++
++        add = MDRaisedButton(text=("Opslaan" if edit else "Toevoegen"), font_size=dp(18))
++        close = MDFlatButton(text=("Annuleren" if edit else "Sluiten"), font_size=dp(18))
++        title = ("Dienst bewerken: "+edit) if edit else "Hulpdiensten beheren"
++        dialog = MDDialog(title=title, type="custom", content_cls=content, buttons=[close, add])
++        close.bind(on_release=lambda b: dialog.dismiss())
++
++        def do_add(b):
++            name = name_f.text.strip()
++            addr = self.parse_address(addr_f.text)
++            if not name: return toast("Geef een naam op")
++            if addr is None: return toast("Adres moet 32 hexadecimale tekens zijn")
++            if name in self.json_services and name != edit:
++                return toast("Er bestaat al een dienst met die naam")
++            if edit:
++                # behoud de volgorde bij hernoemen
++                self.json_services = {(name if n == edit else n): (addr if n == edit else a)
++                                      for n, a in self.json_services.items()}
++                if edit in self.selected:
++                    self.selected.discard(edit); self.selected.add(name)
++                msg = name+" opgeslagen"
++            else:
++                self.json_services[name] = addr
++                msg = name+" toegevoegd"
++            if self.save_services():
++                dialog.dismiss(); self.load_services()
++                toast(msg)
++        add.bind(on_release=do_add)
++        dialog.open()
++
++    def edit_service(self, name, dialog):
++        dialog.dismiss()
++        Clock.schedule_once(lambda dt: self.manage_action(edit=name), 0.2)
++
++    def delete_service(self, name, dialog):
++        self.json_services.pop(name, None)
++        self.selected.discard(name)
++        if self.save_services():
++            dialog.dismiss(); self.load_services()
++            toast(name+" verwijderd")
++
++    def toggle(self, name):
++        if name in self.selected: self.selected.discard(name)
++        else: self.selected.add(name)
++        self.refresh_selection()
++
++    def toggle_all(self, sender=None):
++        if not self.services: return toast("Lees eerst een Noodnet-kaart in")
++        if len(self.selected) == len(self.services): self.selected = set()
++        else: self.selected = set(self.services)
++        self.refresh_selection()
++
++    def ordered_selection(self):
++        return [n for n in self.services if n in self.selected]
++
++    def refresh_selection(self):
++        for n, b in self.service_buttons.items():
++            b.md_bg_color = ROOD if n in self.selected else GRIJS
++        names = self.ordered_selection()
++        RNS.log("M/ETHANE: gekozen diensten: "+str(names), RNS.LOG_DEBUG)
++        try:
++            if not names: txt = "Nog niets gekozen"
++            elif len(names) == len(self.services) and len(names) > 1: txt = "Gekozen: ALLE DIENSTEN ("+", ".join(names)+")"
++            else: txt = "Gekozen: "+", ".join(names)
++            self.screen.ids.methane_selected.text = txt
++        except Exception: pass
++
++    # ------------------------------------------------------------------
++    # Kaart: inlezen, aanmelden, status
++    # ------------------------------------------------------------------
++
++    def ververs_status(self):
++        try:
++            lbl = self.screen.ids.methane_kaart_status
++        except Exception:
++            return
++        self.toon_scanknop(not self.kaart_modus())
++        if not self.kaart_modus():
++            lbl.text = "Nog geen kaart van een steunpunt ingelezen."
++            lbl.text_color = GRIJS
++            return
++        try:
++            berichten = self.sb.list_messages(self.steunpunt_bytes(), limit=40)
++            nieuw = nk.status_uit_berichten(berichten, self.steunpunt_bytes())
++            if nieuw and nieuw != self.kaart.get("status"):
++                self.kaart["status"] = nieuw
++                nk.bewaar(self.app_dir(), self.kaart)
++                if nieuw == nk.STATUS_AANGEMELD: toast("Aangemeld bij "+self.kaart["sp"])
++        except Exception as e:
++            RNS.log("Noodnet: status ophalen mislukt: "+str(e), RNS.LOG_DEBUG)
++        s = self.kaart.get("status", nk.STATUS_GEEN)
++        lbl.text = nk.status_tekst(self.kaart)
++        lbl.text_color = {nk.STATUS_AANGEMELD: GROEN, nk.STATUS_WACHT: ORANJE}.get(s, ROOD)
++
++    def kaart_menu(self, sender=None):
++        self.sluit_dialog()
++        knoppen = []
++        klembord = MDFlatButton(text="Uit klembord", font_size=dp(16))
++        klembord.bind(on_release=lambda b: self.kaart_uit_klembord())
++        knoppen.append(klembord)
++        if noodnet_scan.beschikbaar():
++            scannen = MDRaisedButton(text="Kaart scannen", font_size=dp(16))
++            scannen.bind(on_release=lambda b: self.kaart_scannen())
++            knoppen.append(scannen)
++        if self.kaart_modus():
++            opnieuw = MDFlatButton(text="Opnieuw aanmelden", font_size=dp(16))
++            opnieuw.bind(on_release=lambda b: (self.sluit_dialog(), self.vraag_naam(self.kaart, self.kaart.get("band"))))
++            weg = MDFlatButton(text="Kaart verwijderen", font_size=dp(16))
++            weg.bind(on_release=lambda b: self.kaart_verwijderen())
++            knoppen = [weg, opnieuw] + knoppen
++            band = self.kaart.get("band")
++            radio = nk.kies_radio(self.kaart, band)
++            tekst = (self.kaart["sp"] + (" ("+self.kaart["g"]+")" if self.kaart.get("g") else "") + "\n"
++                     + nk.status_tekst(self.kaart) + "\n\n"
++                     + ("RNode: "+nk.radio_tekst(radio)+"\n" if radio else "")
++                     + ("Naam: "+self.kaart.get("naam", "")+"\n" if self.kaart.get("naam") else "")
++                     + "\nNieuwe kaart? Tik op 'Kaart scannen'.")
++        else:
++            tekst = ("Scan de QR-code op de kaart van het steunpunt.\n\n"
++                     "Lukt scannen niet? Scan met een andere app, kopieer de tekst "
++                     "en tik op 'Uit klembord'.")
++        sluit = MDFlatButton(text="Sluiten", font_size=dp(16))
++        sluit.bind(on_release=self.sluit_dialog)
++        self.dialog = MDDialog(title="Noodnet-kaart", text=tekst, buttons=[sluit] + knoppen)
++        self.dialog.open()
++
++    def kaart_uit_klembord(self):
++        self.sluit_dialog()
++        try:
++            from kivy.core.clipboard import Clipboard
++            tekst = Clipboard.paste()
++        except Exception:
++            tekst = ""
++        self.kaart_inlezen(tekst, "klembord")
++
++    def kaart_scannen(self, sender=None):
++        self.sluit_dialog()
++        if not noodnet_scan.beschikbaar():
++            self.melding("Scannen niet mogelijk",
++                         "Deze telefoon heeft de scanner van Google niet. Scan de QR-code met een "
++                         "andere app, kopieer de tekst en kies 'Uit klembord' onder het kaart-icoon.")
++            return
++        noodnet_scan.scan(lambda tekst: self.kaart_inlezen(tekst, "scan"),
++                          lambda melding: self.melding("Scannen mislukt", melding))
++
++    def scan_mogelijk(self):
++        return noodnet_scan.beschikbaar()
++
++    def toon_scanknop(self, zichtbaar):
++        try:
++            knop = self.screen.ids.methane_scan_knop
++        except Exception:
++            return
++        knop.opacity = 1 if zichtbaar else 0
++        knop.disabled = not zichtbaar
++        knop.height = dp(56) if zichtbaar else 0
++
++    def kaart_verwijderen(self):
++        self.sluit_dialog()
++        nk.verwijder(self.app_dir())
++        self.selected = set()
++        self.load_services()
++        toast("Kaart verwijderd")
++
++    def kaart_inlezen(self, tekst, bron="link"):
++        """Begin van de aanmeldflow: kaart lezen, radio kiezen, naam vragen."""
++        RNS.log("Noodnet: kaart inlezen via "+str(bron), RNS.LOG_DEBUG)
++        try:
++            kaart = nk.lees_kaart(tekst)
++        except nk.KaartFout as e:
++            self.melding("Kaart niet gelezen", str(e))
++            return
++        self.sluit_dialog()
++        titel = "Kaart van "+kaart["sp"]
++        uitleg = ("Gemeente "+kaart["g"]+"\n" if kaart.get("g") else "") + \
++                 "Hulpdiensten: "+", ".join(l for k, l in kaart["d"])+"\n\n"
++        annuleer = MDFlatButton(text="Annuleren", font_size=dp(16))
++        annuleer.bind(on_release=self.sluit_dialog)
++        radios = kaart.get("r", [])
++        if len(radios) > 1:
++            uitleg += "Welke RNode heeft u gekregen?"
++            knoppen = [annuleer]
++            for r in radios:
++                b = MDRaisedButton(text=r["band"]+" MHz", font_size=dp(16))
++                b.bind(on_release=lambda x, band=r["band"]: (self.sluit_dialog(), self.vraag_naam(kaart, band)))
++                knoppen.append(b)
++        else:
++            if radios:
++                uitleg += "De RNode wordt ingesteld op "+nk.radio_tekst(radios[0])+"."
++            ok = MDRaisedButton(text="Verder", font_size=dp(16))
++            band = radios[0]["band"] if radios else None
++            ok.bind(on_release=lambda x: (self.sluit_dialog(), self.vraag_naam(kaart, band)))
++            knoppen = [annuleer, ok]
++        self.dialog = MDDialog(title=titel, text=uitleg, buttons=knoppen)
++        self.dialog.open()
++
++    def vraag_naam(self, kaart, band):
++        vorige = (self.kaart or {}).get("naam") or ""
++        if not vorige:
++            dn = self.sb.config.get("display_name", "")
++            if dn and dn != "Anonymous Peer": vorige = dn
++        content = MDBoxLayout(orientation="vertical", spacing=dp(8), size_hint_y=None, height=dp(90))
++        naam_f = MDTextField(hint_text="Uw naam", font_size=dp(18), text=vorige)
++        content.add_widget(naam_f)
++        annuleer = MDFlatButton(text="Annuleren", font_size=dp(16))
++        annuleer.bind(on_release=self.sluit_dialog)
++        ok = MDRaisedButton(text="AANMELDEN", font_size=dp(16), md_bg_color=ROOD)
++        def go(b):
++            naam = " ".join(naam_f.text.split())
++            if not naam: return toast("Vul uw naam in")
++            self.sluit_dialog()
++            self.kaart_toepassen(kaart, band, naam)
++        ok.bind(on_release=go)
++        self.dialog = MDDialog(title="Aanmelden bij "+kaart["sp"], type="custom", content_cls=content,
++                               buttons=[annuleer, ok])
++        self.dialog.open()
++
++    def kaart_toepassen(self, kaart, band, naam):
++        cfg = self.sb.config
++        radio = nk.kies_radio(kaart, band)
++        veranderd = False
++        if radio:
++            veranderd = nk.pas_radio_toe(cfg, radio, kaart.get("i"))
++        if cfg.get("display_name", "Anonymous Peer") == "Anonymous Peer":
++            cfg["display_name"] = naam
++        # Positie voor meldingen en het baken: telemetrie met locatie aan
++        if not cfg.get("telemetry_enabled"):
++            cfg["telemetry_enabled"] = True
++            veranderd = True
++        if not cfg.get("telemetry_s_location") and not cfg.get("telemetry_s_fixed_location"):
++            cfg["telemetry_s_location"] = True
++            veranderd = True
++        try:
++            self.app.request_location_permissions()
++        except Exception:
++            pass
++        try: self.sb.save_configuration()
++        except Exception as e: RNS.log("Noodnet: config opslaan mislukt: "+str(e), RNS.LOG_ERROR)
++
++        oude = self.kaart or {}
++        kaart = dict(kaart)
++        kaart["band"] = band
++        kaart["naam"] = naam
++        kaart["status"] = oude.get("status") if oude.get("a") == kaart["a"] else nk.STATUS_GEEN
++        if kaart["status"] == nk.STATUS_AFGEWEZEN: kaart["status"] = nk.STATUS_GEEN
++        kaart["ingelezen"] = time.strftime("%Y-%m-%d %H:%M")
++        nk.bewaar(self.app_dir(), kaart)
++        self.selected = set()
++        self.load_services()
++
++        dest = self.steunpunt_bytes()
++        try:
++            if not self.sb.has_conversation(dest):
++                self.sb.create_conversation(dest, name=kaart["sp"])
++                self.sb.setstate("app.flags.new_conversations", True)
++            # positie meesturen in berichten aan het steunpunt (melding en baken)
++            self.sb.send_telemetry_in_conversation(dest)
++        except Exception as e:
++            RNS.log("Noodnet: gesprek aanmaken mislukt: "+str(e), RNS.LOG_ERROR)
++
++        def na_herstart():
++            self.stuur_aanmelding(kaart, naam)
++
++        if veranderd:
++            toast("RNode-instellingen opgeslagen. De radio wordt opnieuw gestart...")
++            def job():
++                ok = False
++                try: ok = self.app.restart_service()
++                except Exception as e: RNS.log("Noodnet: herstart mislukt: "+str(e), RNS.LOG_ERROR)
++                def verder(dt):
++                    if not ok: toast("Herstart van de radio mislukt; probeer het later opnieuw")
++                    na_herstart()
++                Clock.schedule_once(verder, 0.5)
++            threading.Thread(target=job, daemon=True).start()
++        else:
++            na_herstart()
++
++    def stuur_aanmelding(self, kaart, naam):
++        dest = bytes.fromhex(kaart["a"])
++        toast("Steunpunt zoeken...")
++        def job():
++            gevonden = False
++            for i in range(60):
++                try:
++                    if RNS.Identity.recall(dest):
++                        gevonden = True
++                        break
++                    if i % 15 == 0:
++                        RNS.Transport.request_path(dest)
++                except Exception:
++                    pass
++                time.sleep(1)
++            def verder(dt):
++                if not gevonden:
++                    self.melding("Steunpunt niet bereikbaar",
++                                 kaart["sp"]+" is nog niet gevonden via de radio.\n\n"
++                                 "Controleer of de RNode gekoppeld en aan is, en of u binnen bereik bent. "
++                                 "Probeer daarna 'Opnieuw aanmelden' via het kaart-icoon.")
++                    return
++                ok = self.sb.send_message(nk.aanmeld_tekst(kaart, naam), dest, False)
++                if ok is False:
++                    toast("Aanmelding versturen mislukt; probeer 'Opnieuw aanmelden'")
++                    return
++                k = nk.laad(self.app_dir()) or kaart
++                if k.get("status") != nk.STATUS_AANGEMELD:
++                    k["status"] = nk.STATUS_WACHT
++                k["aanmelding_verstuurd"] = time.strftime("%Y-%m-%d %H:%M")
++                nk.bewaar(self.app_dir(), k)
++                self.kaart = k
++                self.ververs_status()
++                self.melding("Aanmelding verstuurd",
++                             "Uw aanmelding is verstuurd naar "+kaart["sp"]+".\n\n"
++                             "De zendamateur keurt deze goed. U ziet de bevestiging bovenaan dit "
++                             "scherm en in het gesprek met het steunpunt.")
++            Clock.schedule_once(verder, 0)
++        threading.Thread(target=job, daemon=True).start()
++
++    # ------------------------------------------------------------------
++    # Melding versturen
++    # ------------------------------------------------------------------
++
++    def eigen_locatie(self):
++        try:
++            try: self.sb.update_telemetry()
++            except Exception: pass
++            return self.sb.peer_location(self.sb.lxmf_destination.hash)
++        except Exception as e:
++            RNS.log("Noodnet: eigen locatie niet beschikbaar: "+str(e), RNS.LOG_DEBUG)
++            return None
++
++    def new_code(self):
++        return time.strftime("%d%H%M")+"-"+"%02X" % random.randint(0, 255)
++
++    def build_report(self, code, recipients, locatie=None):
++        velden = []
++        for fid, label, hint in FIELDS:
++            velden.append((label.split(" - ")[0], self.screen.ids["mf_"+fid].text.strip() or "onbekend"))
++        return nk.bouw_melding(code, recipients, velden, locatie)
++
++    def send_action(self, sender=None):
++        names = self.ordered_selection()
++        if not names:
++            RNS.log("M/ETHANE: verzenden zonder keuze, diensten="+str(list(self.services)), RNS.LOG_WARNING)
++            toast("Kies eerst een hulpdienst, of tik op ALLE DIENSTEN")
++            return
++
++        if self.kaart_modus():
++            targets = {self.kaart["sp"]: self.steunpunt_bytes()}
++        else:
++            targets = {}
++            for n in names:
++                try:
++                    dest = bytes.fromhex(self.services[n])
++                    if len(dest) != RNS.Reticulum.TRUNCATED_HASHLENGTH//8: raise ValueError
++                    targets[n] = dest
++                except Exception:
++                    toast("Ongeldig adres voor "+n)
++                    return
++
++        locatie = None
++        loc_tekst = ""
++        if self.screen.ids.methane_loc.active:
++            locatie = self.eigen_locatie()
++            r = nk.locatie_regel(locatie)
++            loc_tekst = ("Locatie wordt meegestuurd.\n" if r else
++                         "Locatie nog onbekend (GPS zoekt, of zet in Sideband Telemetry > Location aan). "
++                         "De melding gaat zonder locatie.\n")
++
++        # Bij een herhaalpoging na een deels mislukte verzending blijft meldcode en ontvangerlijst gelijk
++        if self.pending: code, recipients = self.pending["code"], self.pending["recipients"]
++        else: code, recipients = self.new_code(), names
++        report = self.build_report(code, recipients, locatie)
++
++        waarschuwing = ""
++        if self.kaart_modus() and self.kaart.get("status") != nk.STATUS_AANGEMELD:
++            waarschuwing = "LET OP: u bent nog niet aangemeld bij "+self.kaart["sp"]+"; de melding kan geweigerd worden.\n\n"
++
++        yes = MDRaisedButton(text="VERSTUUR", font_size=dp(18), md_bg_color=ROOD)
++        no = MDFlatButton(text="Terug", font_size=dp(18))
++        if self.kaart_modus():
++            title = "Versturen via "+self.kaart["sp"]+"?"
++            text = waarschuwing+"Voor: "+", ".join(names)+"\n"+loc_tekst+"\n"+report
++        else:
++            title = "Versturen naar "+(names[0] if len(names) == 1 else str(len(names))+" diensten")+"?"
++            text = "Naar: "+", ".join(names)+"\n"+loc_tekst+"\n"+report
++        dialog = MDDialog(title=title, text=text, buttons=[no, yes])
++        no.bind(on_release=lambda s: dialog.dismiss())
++
++        def do_send(s):
++            dialog.dismiss()
++            sb = self.sb
++            failed = []
++            for n, dest in targets.items():
++                try:
++                    if not sb.has_conversation(dest):
++                        sb.create_conversation(dest, name=n)
++                        sb.setstate("app.flags.new_conversations", True)
++                    ok = sb.send_message(report, dest, False)
++                    if ok is False: failed.append(n)
++                except Exception as e:
++                    RNS.log("M/ETHANE: versturen naar "+n+" mislukt: "+str(e), RNS.LOG_ERROR)
++                    failed.append(n)
++
++            if failed:
++                self.pending = {"code": code, "recipients": recipients}
++                if not self.kaart_modus():
++                    self.selected = set(failed)
++                    self.refresh_selection()
++                toast("MISLUKT voor: "+", ".join(failed)+". Tik op VERSTUUR om opnieuw te proberen.")
++                return
++
++            self.pending = None
++            self.clear_fields()
++            self.selected = set()
++            self.refresh_selection()
++            if len(targets) == 1:
++                toast("Melding "+code+" verstuurd. Status staat in het gesprek.")
++                self.app.open_conversation(list(targets.values())[0])
++            else:
++                toast("Melding "+code+" verstuurd naar "+str(len(targets))+" diensten. Controleer de status in de gesprekken.")
++                self.app.open_conversations()
++
++        yes.bind(on_release=do_send)
++        dialog.open()
++
++    def clear_fields(self):
++        for fid, label, hint in FIELDS:
++            self.screen.ids["mf_"+fid].text = ""
++
++def _fields_kv():
++    out = ""
++    for fid, label, hint in FIELDS:
++        out += f'''
++                MDTextField:
++                    id: mf_{fid}
++                    hint_text: "{label}"
++                    helper_text: "{hint}"
++                    helper_text_mode: "persistent"
++                    multiline: True
++                    font_size: dp(20)
++'''
++    return out
++
++layout_methane_screen = """
++MDScreen:
++    name: "methane_screen"
++
++    BoxLayout:
++        orientation: "vertical"
++
++        MDTopAppBar:
++            title: "Noodmelding M/ETHANE"
++            anchor_title: "left"
++            elevation: 0
++            md_bg_color: 0.75, 0.05, 0.05, 1
++            left_action_items:
++                [['menu', lambda x: root.app.app.nav_drawer.set_state("open")]]
++            right_action_items:
++                [['card-account-details', lambda x: root.app.kaart_menu(self)], ['cog', lambda x: root.app.manage_action(self)], ['close', lambda x: root.app.app.close_methane_action(self)]]
++
++        ScrollView:
++            id: methane_scrollview
++
++            MDBoxLayout:
++                orientation: "vertical"
++                spacing: "16dp"
++                size_hint_y: None
++                height: self.minimum_height
++                padding: [dp(20), dp(20), dp(20), dp(20)]
++
++                MDLabel:
++                    id: methane_kaart_status
++                    text: ""
++                    bold: True
++                    theme_text_color: "Custom"
++                    text_color: 0.35, 0.35, 0.35, 1
++                    size_hint_y: None
++                    height: self.texture_size[1]
++
++                MDRaisedButton:
++                    id: methane_scan_knop
++                    text: "KAART VAN STEUNPUNT SCANNEN"
++                    font_size: "18dp"
++                    md_bg_color: 0.10, 0.35, 0.65, 1
++                    size_hint_x: 1
++                    size_hint_y: None
++                    height: dp(56)
++                    on_release: root.app.kaart_menu(self) if not root.app.scan_mogelijk() else root.app.kaart_scannen(self)
++
++                MDLabel:
++                    text: "1. Kies wie je wilt waarschuwen (meerdere mag)"
++                    bold: True
++                    size_hint_y: None
++                    height: self.texture_size[1]
++
++                MDGridLayout:
++                    id: methane_services
++                    cols: 2
++                    spacing: "8dp"
++                    adaptive_height: True
++
++                MDRaisedButton:
++                    text: "ALLE DIENSTEN"
++                    font_size: "18dp"
++                    md_bg_color: 0.2, 0.2, 0.2, 1
++                    size_hint_x: 1
++                    on_release: root.app.toggle_all(self)
++
++                MDLabel:
++                    id: methane_selected
++                    text: "Nog niets gekozen"
++                    bold: True
++                    theme_text_color: "Custom"
++                    text_color: 0.75, 0.05, 0.05, 1
++                    size_hint_y: None
++                    height: self.texture_size[1]
++
++                MDBoxLayout:
++                    orientation: "horizontal"
++                    size_hint_y: None
++                    height: dp(48)
++                    spacing: "8dp"
++
++                    MDCheckbox:
++                        id: methane_loc
++                        active: True
++                        size_hint: None, None
++                        size: dp(48), dp(48)
++
++                    MDLabel:
++                        text: "Mijn locatie meesturen"
++                        font_size: dp(18)
++
++                MDLabel:
++                    text: "2. Vul in wat je weet. Leeg laten mag."
++                    bold: True
++                    size_hint_y: None
++                    height: self.texture_size[1]
++""" + _fields_kv() + """
++                MDRaisedButton:
++                    text: "VERSTUUR MELDING"
++                    font_size: "22dp"
++                    md_bg_color: 0.75, 0.05, 0.05, 1
++                    size_hint_x: 1
++                    on_release: root.app.send_action(self)
++"""
+diff --git a/sbapp/ui/noodnet_kaart.py b/sbapp/ui/noodnet_kaart.py
+new file mode 100644
+index 0000000..f29e34a
+--- /dev/null
++++ b/sbapp/ui/noodnet_kaart.py
+@@ -0,0 +1,295 @@
++"""
++noodnet_kaart.py - logica voor de Noodnet-aanmeldkaart (zonder Kivy, testbaar).
++
++De kaart van een Noodsteunpunt bevat een QR-code met een link:
++
++    noodnet://kaart?d=<base64url van JSON>
++
++of (oudere kaarten) de tekst  NN1:{json}
++
++JSON-velden:
++    v   versie (1)
++    g   gemeente
++    sp  naam van het steunpunt
++    a   LXMF-adres van het steunpunt (32 hex-tekens)
++    c   aanmeldcode
++    r   lijst radio's: {"band","f","bw","sf","cr","p"}
++    d   disciplines: [[sleutel, label], ...]
++    i   optioneel [ifac_netwerknaam, ifac_wachtwoord]
++    b   optioneel baken [min_interval_s, max_interval_s, afstand_m]
++"""
++
++import base64
++import json
++import os
++import re
++import time
++from urllib.parse import urlparse, parse_qs
++
++KAART_BESTAND = "noodnet_kaart.json"
++ADRES_LENGTE = 32
++
++STATUS_GEEN = "geen"
++STATUS_WACHT = "wacht"            # aanmelding verstuurd, wacht op goedkeuring
++STATUS_AANGEMELD = "aangemeld"
++STATUS_AFGEWEZEN = "afgewezen"
++
++
++class KaartFout(ValueError):
++    pass
++
++
++# ---------------------------------------------------------------------------
++# Lezen
++# ---------------------------------------------------------------------------
++
++def _b64url_decode(s):
++    s = s.strip()
++    s += "=" * (-len(s) % 4)
++    return base64.urlsafe_b64decode(s.encode("ascii")).decode("utf-8")
++
++
++def maak_link(data):
++    """Maakt de noodnet://-link (gebruikt door maak_kaart.py)."""
++    js = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
++    b = base64.urlsafe_b64encode(js.encode("utf-8")).decode("ascii").rstrip("=")
++    return "noodnet://kaart?d=" + b
++
++
++def is_kaart_tekst(text):
++    t = (text or "").strip().lower()
++    return t.startswith("noodnet:") or t.startswith("nn1:")
++
++
++def lees_kaart(text):
++    """Leest een kaart uit een link of QR-tekst. Geeft een gecontroleerde dict."""
++    if not text or not text.strip():
++        raise KaartFout("Leeg: er staat geen kaart op het klembord")
++    t = text.strip()
++    try:
++        if t.lower().startswith("noodnet:"):
++            u = urlparse(t)
++            q = parse_qs(u.query)
++            if "d" not in q:
++                raise KaartFout("Link bevat geen kaartgegevens")
++            raw = _b64url_decode(q["d"][0])
++        elif t.lower().startswith("nn1:"):
++            raw = t[4:]
++        elif t.startswith("{"):
++            raw = t
++        else:
++            raise KaartFout("Dit is geen Noodnet-kaart")
++        data = json.loads(raw)
++    except KaartFout:
++        raise
++    except Exception as e:
++        raise KaartFout(f"Kaart kan niet gelezen worden ({e.__class__.__name__})")
++    return controleer(data)
++
++
++def controleer(data):
++    if not isinstance(data, dict):
++        raise KaartFout("Onjuist kaartformaat")
++    if int(data.get("v", 1)) != 1:
++        raise KaartFout("Deze kaart is voor een nieuwere versie van de app")
++    adres = "".join(c for c in str(data.get("a", "")).lower() if c in "0123456789abcdef")
++    if len(adres) != ADRES_LENGTE:
++        raise KaartFout("Adres van het steunpunt ontbreekt of is onjuist")
++    if not str(data.get("sp", "")).strip():
++        raise KaartFout("Naam van het steunpunt ontbreekt")
++    radios = []
++    for r in data.get("r", []) or []:
++        try:
++            radios.append({"band": str(r.get("band", "")), "f": int(r["f"]), "bw": int(r["bw"]),
++                           "sf": int(r["sf"]), "cr": int(r["cr"]),
++                           "p": int(r["p"]) if r.get("p") is not None else None})
++        except (KeyError, TypeError, ValueError):
++            raise KaartFout("Radio-instellingen op de kaart zijn onvolledig")
++    disciplines = []
++    for d in data.get("d", []) or []:
++        if isinstance(d, (list, tuple)) and len(d) >= 2:
++            disciplines.append([str(d[0]), str(d[1])])
++        elif isinstance(d, str):
++            disciplines.append([d.lower(), d])
++    ifac = data.get("i")
++    if ifac is not None:
++        if not (isinstance(ifac, (list, tuple)) and len(ifac) == 2):
++            raise KaartFout("IFAC-gegevens op de kaart zijn onjuist")
++        ifac = [str(ifac[0]), str(ifac[1])]
++    baken = None
++    b = data.get("b")
++    if isinstance(b, (list, tuple)) and len(b) == 3:
++        try:
++            baken = [int(b[0]), int(b[1]), int(b[2])]
++        except (TypeError, ValueError):
++            baken = None
++    uit = {"v": 1, "g": str(data.get("g", "")), "sp": str(data["sp"]).strip(), "a": adres,
++           "c": str(data.get("c", "")).strip(), "r": radios, "d": disciplines, "i": ifac}
++    if baken:
++        uit["b"] = baken
++    return uit
++
++
++# ---------------------------------------------------------------------------
++# Opslaan (in de map van Sideband)
++# ---------------------------------------------------------------------------
++
++def pad(app_dir):
++    return os.path.join(app_dir, KAART_BESTAND)
++
++
++def laad(app_dir):
++    try:
++        with open(pad(app_dir), "r", encoding="utf-8") as f:
++            data = json.load(f)
++        return data if isinstance(data, dict) and data.get("a") else None
++    except (OSError, ValueError):
++        return None
++
++
++def bewaar(app_dir, data):
++    tmp = pad(app_dir) + ".tmp"
++    with open(tmp, "w", encoding="utf-8") as f:
++        json.dump(data, f, ensure_ascii=False, indent=2)
++    os.replace(tmp, pad(app_dir))
++
++
++def verwijder(app_dir):
++    try:
++        os.remove(pad(app_dir))
++        return True
++    except OSError:
++        return False
++
++
++# ---------------------------------------------------------------------------
++# Radio-instellingen in de Sideband-config zetten
++# ---------------------------------------------------------------------------
++
++def kies_radio(kaart, band=None):
++    radios = kaart.get("r", [])
++    if not radios:
++        return None
++    if band is not None:
++        for r in radios:
++            if r["band"] == str(band):
++                return r
++    return radios[0] if len(radios) == 1 else None
++
++
++def pas_radio_toe(config, radio, ifac=None):
++    """Zet de RNode-instellingen in de Sideband-config (dict).
++    Geeft True als er iets veranderd is (dan moet de radio-service herstarten)."""
++    nieuw = {
++        "connect_rnode": True,
++        "hw_rnode_frequency": radio["f"],
++        "hw_rnode_bandwidth": radio["bw"],
++        "hw_rnode_spreading_factor": radio["sf"],
++        "hw_rnode_coding_rate": radio["cr"],
++        # ISM-banden: maximaal 10% zendtijd
++        "hw_rnode_atl_long": 10.0,
++    }
++    if radio.get("p") is not None:
++        nieuw["hw_rnode_tx_power"] = radio["p"]
++    if ifac:
++        nieuw["connect_rnode_ifac_netname"] = ifac[0]
++        nieuw["connect_rnode_ifac_passphrase"] = ifac[1]
++    else:
++        nieuw["connect_rnode_ifac_netname"] = ""
++        nieuw["connect_rnode_ifac_passphrase"] = ""
++    veranderd = any(config.get(k) != v for k, v in nieuw.items())
++    config.update(nieuw)
++    return veranderd
++
++
++def radio_tekst(radio):
++    t = f"{radio['f'] / 1e6:.3f} MHz, BW {radio['bw'] // 1000} kHz, SF {radio['sf']}, CR {radio['cr']}"
++    if radio.get("p") is not None:
++        t += f", {radio['p']} dBm"
++    return t
++
++
++# ---------------------------------------------------------------------------
++# Aanmelden en status
++# ---------------------------------------------------------------------------
++
++def aanmeld_tekst(kaart, naam):
++    return f"AANMELDEN {kaart.get('c', '')} {naam}".strip()
++
++
++def status_uit_berichten(berichten, steunpunt_adres_bytes):
++    """Bepaalt de aanmeldstatus uit de berichten van het gesprek met het steunpunt.
++    'berichten' zoals sideband.list_messages() ze geeft (oud -> nieuw)."""
++    status = None
++    for m in berichten:
++        if m.get("source") != steunpunt_adres_bytes:
++            continue
++        c = m.get("content", b"")
++        if isinstance(c, (bytes, bytearray)):
++            c = c.decode("utf-8", "replace")
++        if c.startswith("Aangemeld bij") or c.startswith("U bent al aangemeld"):
++            status = STATUS_AANGEMELD
++        elif "niet goedgekeurd" in c:
++            status = STATUS_AFGEWEZEN
++        elif c.startswith("Aanmelding ontvangen"):
++            if status != STATUS_AANGEMELD:
++                status = STATUS_WACHT
++        elif "onjuiste aanmeldcode" in c:
++            status = STATUS_GEEN
++    return status
++
++
++def status_tekst(kaart):
++    s = kaart.get("status", STATUS_GEEN)
++    sp = kaart.get("sp", "het steunpunt")
++    return {
++        STATUS_AANGEMELD: f"Aangemeld bij {sp}",
++        STATUS_WACHT: f"Wacht op goedkeuring door de zendamateur ({sp})",
++        STATUS_AFGEWEZEN: f"Aanmelding bij {sp} is afgewezen",
++    }.get(s, f"Nog niet aangemeld bij {sp}")
++
++
++# ---------------------------------------------------------------------------
++# Melding opbouwen
++# ---------------------------------------------------------------------------
++
++def locatie_regel(locatie):
++    """locatie: dict met latitude/longitude (en eventueel accuracy), of None."""
++    if not locatie:
++        return None
++    try:
++        lat, lon = float(locatie["latitude"]), float(locatie["longitude"])
++    except (KeyError, TypeError, ValueError):
++        return None
++    t = f"LOCATIE: {lat:.5f}, {lon:.5f}"
++    acc = locatie.get("accuracy")
++    try:
++        if acc is not None and float(acc) > 0:
++            t += f" (±{round(float(acc))} m)"
++    except (TypeError, ValueError):
++        pass
++    return t
++
++
++_LOC_RE = re.compile(r"^\s*LOCATIE\s*:\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)(?:\s*\(±\s*(\d+(?:\.\d+)?)\s*m\))?", re.I | re.M)
++
++
++def lees_locatie_regel(text):
++    """Geeft (lat, lon, nauwkeurigheid) uit een 'LOCATIE:'-regel, of None."""
++    m = _LOC_RE.search(text or "")
++    if not m:
++        return None
++    lat, lon = float(m.group(1)), float(m.group(2))
++    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
++        return None
++    return lat, lon, (float(m.group(3)) if m.group(3) else None)
++
++
++def bouw_melding(code, ontvangers, velden, locatie=None, tijd=None):
++    """velden: lijst van (letter, waarde) in M-E-T-H-A-N-E-volgorde."""
++    ts = time.strftime("%Y-%m-%d %H:%M", time.localtime(tijd)) if tijd else time.strftime("%Y-%m-%d %H:%M")
++    kop = ["M/ETHANE MELDING " + ts, "MELDCODE: " + code, "GEMELD AAN: " + ", ".join(ontvangers)]
++    lr = locatie_regel(locatie)
++    if lr:
++        kop.append(lr)          # in de kop, zodat het M/ETHANE-formulier niet verandert
++    return "\n".join(kop + [f"{letter}: {waarde or 'onbekend'}" for letter, waarde in velden])
+diff --git a/sbapp/ui/noodnet_scan.py b/sbapp/ui/noodnet_scan.py
+new file mode 100644
+index 0000000..92130b7
+--- /dev/null
++++ b/sbapp/ui/noodnet_scan.py
+@@ -0,0 +1,121 @@
++"""
++noodnet_scan.py - QR-code scannen vanuit de app (Android).
++
++Gebruikt de Google Code Scanner (Google Play-services, module
++play-services-code-scanner). Google toont het scanscherm zelf; de app
++heeft daarvoor geen camerarechten nodig en krijgt alleen de tekst terug.
++
++Gebruik:
++    if noodnet_scan.beschikbaar():
++        noodnet_scan.scan(op_tekst, op_fout)
++
++op_tekst(tekst) en op_fout(melding) worden op de Kivy-thread aangeroepen.
++Bij annuleren door de gebruiker wordt geen van beide aangeroepen.
++"""
++
++import RNS
++from kivy.clock import Clock
++
++_SCANNER_KLASSE = "com.google.mlkit.vision.codescanner.GmsBarcodeScanning"
++
++# Houd de Java-listeners vast zolang de scan loopt (anders ruimt Python ze op)
++_actief = []
++
++
++def op_android():
++    try:
++        return RNS.vendor.platformutils.is_android()
++    except Exception:
++        return False
++
++
++def beschikbaar():
++    """True als de scanner in deze app zit (Android + bibliotheek aanwezig)."""
++    if not op_android():
++        return False
++    try:
++        from jnius import autoclass
++        autoclass(_SCANNER_KLASSE)
++        return True
++    except Exception as e:
++        RNS.log("Noodnet: QR-scanner niet beschikbaar: " + str(e), RNS.LOG_DEBUG)
++        return False
++
++
++def scan(op_tekst, op_fout):
++    try:
++        from jnius import autoclass, cast, PythonJavaClass, java_method
++        from android import mActivity
++    except Exception as e:
++        Clock.schedule_once(lambda dt: op_fout("Scannen kan alleen op Android (" + str(e) + ")"), 0)
++        return
++
++    class _Gelukt(PythonJavaClass):
++        __javainterfaces__ = ["com/google/android/gms/tasks/OnSuccessListener"]
++        __javacontext__ = "app"
++
++        @java_method("(Ljava/lang/Object;)V")
++        def onSuccess(self, resultaat):
++            tekst = None
++            try:
++                barcode = cast("com.google.mlkit.vision.barcode.common.Barcode", resultaat)
++                tekst = barcode.getRawValue()
++            except Exception as e:
++                RNS.log("Noodnet: QR-resultaat niet te lezen: " + str(e), RNS.LOG_ERROR)
++            _klaar()
++            if tekst:
++                Clock.schedule_once(lambda dt: op_tekst(str(tekst)), 0)
++            else:
++                Clock.schedule_once(lambda dt: op_fout("De QR-code bevat geen tekst"), 0)
++
++    class _Mislukt(PythonJavaClass):
++        __javainterfaces__ = ["com/google/android/gms/tasks/OnFailureListener"]
++        __javacontext__ = "app"
++
++        @java_method("(Ljava/lang/Exception;)V")
++        def onFailure(self, fout):
++            try:
++                melding = str(fout.getMessage())
++            except Exception:
++                melding = "onbekende fout"
++            RNS.log("Noodnet: QR-scan mislukt: " + melding, RNS.LOG_ERROR)
++            _klaar()
++            Clock.schedule_once(lambda dt: op_fout(_uitleg(melding)), 0)
++
++    class _Geannuleerd(PythonJavaClass):
++        __javainterfaces__ = ["com/google/android/gms/tasks/OnCanceledListener"]
++        __javacontext__ = "app"
++
++        @java_method("()V")
++        def onCanceled(self):
++            RNS.log("Noodnet: QR-scan geannuleerd", RNS.LOG_DEBUG)
++            _klaar()
++
++    try:
++        GmsBarcodeScanning = autoclass(_SCANNER_KLASSE)
++        Builder = autoclass("com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions$Builder")
++        opties = Builder().enableAutoZoom().build()
++        scanner = GmsBarcodeScanning.getClient(mActivity, opties)
++        taak = scanner.startScan()
++        luisteraars = (_Gelukt(), _Mislukt(), _Geannuleerd())
++        _actief.append(luisteraars)
++        taak.addOnSuccessListener(luisteraars[0])
++        taak.addOnFailureListener(luisteraars[1])
++        taak.addOnCanceledListener(luisteraars[2])
++    except Exception as e:
++        RNS.log("Noodnet: QR-scanner starten mislukt: " + str(e), RNS.LOG_ERROR)
++        Clock.schedule_once(lambda dt: op_fout(_uitleg(str(e))), 0)
++
++
++def _klaar():
++    if _actief:
++        _actief.pop(0)
++
++
++def _uitleg(melding):
++    m = (melding or "").lower()
++    if "module" in m or "download" in m or "unavailable" in m or "api" in m:
++        return ("De scanner van Google is nog niet klaar of niet beschikbaar op deze telefoon. "
++                "Probeer het over een minuut opnieuw (de eerste keer wordt hij gedownload, "
++                "internet nodig), of scan met een andere app en gebruik 'Uit klembord'.")
++    return "Scannen lukt niet (" + melding + "). Gebruik een scan-app en 'Uit klembord'."

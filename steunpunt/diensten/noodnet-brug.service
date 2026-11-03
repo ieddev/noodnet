@@ -1,0 +1,17 @@
+[Unit]
+Description=Noodnet steunpunt-brug (LoRa naar leesbaar 2 m)
+After=network-online.target direwolf.service rnsd.service
+Wants=direwolf.service rnsd.service
+
+[Service]
+Type=simple
+User=@GEBRUIKER@
+WorkingDirectory=@MAP@
+Environment=PYTHONUNBUFFERED=1
+ExecStartPre=/bin/sleep 10
+ExecStart=@VENV@/bin/python @MAP@/steunpunt_brug.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

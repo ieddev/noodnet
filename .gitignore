@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.apk
+*.keystore
+*.jks
+gateway.id
+web_wachtwoord.json
+hotspot.json

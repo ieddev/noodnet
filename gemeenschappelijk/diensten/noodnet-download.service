@@ -1,0 +1,15 @@
+[Unit]
+Description=Noodnet startpagina en app-download (poort 80)
+After=network.target
+
+[Service]
+Type=simple
+User=@GEBRUIKER@
+WorkingDirectory=@MAP@
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+ExecStart=@VENV@/bin/python @MAP@/download_server.py 80
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

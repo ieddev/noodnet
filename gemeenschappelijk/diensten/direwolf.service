@@ -1,0 +1,14 @@
+[Unit]
+Description=Direwolf (Noodnet, 2 m)
+After=sound.target network.target
+
+[Service]
+Type=simple
+User=@GEBRUIKER@
+WorkingDirectory=@MAP@
+ExecStart=/usr/bin/direwolf -c @MAP@/direwolf.conf -t 0 -q d
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

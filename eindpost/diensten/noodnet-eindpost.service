@@ -1,0 +1,17 @@
+[Unit]
+Description=Noodnet eindpost-ontvanger (2 m naar MQTT en logboek)
+After=network-online.target direwolf.service mosquitto.service
+Wants=direwolf.service mosquitto.service
+
+[Service]
+Type=simple
+User=@GEBRUIKER@
+WorkingDirectory=@MAP@
+Environment=PYTHONUNBUFFERED=1
+ExecStartPre=/bin/sleep 5
+ExecStart=@VENV@/bin/python @MAP@/ax25_to_mqtt.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
