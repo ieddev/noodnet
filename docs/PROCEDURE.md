@@ -23,6 +23,22 @@ roepnaam.
 
 ---
 
+## Volgorde bij een complete nieuwe opzet
+
+1. **Eindpost**: stap 1 t/m 4 (Eindpost). Noteer de roepnaam, bijv. `PD3PAM-5`.
+2. **Noodsteunpunt**: stap 1 t/m 4 (Noodsteunpunt). Zet op tabblad **Netwerk** de roepnaam
+   van de eindpost bij de juiste discipline. Maak de kaart.
+3. **Radio testen**: op beide Pi's tabblad Radio → *Testuitzending*. Kijk op de andere Pi bij
+   *Ontvangen niveau* (rond 50). Stel zo nodig de schuifbalken bij.
+4. **Beheerder**: jouw eigen telefoon aanmelden en goedkeuren als beheerder (stap 4).
+5. **Vrijwilligers**: de telefoons aanmelden (stap 6) en goedkeuren.
+6. **Testen**: stap 5.
+
+Telefoons die eerder met een ander steunpunt werkten: app verwijderen (of *Instellingen →
+Apps → Noodnet → Opslag → Gegevens wissen*) en opnieuw installeren. Dan krijgen ze een nieuw ID.
+
+---
+
 ## Stap 1 - SD-kaart maken
 
 1. Installeer de **Raspberry Pi Imager** op je pc (raspberrypi.com/software).
@@ -132,11 +148,27 @@ bekijken op een andere pc of telefoon via de hotspot: **http://10.42.0.1:1880/ui
 
 - [ ] Status: alle diensten groen, hotspot aan
 - [ ] Radio → *Testuitzending*: de set gaat op zenden, op een tweede ontvanger hoor je packet-geluid
-- [ ] Steunpunt: een telefoon meldt zich aan met de kaart en wordt goedgekeurd
+- [ ] Steunpunt: elke telefoon meldt zich aan met de kaart en wordt goedgekeurd (stap 6)
 - [ ] Steunpunt: `LIJST` vanaf de beheertelefoon geeft antwoord
 - [ ] Een M/ETHANE-melding komt aan op de eindpost (scherm + logboek)
 - [ ] Het steunpunt toont *bevestigd* (ACK) van de eindpost in het log
 - [ ] Na een herstart werkt alles weer vanzelf
+
+## Stap 6 - Telefoons van vrijwilligers
+
+Per telefoon, in de buurt van het steunpunt:
+
+1. Verbind met de wifi *Noodnet-&lt;roepnaam van het steunpunt&gt;* (wachtwoord van de hotspot).
+2. Open **http://10.42.0.1** en tik op *Noodnet-app downloaden*. Android vraagt toestemming
+   om apps uit deze bron te installeren: toestaan, dan installeren.
+3. Open de app en koppel de RNode van de vrijwilliger (Bluetooth).
+4. Open het M/ETHANE-scherm → **Kaart van steunpunt scannen** → scan de kaart.
+5. Kies de band van de RNode (433 of 868) en tik **Aanmelden**.
+6. De beheerder krijgt de aanmelding op zijn telefoon met een nummer: antwoord `JA <nr>`.
+   Of op de beheerpagina: tabblad **Status** → *Wachten op goedkeuring* → **Goedkeuren**.
+7. De telefoon krijgt bericht dat hij is goedgekeurd. Daarna kan hij melden.
+
+Na het aanmelden mag de telefoon van de hotspot af: melden gaat via de RNode.
 
 ## Back-up maken (belangrijk!)
 
