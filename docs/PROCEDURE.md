@@ -12,7 +12,8 @@ Reken op ongeveer een uur, waarvan de meeste tijd wachten.
 | Radio | 2 m-set met USB-geluid + PTT (bijv. FT-818 met SCU-17) | 2 m-set met USB-geluid + PTT (bijv. IC-9700) |
 | LoRa | 1 of 2 RNodes via USB (433 en/of 868 MHz) | – |
 | Scherm | Niet nodig | Monitor via HDMI (of een pc/telefoon via de hotspot) |
-| Overig | SD-kaart 32 GB, voeding, eventueel accu | SD-kaart 32 GB, voeding, eventueel RTC-module |
+| Voeding | Accu (12 V) voor set én Pi; voor de Pi een goede 5 V-omvormer (Pi 5: 5 A) | Noodstroom van de hulpdienst, of accu |
+| Overig | SD-kaart 32 GB | SD-kaart 32 GB |
 
 Frequenties: 2 m **144,925 MHz** (AX.25 1200 baud). LoRa **434,100 MHz** en
 **869,525 MHz** (ISM). Op de amateurband gaat alles **leesbaar** en onder je eigen
@@ -116,7 +117,10 @@ lamineren). Staat er IFAC op, dan is de kaart **VERTROUWELIJK**.
 | **Status** | Alles groen? |
 
 Laat daarna de beheerder van elk steunpunt in de gemeente jouw roepnaam
-toevoegen: tabblad **Netwerk** → bij de juiste discipline.
+toevoegen: tabblad **Netwerk** → bij de juiste discipline. Meerdere posten van
+dezelfde dienst (bijv. een hoofdkazerne en een dependance) kan: zet beide
+roepnamen bij die discipline, met een komma ertussen. Een M/ETHANE-melding wordt
+dan herhaald tot **beide** posten hebben bevestigd.
 
 Het **M/ETHANE-scherm** opent na het opstarten vanzelf op de monitor. Ook te
 bekijken op een andere pc of telefoon via de hotspot: **http://10.42.0.1:1880/ui**.
@@ -129,6 +133,28 @@ bekijken op een andere pc of telefoon via de hotspot: **http://10.42.0.1:1880/ui
 - [ ] Een M/ETHANE-melding komt aan op de eindpost (scherm + logboek)
 - [ ] Het steunpunt toont *bevestigd* (ACK) van de eindpost in het log
 - [ ] Na een herstart werkt alles weer vanzelf
+
+## Back-up maken (belangrijk!)
+
+Maak na het instellen meteen een back-up: beheerpagina → tabblad **Back-up** →
+*Back-up downloaden*. Bewaar het bestand veilig (niet mailen of delen).
+
+- **Noodsteunpunt:** in de back-up zit de **sleutel** van het steunpunt. Daarmee
+  houdt het steunpunt na een nieuwe SD-kaart **hetzelfde adres**: de gedrukte
+  kaarten en de aangemelde vrijwilligers blijven geldig. Zonder back-up krijgt
+  het steunpunt een nieuw adres en moet iedereen opnieuw aanmelden.
+- **Eindpost:** instellingen en het hele logboek.
+
+**Terugzetten** (bijv. na een nieuwe SD-kaart): eerst gewoon installeren (stap 1-3),
+dan tabblad **Back-up** → bestand kiezen → *Terugzetten*. Daarna nog een keer
+tabblad **Radio** controleren (andere USB-poorten?).
+
+## De klok
+
+Een Pi zonder internet weet na het aanzetten de tijd niet. Open daarom na het
+opstarten even de beheerpagina op je **telefoon**: de Pi neemt dan automatisch de
+tijd van je telefoon over (als hij meer dan een minuut afwijkt). Op het tabblad
+Status staat *Tijd van de Pi* met de bron.
 
 ## Bijwerken
 
@@ -153,7 +179,8 @@ wordt meteen op de downloadpagina gezet.
 | Rode melding *Kaart en radio komen niet overeen* | Tabblad Netwerk opslaan met het vinkje *RNodes gelijkzetten* aan. Nieuwe kaart maken en opnieuw scannen. |
 | Vrijwilligers komen niet door | Status: staan ze bij *Onbekende telefoons*? Laten aanmelden met de kaart. `rnstatus`: IFAC-overtredingen? → IFAC op kaart en Pi gelijk. |
 | Steunpunt blijft herhalen | De roepnaam van de eindpost op het tabblad Netwerk klopt niet, of de eindpost staat uit. |
-| Tijd in het logboek klopt niet | Pi zonder internet weet de tijd niet na een herstart: gebruik een RTC-module. |
+| Tijd in het logboek klopt niet | Open de beheerpagina op je telefoon: de Pi neemt de tijd over. |
+| Status: *Nog niet bevestigd* | Die eindpost staat uit, is buiten bereik, of de roepnaam klopt niet. Het steunpunt blijft M/ETHANE herhalen tot elke genoemde eindpost bevestigt. |
 
 ## Veiligheid
 

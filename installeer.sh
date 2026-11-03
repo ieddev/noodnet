@@ -203,6 +203,7 @@ fi
 SC="$(command -v systemctl)"
 REGEL="$GEBRUIKER ALL=(root) NOPASSWD:"; EERSTE=1
 for d in $DIENSTEN; do [ $EERSTE = 1 ] && EERSTE=0 || REGEL="$REGEL,"; REGEL="$REGEL $SC restart $d"; done
+REGEL="$REGEL, $(command -v date) -s *"      # klok gelijkzetten met de telefoon van de beheerder
 TMP=$(mktemp); echo "$REGEL" > "$TMP"
 sudo visudo -cf "$TMP" >/dev/null && sudo install -m 0440 "$TMP" /etc/sudoers.d/noodnet; rm -f "$TMP"
 sudo rm -f /etc/sudoers.d/noodnet-web /etc/sudoers.d/noodnet-eindpost
@@ -243,6 +244,8 @@ if [ "$NIEUW" = "1" ]; then
    - beheerpagina:   http://10.42.0.1:8080   (gebruiker: beheer)
        -> tabblad Radio: geluidskaart, PTT$( [ "$ROL" = steunpunt ] && echo " en RNode-poorten") kiezen
    - startpagina en app-download:  http://10.42.0.1
+   - heb je een back-up van een eerdere installatie? tabblad Back-up -> Terugzetten
+   - maak anders na het instellen meteen een back-up (tabblad Back-up)
    - ssh werkt via de hotspot:  ssh $GEBRUIKER@10.42.0.1
    Internet (voor bijwerken) daarna via een netwerkkabel, of tijdelijk:  ~/noodnet/hotspot.sh thuiswifi
    Bijwerken:  noodnet-bijwerken

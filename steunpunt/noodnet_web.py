@@ -37,9 +37,10 @@ import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlparse, quote
 
 import noodnet_radio as radio
+import noodnet_beheer as beheer
 
 MAP = os.path.dirname(os.path.abspath(__file__))
 INST_FILE = os.path.join(MAP, "steunpunt_instellingen.json")
@@ -677,7 +678,7 @@ details summary{cursor:pointer;color:var(--blauw);font-weight:600;margin-top:8px
 """
 
 PAGINAS = [("status", "Status"), ("steunpunt", "Steunpunt"), ("radio", "Radio"), ("netwerk", "Netwerk"),
-           ("vrijwilligers", "Vrijwilligers"), ("kaart", "Kaart")]
+           ("vrijwilligers", "Vrijwilligers"), ("kaart", "Kaart"), ("backup", "Back-up")]
 
 
 def pagina(actief, inhoud, inst, melding=""):
@@ -687,7 +688,7 @@ def pagina(actief, inhoud, inst, melding=""):
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>{e(naam)} - beheer</title>
 <style>{CSS}</style></head><body>
 <header><b>{e(naam)}</b><span>{e(inst.get('roepnaam') or '')} &middot; Noodnet beheer</span></header>
-<nav>{nav}</nav><main>{melding}{inhoud}</main></body></html>"""
+<nav>{nav}</nav><main>{melding}{inhoud}</main>{beheer.TIJD_SCRIPT % CSRF}</body></html>"""
 
 
 def meldingen(ok=None, fouten=(), let=()):
@@ -721,8 +722,20 @@ def html_status(inst, net):
     laag = sum(1 for v in vw if v["status"] == "laag")
     a = lees_json(AANMELD_FILE, {}) or {}
     open_ = a.get("open", {})
-    wr = lees_json(WACHTRIJ_FILE, [])
-    wachtrij = len(wr) if isinstance(wr, (list, dict)) else 0
+    wr = lees_json(WACHTRIJ_FILE, {}) or {}
+    items = wr.get("items", []) if isinstance(wr, dict) else (wr if isinstance(wr, list) else [])
+    wachtrij = len(items)
+    nu = time.time()
+    traag = []
+    for it in items:
+        if it.get("soort") in ("MTH", "MSG", "OPR") and it.get("wacht_op") and nu - it.get("gemaakt", nu) > 300:
+            wie = ", ".join(x for x in it["wacht_op"] if x != "*") or "een eindpost"
+            soort = {"MTH": "M/ETHANE", "MSG": "bericht", "OPR": "operatorbericht"}[it["soort"]]
+            traag.append(f"{wie} heeft een {soort} van {time.strftime('%H:%M', time.localtime(it.get('gemaakt', nu)))} "
+                         f"nog niet bevestigd ({it.get('pogingen', 0)} keer verzonden). Staat die post aan en in bereik?")
+    traag_html = ("<div class='melding let'><b>Nog niet bevestigd</b><ul style='margin:6px 0 0 18px;padding:0'>"
+                  + "".join(f"<li>{e(t)}</li>" for t in traag) + "</ul></div>") if traag else ""
+    klok, klokbron = beheer.tijd_tekst()
     adres = steunpunt_adres()
     open_html = ""
     if open_:
@@ -744,7 +757,7 @@ def html_status(inst, net):
         zonder_beheerder = ("<div class='melding let'><b>Nog geen beheerder.</b> Zo maak je je eigen telefoon beheerder: "
                             "vul eerst het tabblad Steunpunt in, maak op het tabblad Kaart de kaart, scan die QR-code met de "
                             "Noodnet-app en kies hier daarna <b>Goedkeuren als beheerder</b>.</div>")
-    return f"""{zonder_beheerder}{html_radiocontrole(net)}
+    return f"""{zonder_beheerder}{html_radiocontrole(net)}{traag_html}
 <section><h2>Diensten</h2><p class="uitleg">Alles moet groen zijn. Herstart alleen als er iets hapert.</p>
 <table>{rijen}</table></section>
 <section><h2>Overzicht</h2><div class="cijfers">
@@ -754,7 +767,8 @@ def html_status(inst, net):
 <div class="cijfer"><b style="color:var(--oranje)">{laag}</b><span>accu laag</span></div>
 <div class="cijfer"><b>{wachtrij}</b><span>in wachtrij 2 m</span></div></div>
 <label>Adres van dit steunpunt</label><div class="mono">{e(adres) or 'nog onbekend (start de brug eerst)'}</div>
-<label>Aanmeldcode</label><div>{e(inst.get('aanmeldcode') or '— niet ingesteld —')}</div></section>
+<label>Aanmeldcode</label><div>{e(inst.get('aanmeldcode') or '— niet ingesteld —')}</div>
+<label>Tijd van de Pi</label><div>{e(klok)} <small style="color:var(--zacht)">({e(klokbron)})</small></div></section>
 {open_html}
 {radio.html_hotspot()}
 <section><h2>Log van de brug</h2><p class="uitleg">De laatste regels; nieuwste onderaan. Ververs de pagina voor nieuwe regels.</p>
@@ -993,7 +1007,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _terug(self, waar, melding=""):
         self.send_response(303)
-        self.send_header("Location", waar + (("?m=" + melding) if melding else ""))
+        self.send_header("Location", waar + (("?m=" + quote(melding)) if melding else ""))
         self.end_headers()
 
     def do_GET(self):
@@ -1012,6 +1026,17 @@ class Handler(BaseHTTPRequestHandler):
         meld = meldingen(ok=teksten.get(m)) if m in teksten else ""
         if m.startswith("fout:"):
             meld = meldingen(fouten=[m[5:]])
+        if pad == "backup.zip":
+            data, naam = beheer.maak_backup("steunpunt", inst.get("roepnaam", ""))
+            self.send_response(200)
+            self.send_header("Content-Type", "application/zip")
+            self.send_header("Content-Disposition", f'attachment; filename="{naam}"')
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+            return
+        if pad == "backup":
+            return self._stuur(pagina("backup", beheer.html_backup("steunpunt", verborgen()), inst, meld))
         if pad == "kaart.html":
             try:
                 return self._stuur(open(KAART_HTML, encoding="utf-8").read())
@@ -1039,6 +1064,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self._auth():
             return
+        if urlparse(self.path).path.strip("/") == "terugzetten":
+            return self._terugzetten()
         f = self._formulier()
         if not hmac.compare_digest(f.get("csrf", ""), CSRF):
             return self._terug("/status", "fout:Formulier verlopen, probeer het opnieuw.")
@@ -1086,6 +1113,11 @@ class Handler(BaseHTTPRequestHandler):
                            "".join(f"<li>{e(x)}</li>" for x in radio_info) + "</ul></div>"
             return self._stuur(pagina("netwerk", html_netwerk(nieuw), inst, melding))
 
+        if pad == "tijd":
+            uit = beheer.tijd_van_telefoon(f.get("ms"))
+            if uit:
+                sys.stderr.write(uit + "\n")
+            return self._stuur(uit or "ok", soort="text/plain; charset=utf-8")
         if pad == "radio":
             fouten, diensten, r = radio.verwerk_radio("steunpunt", f, inst.get("roepnaam"), net)
             if fouten:
@@ -1153,6 +1185,40 @@ class Handler(BaseHTTPRequestHandler):
             return self._terug("/kaart", "kaart")
 
         self._stuur("Niet gevonden", 404, "text/plain; charset=utf-8")
+
+
+def _terugzetten(self):
+    lengte = int(self.headers.get("Content-Length", 0) or 0)
+    if lengte > 60_000_000:
+        return self._terug("/backup", "fout:Bestand is te groot.")
+    data, velden = beheer.lees_upload(self.headers.get("Content-Type", ""), self.rfile.read(lengte))
+    if not hmac.compare_digest(velden.get("csrf", ""), CSRF):
+        return self._terug("/backup", "fout:Formulier verlopen, probeer het opnieuw.")
+    if not data:
+        return self._terug("/backup", "fout:Geen bestand gekozen.")
+    ok, meld = beheer.zet_terug("steunpunt", data)
+    if not ok:
+        return self._terug("/backup", "fout:" + " ".join(meld))
+    global _adres_cache
+    _adres_cache = None
+    r = radio.instellingen()
+    try:
+        inst = instellingen()
+        radio.maak_direwolf(inst.get("roepnaam"), r)
+        if r.get("rnode_433") or r.get("rnode_868"):
+            radio.maak_reticulum(r, netwerk())
+    except Exception as ex:
+        meld.append(f"Radio-instellingen niet opnieuw gemaakt: {ex}")
+    for d in ("direwolf", "rnsd", "noodnet-brug"):
+        herstart(d)
+        if d == "rnsd":
+            time.sleep(4)
+    inst = instellingen()
+    return self._stuur(pagina("backup", meldingen(ok=" ".join(meld) + " Diensten herstart.") +
+                              beheer.html_backup("steunpunt", verborgen()), inst))
+
+
+Handler._terugzetten = _terugzetten
 
 
 def stel_wachtwoord_in():

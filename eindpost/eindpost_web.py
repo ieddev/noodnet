@@ -32,6 +32,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse, quote
 
 import noodnet_radio as radio
+import noodnet_beheer as beheer
 
 MAP = os.path.dirname(os.path.abspath(__file__))
 INST_FILE = os.path.join(MAP, "eindpost_instellingen.json")
@@ -222,7 +223,7 @@ def stel_wachtwoord_in():
 # HTML
 # ---------------------------------------------------------------------------
 
-PAGINAS = [("status", "Status"), ("instellingen", "Instellingen"), ("radio", "Radio"), ("logboek", "Logboek")]
+PAGINAS = [("status", "Status"), ("instellingen", "Instellingen"), ("radio", "Radio"), ("logboek", "Logboek"), ("backup", "Back-up")]
 
 
 def pagina(actief, inhoud, inst, melding=""):
@@ -233,7 +234,7 @@ def pagina(actief, inhoud, inst, melding=""):
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>{e(naam)} - beheer</title>
 <style>{CSS}</style></head><body>
 <header><b>{e(naam)}</b><span>{e(inst.get('roepnaam') or '')} &middot; Noodnet eindpost</span></header>
-<nav>{nav}</nav><main>{melding}{inhoud}</main></body></html>"""
+<nav>{nav}</nav><main>{melding}{inhoud}</main>{beheer.TIJD_SCRIPT % CSRF}</body></html>"""
 
 
 def meldingen(ok=None, fouten=()):
@@ -270,13 +271,15 @@ def html_status(inst):
     sp_html = (f"<table><tr><th>Steunpunt</th><th>Laatst</th><th>Stand</th></tr>{sp_html}</table>" if sp_html else
                "<p>Vandaag nog geen statusbericht van een steunpunt ontvangen (komt elke 30 minuten).</p>")
     disc = ", ".join(inst.get("disciplines") or []) + (" + meelezen" if inst.get("meelezen") else "")
+    klok, klokbron = beheer.tijd_tekst()
     return f"""
 <section><h2>Diensten</h2><p class="uitleg">Alles moet groen zijn.</p><table>{rijen}</table></section>
 <section><h2>Vandaag</h2><div class="cijfers">
 <div class="cijfer"><b>{mth_mij}</b><span>M/ETHANE voor deze post</span></div>
 <div class="cijfer"><b>{mth - mth_mij}</b><span>M/ETHANE meegelezen</span></div>
 <div class="cijfer"><b>{msg}</b><span>berichten</span></div></div>
-<label>Deze post</label><div>{e(inst.get('roepnaam') or '— roepnaam niet ingesteld —')} &middot; {e(disc)}</div></section>
+<label>Deze post</label><div>{e(inst.get('roepnaam') or '— roepnaam niet ingesteld —')} &middot; {e(disc)}</div>
+<label>Tijd van de Pi</label><div>{e(klok)} <small style="color:var(--zacht)">({e(klokbron)})</small></div></section>
 <section><h2>Steunpunten</h2>{sp_html}</section>
 {radio.html_hotspot()}
 <section><h2>Log van de ontvanger</h2><pre>{e(log_regels())}</pre></section>"""
@@ -444,6 +447,11 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Location", f"http://{host}:1880/ui")
             self.end_headers()
             return
+        if pad == "backup.zip":
+            data, naam = beheer.maak_backup("eindpost", inst.get("roepnaam", ""))
+            return self._stuur(data, soort="application/zip", bestandsnaam=naam)
+        if pad == "backup":
+            return self._stuur(pagina("backup", beheer.html_backup("eindpost", verborgen()), inst, meld))
         if pad.startswith("download/"):
             naam = pad.split("/", 1)[1]
             if DAG_RE.match(naam[:10]) and naam[10:] in (".csv", ".txt"):
@@ -472,6 +480,21 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self._auth():
             return
+        if urlparse(self.path).path.strip("/") == "terugzetten":
+            lengte = int(self.headers.get("Content-Length", 0) or 0)
+            if lengte > 200_000_000:
+                return self._terug("/backup", "fout:Bestand is te groot.")
+            data, velden = beheer.lees_upload(self.headers.get("Content-Type", ""), self.rfile.read(lengte))
+            if not hmac.compare_digest(velden.get("csrf", ""), CSRF):
+                return self._terug("/backup", "fout:Formulier verlopen, probeer het opnieuw.")
+            ok, meld = beheer.zet_terug("eindpost", data or b"")
+            if not ok:
+                return self._terug("/backup", "fout:" + " ".join(meld))
+            inst = instellingen()
+            radio.maak_direwolf(inst.get("roepnaam"), radio.instellingen())
+            herstart("direwolf"); herstart("noodnet-eindpost")
+            return self._stuur(pagina("backup", meldingen(ok=" ".join(meld) + " Diensten herstart.") +
+                                      beheer.html_backup("eindpost", verborgen()), inst))
         f = self._formulier()
         if not hmac.compare_digest(f.get("csrf", ""), CSRF):
             return self._terug("/status", "fout:Formulier verlopen, probeer het opnieuw.")
@@ -489,6 +512,11 @@ class Handler(BaseHTTPRequestHandler):
                     herstart("direwolf")
             ok, fout = herstart("noodnet-eindpost")
             return self._terug("/instellingen", "opgeslagen" if ok else "fout:Opgeslagen, maar herstart lukte niet: " + fout)
+        if pad == "tijd":
+            uit = beheer.tijd_van_telefoon(f.get("ms"))
+            if uit:
+                sys.stderr.write(uit + "\n")
+            return self._stuur(uit or "ok", soort="text/plain; charset=utf-8")
         if pad == "radio":
             fouten, diensten, r = radio.verwerk_radio("eindpost", f, inst.get("roepnaam"))
             if fouten:
