@@ -106,9 +106,9 @@ fi
 # 3. Programma's kopiëren (instellingen en gegevens blijven staan)
 # ---------------------------------------------------------------------------
 stap "Noodnet-programma's naar $DOEL"
-cp "$BRON"/gemeenschappelijk/*.py "$BRON"/gemeenschappelijk/hotspot.sh "$DOEL"/
+cp "$BRON"/gemeenschappelijk/*.py "$BRON"/gemeenschappelijk/*.sh "$DOEL"/
 cp "$BRON/$ROL"/*.py "$DOEL"/
-chmod +x "$DOEL/hotspot.sh"
+chmod +x "$DOEL/hotspot.sh" "$DOEL/hotspot_bewaker.sh"
 mkdir -p "$DOEL/download"
 if [ "$ROL" = "steunpunt" ]; then
   [ -f "$DOEL/noodnet_netwerk.json" ] || cp "$BRON/steunpunt/noodnet_netwerk.voorbeeld.json" "$DOEL/noodnet_netwerk.json"
@@ -200,7 +200,7 @@ fi
 stap "Diensten"
 plaats() { sed -e "s#@GEBRUIKER@#$GEBRUIKER#g" -e "s#@MAP@#$DOEL#g" -e "s#@VENV@#$VENV#g" "$1" \
              | sudo tee "/etc/systemd/system/$(basename "$1")" >/dev/null; }
-for f in "$BRON"/gemeenschappelijk/diensten/*.service "$BRON/$ROL"/diensten/*.service; do plaats "$f"; done
+for f in "$BRON"/gemeenschappelijk/diensten/*.service "$BRON"/gemeenschappelijk/diensten/*.timer "$BRON/$ROL"/diensten/*.service; do plaats "$f"; done
 if [ "$ROL" = "steunpunt" ]; then
   DIENSTEN="direwolf rnsd noodnet-brug noodnet-web noodnet-download"; WEB="noodnet_web.py"
 else
@@ -219,6 +219,7 @@ for d in $DIENSTEN; do
   case "$d" in mosquitto|nodered) continue;; esac
   sudo systemctl enable -q "$d"
 done
+sudo systemctl enable -q --now noodnet-hotspot.timer   # bewaker: hotspot aan als de wifi nergens mee verbonden is
 
 if [ ! -f "$DOEL/web_wachtwoord.json" ]; then
   stap "Wachtwoord voor de beheerpagina (gebruiker: beheer)"

@@ -1,0 +1,10 @@
+[Unit]
+Description=Noodnet: hotspot elke minuut controleren
+
+[Timer]
+OnBootSec=40
+OnUnitActiveSec=60
+AccuracySec=5
+
+[Install]
+WantedBy=timers.target

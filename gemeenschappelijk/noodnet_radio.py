@@ -222,8 +222,9 @@ def html_hotspot():
     if h["aan"]:
         kop = f"<span class='punt p-ok'></span><b>Hotspot aan</b> &middot; {h['clients']} apparaat/apparaten verbonden"
     else:
-        kop = ("<span class='punt p-uit'></span><b>Hotspot staat uit.</b> Zonder hotspot is deze pagina bij stroomuitval "
-               "niet bereikbaar. Herstart de Pi, of zet hem aan met: <span class='mono'>sudo nmcli con up noodnet-ap</span>")
+        kop = ("<span class='punt p-let'></span><b>Hotspot staat nu uit</b> - de Pi gebruikt een ander netwerk "
+               "(bijvoorbeeld je thuis-wifi tijdens installeren of bijwerken). Na een herstart, of zodra dat netwerk "
+               "wegvalt, gaat de hotspot binnen een minuut vanzelf aan.")
     net = "via de netwerkkabel" if h["kabel"] and h["internet"] else ("geen" if not h["internet"] else "ja")
     return f"""<section><h2>Wifi-hotspot</h2><p>{kop}</p>
 <div class="rij"><div><label>Netwerknaam</label><div class="mono">{e(h['ssid'] or '-')}</div></div>
