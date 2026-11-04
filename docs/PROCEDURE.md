@@ -9,7 +9,7 @@ Achtergrond en visie op het noodnet: [ieddev.ddns.net](http://ieddev.ddns.net).
 | | Noodsteunpunt | Eindpost |
 |---|---|---|
 | Doel | Doorgeefluik: vrijwilligers (LoRa) naar 2 m | Ontvangt meldingen bij een hulpdienst |
-| Raspberry Pi | Pi 4 of 5 (Pi 3B+ kan ook) | Pi 4 of 5 |
+| Raspberry Pi | **Pi 4 of 5** (geen Pi 3: de USB is te zwak voor set + 2 RNodes) | Pi 4 of 5 |
 | Image | Raspberry Pi OS **Lite** (64-bit) | Raspberry Pi OS (64-bit) **met bureaublad** |
 | Radio | 2 m-set met USB-geluid + PTT (bijv. FT-818 met SCU-17) | 2 m-set met USB-geluid + PTT (bijv. IC-9700) |
 | LoRa | 1 of 2 RNodes via USB (433 en/of 868 MHz) | – |
@@ -217,6 +217,7 @@ wordt meteen op de downloadpagina gezet.
 | ssh: *REMOTE HOST IDENTIFICATION HAS CHANGED* | Normaal na een nieuwe SD-kaart of bij een andere Pi op hetzelfde adres (via de hotspot is dat altijd 10.42.0.1). Op je pc: `ssh-keygen -R 10.42.0.1` (of het adres/de hostnaam die je gebruikt), dan opnieuw inloggen en **yes** typen. |
 | Beheerpagina opent niet | Op de hotspot? Adres **http://10.42.0.1:8080**. Mobiele data even uit. |
 | Direwolf rood | Tabblad Radio: juiste geluidskaart? Set aan en via USB aangesloten? |
+| Direwolf rood nadat een USB-stekker (bijv. RNode) eruit of erin ging | Vooral op een Pi 3: de USB loopt vast en de geluidskaart van de set geeft fouten. USB-kabel van de set even uit en in, of de Pi herstarten. Liever een Pi 4/5; RNodes niet in- of uitpluggen terwijl het steunpunt in gebruik is. |
 | Set zendt niet | Tabblad Radio → *Testuitzending*. Geen zenden: PTT-poort en RTS. IC-9700: menu *USB SEND* op RTS. SCU-17: tweede poort (if01). |
 | Rode melding *Kaart en radio komen niet overeen* | Tabblad Netwerk opslaan met het vinkje *RNodes gelijkzetten* aan. Nieuwe kaart maken en opnieuw scannen. |
 | Vrijwilligers komen niet door | Status: staan ze bij *Onbekende telefoons*? Laten aanmelden met de kaart. `rnstatus`: IFAC-overtredingen? → IFAC op kaart en Pi gelijk. |
