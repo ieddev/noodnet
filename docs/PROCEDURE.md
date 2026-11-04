@@ -109,7 +109,7 @@ ook zonder stroomnet en zonder internet. Je thuis-wifi gebruikt de Pi niet meer.
 | Tabblad | Wat doen |
 |---|---|
 | **Steunpunt** | Naam van het steunpunt, aanmeldcode (min. 4 tekens), *Wie mag melden* = **Aan**. Opslaan. |
-| **Radio** | Geluidskaart van de set, PTT-poort (+ RTS), RNode-poort voor 433 en/of 868, zendvermogen. Opslaan. Dan **Testuitzending**: gaat de set op zenden? Zendniveau met de schuifbalk zo dat het packet-geluid schoon klinkt (begin bij 50%). |
+| **Radio** | Geluidskaart van de set, PTT-poort (+ RTS), RNode-poort voor 433 en/of 868 (heb je er maar één: de andere op *Niet aangesloten*), zendvermogen. Opslaan. Dan **Testuitzending**: gaat de set op zenden? Zendniveau met de schuifbalk zo dat het packet-geluid schoon klinkt (begin bij 50%). |
 | **Netwerk** | Gemeente, disciplines met de roepnaam van hun eindpost, LoRa-instellingen. Gelijk houden op alle steunpunten van de gemeente. Opslaan. |
 | **Kaart** | *Nieuwe kaart maken*. |
 | **Status** | Alles groen? Geen rode melding? |
