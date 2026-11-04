@@ -45,6 +45,7 @@ via de hotspot.
 | C4 | Eindpost uit (of Direwolf stoppen), V1 meldt | Steunpunt blijft herhalen; na 5 min op Status: *Nog niet bevestigd* | ☐ |
 | C5 | Eindpost weer aan | Melding komt alsnog aan, ACK, waarschuwing weg | ☐ |
 | C6 | Discipline met twee eindpost-roepnamen (één bestaat niet) | Blijft herhalen tot beide bevestigen; waarschuwing voor de ontbrekende | ☐ |
+| C8 | Melding met locatie aan (vinkje in de app) | Bij *E - Exacte locatie* staat onder de tekst **GPS 52.xxxxx, 6.xxxxx (± .. m)**; ook in de lijst | ☐ |
 | C7 | Melding met lange tekst (veel slachtoffers/locatie) | Komt compleet aan (meerdere delen samengevoegd) | ☐ |
 
 ## D. Gehoord en uit beeld
