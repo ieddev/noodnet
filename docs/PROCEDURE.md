@@ -166,6 +166,7 @@ Per telefoon, in de buurt van het steunpunt:
 3. Open de app en koppel de RNode van de vrijwilliger (Bluetooth).
 4. Open het M/ETHANE-scherm → **Kaart van steunpunt scannen** → scan de kaart. Geen gedrukte kaart?
    Beheerder: beheerpagina → tabblad **Kaart** → **QR-code groot tonen**, en laat scannen van je scherm.
+   Alleen tonen aan wie zich mag aanmelden: de QR-code bevat de aanmeldcode.
 5. Kies de band van de RNode (433 of 868) en tik **Aanmelden**.
 6. De beheerder krijgt de aanmelding op zijn telefoon met een nummer: antwoord `JA <nr>`.
    Of op de beheerpagina: tabblad **Status** → *Wachten op goedkeuring* → **Goedkeuren**.
@@ -228,6 +229,7 @@ wordt meteen op de downloadpagina gezet.
 ## Veiligheid
 
 - `gateway.id` (de sleutel van het steunpunt) nooit delen of kopiëren.
+- De **QR-code** (kaart of *QR-code groot tonen*) bevat de aanmeldcode, en het IFAC-wachtwoord als dat aan staat. Laat hem alleen zien aan vrijwilligers die zich mogen aanmelden. Laat je telefoon met de QR-code niet onbeheerd liggen. Kaart kwijt: zie *Problemen oplossen*.
 - Hotspot- en beheerwachtwoord alleen voor de zendamateur(s).
 - Poort 8080 nooit naar internet openzetten.
 - Het logboek van een eindpost bevat namen en locaties (AVG): de hulpdienst is eigenaar.
