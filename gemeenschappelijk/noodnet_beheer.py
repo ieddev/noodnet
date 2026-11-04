@@ -149,7 +149,9 @@ def tijd_tekst():
     else:
         try:
             t = json.load(open(TIJD_FILE, encoding="utf-8"))
-            bron = "telefoon van de beheerder, " + time.strftime("%d-%m %H:%M", time.localtime(t["gezet"]))
+            bron = "gelijkgezet met de telefoon van de beheerder om " + time.strftime("%H:%M", time.localtime(t["gezet"])) + \
+                   ("" if time.strftime("%d-%m") == time.strftime("%d-%m", time.localtime(t["gezet"]))
+                    else " op " + time.strftime("%d-%m", time.localtime(t["gezet"])))
         except (OSError, ValueError, KeyError):
             bron = "onzeker - open deze pagina op je telefoon, dan wordt de klok gelijkgezet"
     return time.strftime("%d-%m-%Y %H:%M"), bron
