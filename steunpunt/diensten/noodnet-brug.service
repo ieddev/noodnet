@@ -2,13 +2,14 @@
 Description=Noodnet steunpunt-brug (LoRa naar leesbaar 2 m)
 After=network-online.target direwolf.service rnsd.service
 Wants=direwolf.service rnsd.service
+StartLimitIntervalSec=0
 
 [Service]
 Type=simple
 User=@GEBRUIKER@
 WorkingDirectory=@MAP@
 Environment=PYTHONUNBUFFERED=1
-ExecStartPre=/bin/sleep 10
+ExecStartPre=/bin/bash @MAP@/wacht_op_rnsd.sh
 ExecStart=@VENV@/bin/python @MAP@/steunpunt_brug.py
 Restart=always
 RestartSec=10

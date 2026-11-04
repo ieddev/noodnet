@@ -733,6 +733,10 @@ threading.Thread(target=sender_loop, daemon=True).start()
 # ---------------------------------------------------------------------------
 
 rns = RNS.Reticulum()
+if not getattr(rns, "is_connected_to_shared_instance", True):
+    # rnsd draait (nog) niet: niet zelf de RNodes openen, maar stoppen; systemd probeert het zo opnieuw
+    log("[!] Reticulum (rnsd) draait nog niet; de brug stopt en probeert het over 10 s opnieuw.")
+    os._exit(1)
 
 if os.path.exists(IDENTITY_FILE):
     identity = RNS.Identity.from_file(IDENTITY_FILE)

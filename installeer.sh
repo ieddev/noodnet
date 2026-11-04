@@ -108,6 +108,7 @@ fi
 stap "Noodnet-programma's naar $DOEL"
 cp "$BRON"/gemeenschappelijk/*.py "$BRON"/gemeenschappelijk/*.sh "$DOEL"/
 cp "$BRON/$ROL"/*.py "$DOEL"/
+cp "$BRON/$ROL"/*.sh "$DOEL"/ 2>/dev/null || true
 chmod +x "$DOEL/hotspot.sh" "$DOEL/hotspot_bewaker.sh"
 mkdir -p "$DOEL/download"
 if [ "$ROL" = "steunpunt" ]; then
