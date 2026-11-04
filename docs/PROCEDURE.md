@@ -208,6 +208,15 @@ noodnet-bijwerken
 Instellingen, aanmeldingen en het logboek blijven bewaard. De nieuwste app
 wordt meteen op de downloadpagina gezet.
 
+## Uitzetten
+
+Haal nooit zomaar de stroom eraf: de SD-kaart kan dan beschadigen. Beheerpagina → tabblad
+**Status** → onderaan **Pi uitschakelen**. Wacht tot het groene lampje op de Pi niet meer
+knippert (± 20 seconden); daarna mag de stroom eraf.
+
+Wil je ook beschermd zijn tegen een onverwachte stroomstoring (accu leeg, kabel los), gebruik
+dan een **UPS-HAT** op de Pi.
+
 ## Problemen oplossen
 
 | Probleem | Oplossing |

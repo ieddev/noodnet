@@ -21,7 +21,7 @@ SUDO = os.environ.get("NOODNET_SUDO", "sudo")
 DATE = os.environ.get("NOODNET_DATE", "/usr/bin/date")
 TIMEDATECTL = os.environ.get("NOODNET_TIMEDATECTL", "timedatectl")
 TIJD_FILE = os.path.join(MAP, "tijd_gezet.json")
-SYSTEMCTL = os.environ.get("NOODNET_SYSTEMCTL", "/usr/bin/systemctl")
+SYSTEMCTL = os.environ.get("NOODNET_SYSTEMCTL", "systemctl")   # net als herstart(): sudo zoekt het pad
 
 # (map in de zip, pad op de Pi)
 BESTANDEN = {
