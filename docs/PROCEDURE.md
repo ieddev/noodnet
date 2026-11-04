@@ -127,7 +127,7 @@ Daarna krijg jij de aanmeldingen van vrijwilligers en kun je vanaf je telefoon
 `LIJST`, `JA <nr>`, `NEE <nr>` en `CODE <nieuw>` sturen.
 
 **Kaart afdrukken:** tabblad Kaart → *Kaart openen om af te drukken* (A5/A6,
-lamineren). Staat er IFAC op, dan is de kaart **VERTROUWELIJK**.
+lamineren). Ter plekke zonder printer: **QR-code groot tonen** en van je telefoonscherm laten scannen. Staat er IFAC op, dan is de kaart **VERTROUWELIJK**.
 
 ### Eindpost
 
@@ -164,7 +164,8 @@ Per telefoon, in de buurt van het steunpunt:
 2. Open **http://10.42.0.1** en tik op *Noodnet-app downloaden*. Android vraagt toestemming
    om apps uit deze bron te installeren: toestaan, dan installeren.
 3. Open de app en koppel de RNode van de vrijwilliger (Bluetooth).
-4. Open het M/ETHANE-scherm → **Kaart van steunpunt scannen** → scan de kaart.
+4. Open het M/ETHANE-scherm → **Kaart van steunpunt scannen** → scan de kaart. Geen gedrukte kaart?
+   Beheerder: beheerpagina → tabblad **Kaart** → **QR-code groot tonen**, en laat scannen van je scherm.
 5. Kies de band van de RNode (433 of 868) en tik **Aanmelden**.
 6. De beheerder krijgt de aanmelding op zijn telefoon met een nummer: antwoord `JA <nr>`.
    Of op de beheerpagina: tabblad **Status** → *Wachten op goedkeuring* → **Goedkeuren**.
@@ -220,7 +221,7 @@ wordt meteen op de downloadpagina gezet.
 | Vrijwilligers komen niet door | Status: staan ze bij *Onbekende telefoons*? Laten aanmelden met de kaart. `rnstatus`: IFAC-overtredingen? → IFAC op kaart en Pi gelijk. |
 | Steunpunt blijft herhalen | De roepnaam van de eindpost op het tabblad Netwerk klopt niet, of de eindpost staat uit. |
 | Packets komen slecht door | Tabblad Radio → *Ontvangen niveau*: ideaal rond 50. Te laag/hoog: schuifbalk Ontvangstniveau. Bij de ander niets: Zendniveau iets omhoog; vervormd: omlaag. |
-| Kaart kwijt of in verkeerde handen | Nieuwe aanmeldcode: vanaf de beheertelefoon `CODE <nieuwe code>` (of tabblad Steunpunt). Daarna tabblad **Kaart** → *Nieuwe kaart maken*, afdrukken en de oude kaarten vernietigen. Aangemelde telefoons merken niets; een onbekende telefoon die al was aangemeld haal je eraf met `AF <naam>`. |
+| Kaart kwijt of in verkeerde handen | Nieuwe aanmeldcode: vanaf de beheertelefoon `CODE <nieuwe code>` (of tabblad Steunpunt). Daarna tabblad **Kaart** → *Nieuwe kaart maken*. Ter plekke geen printer: **QR-code groot tonen** op je telefoon en laten scannen. Oude kaarten vernietigen. Aangemelde telefoons merken niets; een onbekende telefoon die al was aangemeld haal je eraf met `AF <naam>`. |
 | Tijd in het logboek klopt niet | Open de beheerpagina op je telefoon: de Pi neemt de tijd over. |
 | Status: *Nog niet bevestigd* | Die eindpost staat uit, is buiten bereik, of de roepnaam klopt niet. Het steunpunt blijft M/ETHANE herhalen tot elke genoemde eindpost bevestigt. |
 

@@ -945,11 +945,29 @@ Ververs de pagina voor de laatste stand.</p>
 <table><tr><th>Naam</th><th>Laatst gehoord</th><th>Accu</th><th>Positie</th><th></th></tr>{rijen}</table></section>""" + html_onbekend_en_handmatig(inst)
 
 
+def html_qr_groot(inst, kaart_html):
+    """Alleen de QR-code, schermvullend: om te scannen vanaf de telefoon van de beheerder."""
+    import re as _re
+    m = _re.search(r"<svg.*?</svg>", kaart_html, _re.S)
+    svg = m.group(0) if m else "<p>QR-code niet gevonden: maak een nieuwe kaart.</p>"
+    naam = inst.get("steunpunt_naam") or "Noodsteunpunt"
+    return f"""<!doctype html><html lang="nl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>QR - {e(naam)}</title>
+<style>html,body{{margin:0;background:#fff;color:#000;font-family:Arial,sans-serif;text-align:center}}
+.qr svg{{width:min(92vw,78vh);height:min(92vw,78vh);display:block;margin:2vh auto}}
+h1{{font-size:20px;margin:12px 8px 0}}p{{margin:4px 8px;font-size:15px}}a{{color:#1a5fb4}}</style></head><body>
+<h1>{e(naam)}</h1><div class="qr">{svg}</div>
+<p>Scan met de camera, of in de app: <b>Kaart van steunpunt scannen</b>.</p>
+<p>Zet de helderheid van dit scherm hoog. <a href="/kaart">Terug</a></p></body></html>"""
+
+
 def html_kaart(inst):
     bestaat = os.path.exists(KAART_HTML)
     gemaakt = time.strftime("%d-%m-%Y %H:%M", time.localtime(os.path.getmtime(KAART_HTML))) if bestaat else ""
     voorbeeld = f"""<section><h2>Huidige kaart</h2><p class="uitleg">Gemaakt {gemaakt}. Open hem en druk af op A5 of A6 (liefst in kleur), daarna lamineren.</p>
-<div class="balk"><a class="knop" href="/kaart.html" target="_blank">Kaart openen om af te drukken</a></div>
+<div class="balk"><a class="knop" href="/kaart-qr">QR-code groot tonen</a>
+<a class="knop" href="/kaart.html" target="_blank" style="background:transparent;color:var(--blauw);border:1px solid var(--lijn)">Kaart openen om af te drukken</a></div>
+<p class="uitleg" style="margin-top:8px">Geen printer ter plekke? Tik op <b>QR-code groot tonen</b> en laat de vrijwilliger de code van jouw scherm scannen.</p>
 <iframe src="/kaart.html" style="width:100%;height:520px;border:1px solid var(--lijn);border-radius:8px;margin-top:12px;background:#fff"></iframe></section>""" if bestaat else ""
     return f"""<section><h2>Aanmeldkaart</h2><p class="uitleg">De kaart bevat de QR-code die vrijwilligers scannen: adres van dit steunpunt,
 aanmeldcode ({e(inst.get('aanmeldcode') or 'niet ingesteld')}), LoRa-instellingen en disciplines. Maak een nieuwe na elke wijziging van de code of het netwerk.</p>
@@ -1037,6 +1055,12 @@ class Handler(BaseHTTPRequestHandler):
             return
         if pad == "backup":
             return self._stuur(pagina("backup", beheer.html_backup("steunpunt", verborgen()), inst, meld))
+        if pad == "kaart-qr":
+            try:
+                kaart = open(KAART_HTML, encoding="utf-8").read()
+            except OSError:
+                return self._stuur("Nog geen kaart gemaakt.", 404, "text/plain; charset=utf-8")
+            return self._stuur(html_qr_groot(inst, kaart))
         if pad == "kaart.html":
             try:
                 return self._stuur(open(KAART_HTML, encoding="utf-8").read())
