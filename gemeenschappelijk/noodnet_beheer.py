@@ -7,6 +7,7 @@ hetzelfde adres, zodat kaarten en aanmeldingen geldig blijven.
 """
 
 import email
+import html
 import email.policy
 import io
 import json
@@ -21,6 +22,8 @@ SUDO = os.environ.get("NOODNET_SUDO", "sudo")
 DATE = os.environ.get("NOODNET_DATE", "/usr/bin/date")
 TIMEDATECTL = os.environ.get("NOODNET_TIMEDATECTL", "timedatectl")
 TIJD_FILE = os.path.join(MAP, "tijd_gezet.json")
+OPERATOR_FILE = os.path.join(MAP, "operator.json")
+OPERATOR_LOG = os.path.join(MAP, "operators.csv")
 SYSTEMCTL = os.environ.get("NOODNET_SYSTEMCTL", "systemctl")   # net als herstart(): sudo zoekt het pad
 
 # (map in de zip, pad op de Pi)
@@ -31,6 +34,8 @@ BESTANDEN = {
         ("noodnet/radio_instellingen.json", os.path.join(MAP, "radio_instellingen.json")),
         ("noodnet/witte_lijst.txt", os.path.join(MAP, "witte_lijst.txt")),
         ("noodnet/onbekende_afzenders.txt", os.path.join(MAP, "onbekende_afzenders.txt")),
+        ("noodnet/operator.json", OPERATOR_FILE),
+        ("noodnet/operators.csv", OPERATOR_LOG),
         ("lxmf/gateway.id", os.path.join(LXMF_DIR, "gateway.id")),
         ("lxmf/aanmeldingen.json", os.path.join(LXMF_DIR, "aanmeldingen.json")),
         ("lxmf/gehoord.json", os.path.join(LXMF_DIR, "gehoord.json")),
@@ -40,6 +45,8 @@ BESTANDEN = {
         ("noodnet/eindpost_instellingen.json", os.path.join(MAP, "eindpost_instellingen.json")),
         ("noodnet/radio_instellingen.json", os.path.join(MAP, "radio_instellingen.json")),
         ("noodnet/meldkamer_ontvangen.json", os.path.join(MAP, "meldkamer_ontvangen.json")),
+        ("noodnet/operator.json", OPERATOR_FILE),
+        ("noodnet/operators.csv", OPERATOR_LOG),
     ],
 }
 
@@ -213,3 +220,83 @@ def pi_actie(actie):
 <style>body{{font-family:Arial,sans-serif;margin:0;padding:32px 16px;background:#f4f5f7;color:#1b1f24;text-align:center}}
 h1{{font-size:24px}}p{{font-size:18px;max-width:520px;margin:12px auto}}</style></head>
 <body><h1>{kop}</h1><p>{tekst}</p></body></html>"""
+
+
+# ---------------------------------------------------------------------------
+# Dienstdoende operator
+# ---------------------------------------------------------------------------
+
+import re as _re
+
+ROEPNAAM_RE = _re.compile(r"^[A-Z0-9]{3,6}$")
+
+
+def operator():
+    """{'roepnaam', 'naam', 'sinds'} of {}."""
+    try:
+        with open(OPERATOR_FILE, encoding="utf-8") as f:
+            o = json.load(f)
+        return o if o.get("roepnaam") else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def operator_tekst(o=None):
+    o = operator() if o is None else o
+    if not o:
+        return ""
+    return o["roepnaam"] + (f" ({o['naam']})" if o.get("naam") else "")
+
+
+def zet_operator(roepnaam, naam=""):
+    """Geeft (gelukt, melding, vorige operator-dict)."""
+    roepnaam = (roepnaam or "").strip().upper()
+    roepnaam = roepnaam.split("-")[0]                       # SSID hoort bij het station, niet bij de operator
+    naam = " ".join((naam or "").replace(";", " ").split())[:40]
+    if not ROEPNAAM_RE.match(roepnaam):
+        return False, "Vul je eigen roepnaam in, bijvoorbeeld PD3PAM.", {}
+    vorige = operator()
+    nu = time.time()
+    o = {"roepnaam": roepnaam, "naam": naam, "sinds": nu}
+    tmp = OPERATOR_FILE + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(o, f, ensure_ascii=False)
+    os.replace(tmp, OPERATOR_FILE)
+    nieuw = not os.path.exists(OPERATOR_LOG)
+    with open(OPERATOR_LOG, "a", encoding="utf-8") as f:
+        if nieuw:
+            f.write("tijd;roepnaam;naam;vorige\n")
+        f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(nu))};{roepnaam};{naam};"
+                f"{vorige.get('roepnaam', '')}\n")
+    return True, f"Dienstdoende operator is nu {operator_tekst(o)}.", vorige
+
+
+def operator_geschiedenis(n=6):
+    try:
+        with open(OPERATOR_LOG, encoding="utf-8") as f:
+            regels = [r.rstrip("\n").split(";") for r in f.readlines()[1:] if r.strip()]
+    except OSError:
+        return []
+    return regels[-n:][::-1]
+
+
+def html_operator(verborgen):
+    o = operator()
+    if o:
+        huidig = (f"<div style='font-size:20px'><b>{html.escape(operator_tekst(o))}</b> "
+                  f"<small style='color:var(--zacht)'>sinds {time.strftime('%d-%m %H:%M', time.localtime(o['sinds']))}</small></div>")
+    else:
+        huidig = "<div class='melding let' style='margin:0'>Nog geen dienstdoende operator ingevuld.</div>"
+    gesch = operator_geschiedenis()
+    gesch_html = ("<table style='margin-top:10px'><tr><th>Vanaf</th><th>Operator</th></tr>" + "".join(
+        f"<tr><td class='mono'>{html.escape(r[0][5:16] if len(r[0]) >= 16 else r[0])}</td>"
+        f"<td>{html.escape(r[1])}{(' (' + html.escape(r[2]) + ')') if len(r) > 2 and r[2] else ''}</td></tr>"
+        for r in gesch) + "</table>") if len(gesch) > 1 else ""
+    return f"""<section><h2>Dienstdoende operator</h2><p class="uitleg">De zendamateur die nu verantwoordelijk is voor dit
+station. Het station zendt altijd onder zijn eigen roepnaam; bij aflossen vul je hier je eigen roepnaam in.
+Elke wissel wordt met tijd vastgelegd.</p>{huidig}
+<form method="post" action="/operator" style="margin-top:10px">{verborgen}
+<div style="display:flex;gap:8px;flex-wrap:wrap"><input name="roepnaam" placeholder="Roepnaam, bijv. PD3PAM" required
+style="flex:1;min-width:150px;text-transform:uppercase" autocapitalize="characters">
+<input name="naam" placeholder="Naam (mag leeg)" style="flex:1;min-width:150px"></div>
+<div class="balk"><button type="submit">Ik neem de dienst over</button></div></form>{gesch_html}</section>"""

@@ -112,7 +112,7 @@ ook zonder stroomnet en zonder internet. Je thuis-wifi gebruikt de Pi niet meer.
 | **Radio** | Geluidskaart van de set, PTT-poort (+ RTS), RNode-poort voor 433 en/of 868 (heb je er maar één: de andere op *Niet aangesloten*), zendvermogen. Opslaan. Dan **Testuitzending**: gaat de set op zenden? Zendniveau met de schuifbalk zo dat het packet-geluid schoon klinkt (begin bij 50%). |
 | **Netwerk** | Gemeente, disciplines met de roepnaam van hun eindpost, LoRa-instellingen. Gelijk houden op alle steunpunten van de gemeente. Opslaan. |
 | **Kaart** | *Nieuwe kaart maken*. |
-| **Status** | Alles groen? Geen rode melding? |
+| **Status** | Alles groen? Geen rode melding? Vul *Dienstdoende operator* in. |
 
 **Jezelf beheerder maken** (zonder iets over te typen):
 
@@ -135,7 +135,7 @@ lamineren). Ter plekke zonder printer: **QR-code groot tonen** en van je telefoo
 |---|---|
 | **Instellingen** | Naam van de post, roepnaam (= die van de installatie), disciplines (of *Alle meldingen*), eventueel meelezen. Opslaan. |
 | **Radio** | Geluidskaart van de set, PTT-poort (+ RTS). Opslaan. Dan **Testuitzending**: gaat de set op zenden? Zendniveau met de schuifbalk zo dat het packet-geluid schoon klinkt (begin bij 50%). |
-| **Status** | Alles groen? |
+| **Status** | Alles groen? Vul *Dienstdoende operator* in. |
 
 Laat daarna de beheerder van elk steunpunt in de gemeente jouw roepnaam
 toevoegen: tabblad **Netwerk** → bij de juiste discipline. Meerdere posten van
@@ -207,6 +207,14 @@ noodnet-bijwerken
 
 Instellingen, aanmeldingen en het logboek blijven bewaard. De nieuwste app
 wordt meteen op de downloadpagina gezet.
+
+## Dienstdoende operator en aflossen
+
+Het station zendt altijd onder de roepnaam die bij de installatie is ingesteld; die verander je
+niet. Wie op dat moment verantwoordelijk is, leg je vast op tabblad **Status** →
+*Dienstdoende operator*: vul je eigen roepnaam (en naam) in en tik **Ik neem de dienst over**.
+Doe dit bij het begin van je dienst en bij elke aflossing. Elke wissel komt met tijd in het log
+(steunpunt) en in het logboek (eindpost); bij elke melding in het logboek staat wie dienst had.
 
 ## Uitzetten
 

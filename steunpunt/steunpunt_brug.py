@@ -1137,6 +1137,10 @@ def verwerk_web_opdrachten():
         return
     for o in opdrachten if isinstance(opdrachten, list) else []:
         try:
+            if o.get("soort") == "OPERATOR":
+                vorige = f" (neemt over van {o.get('vorige')})" if o.get("vorige") else ""
+                log(f"[i] Dienstdoende operator: {o.get('tekst', '?')}{vorige}")
+                continue
             if o.get("soort") == "NIET_WACHTEN":
                 log(f"[i] Beheerpagina: " + outbox.niet_meer_wachten(str(o.get("id", "")), str(o.get("call", ""))))
                 continue

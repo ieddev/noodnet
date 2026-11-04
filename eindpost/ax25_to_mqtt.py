@@ -202,8 +202,16 @@ def logboek(soort, src, d, voor_mij, meldcode="", tekst=None, regels=None):
 def kop(soort, src, d, voor_mij, extra=""):
     t = time.strftime("%Y-%m-%d %H:%M:%S")
     meelees = "" if voor_mij else "  (meelezen, niet voor deze post)"
-    return [f"=== {t}  {soort}{extra}  van {d.get('van') or '?'} via {src}"
-            f"{('  aan ' + d.get('aan')) if d.get('aan') else ''}{meelees}"]
+    regels = [f"=== {t}  {soort}{extra}  van {d.get('van') or '?'} via {src}"
+              f"{('  aan ' + d.get('aan')) if d.get('aan') else ''}{meelees}"]
+    try:
+        with open(os.path.join(SCRIPT_DIR, "operator.json"), encoding="utf-8") as f:
+            o = json.load(f)
+        if o.get("roepnaam"):
+            regels.append(f"    dienstdoende operator: {o['roepnaam']}" + (f" ({o['naam']})" if o.get("naam") else ""))
+    except (OSError, ValueError):
+        pass
+    return regels
 
 
 # ---------------------------------------------------------------------------

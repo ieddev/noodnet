@@ -767,6 +767,7 @@ def html_status(inst, net):
                             "vul eerst het tabblad Steunpunt in, maak op het tabblad Kaart de kaart, scan die QR-code met de "
                             "Noodnet-app en kies hier daarna <b>Goedkeuren als beheerder</b>.</div>")
     return f"""{zonder_beheerder}{html_radiocontrole(net)}{traag_html}
+{beheer.html_operator(verborgen())}
 <section><h2>Diensten</h2><p class="uitleg">Alles moet groen zijn. Herstart alleen als er iets hapert.</p>
 <table>{rijen}</table></section>
 <section><h2>Overzicht</h2><div class="cijfers">
@@ -1057,6 +1058,8 @@ class Handler(BaseHTTPRequestHandler):
         meld = meldingen(ok=teksten.get(m)) if m in teksten else ""
         if m.startswith("fout:"):
             meld = meldingen(fouten=[m[5:]])
+        elif m.startswith("ok:"):
+            meld = meldingen(ok=m[3:])
         if pad == "backup.zip":
             data, naam = beheer.maak_backup("steunpunt", inst.get("roepnaam", ""))
             self.send_response(200)
@@ -1223,6 +1226,18 @@ class Handler(BaseHTTPRequestHandler):
             return self._terug("/status", "beslist" if not os.path.exists(OPDRACHTEN_FILE) else
                                "fout:De brug heeft de opdracht nog niet opgepakt; ververs zo de pagina.")
 
+        if pad == "operator":
+            ok, tekst, vorige = beheer.zet_operator(f.get("roepnaam"), f.get("naam"))
+            if not ok:
+                return self._terug("/status", "fout:" + tekst)
+            sys.stderr.write(f"Operator: {beheer.operator_tekst()} (was {vorige.get('roepnaam') or '-'})\n")
+            if dienst_status("noodnet-brug") == "active":       # in het log van de brug zetten
+                with SCHRIJF_LOCK:
+                    lijst = lees_json(OPDRACHTEN_FILE, []) or []
+                    lijst.append({"soort": "OPERATOR", "tekst": beheer.operator_tekst(),
+                                  "vorige": vorige.get("roepnaam", ""), "tijd": int(time.time())})
+                    schrijf_json(OPDRACHTEN_FILE, lijst)
+            return self._terug("/status", "ok:" + tekst)
         if pad == "pi":
             uit = beheer.pi_actie(f.get("actie", ""))
             if uit:

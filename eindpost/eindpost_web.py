@@ -273,6 +273,7 @@ def html_status(inst):
     disc = ", ".join(inst.get("disciplines") or []) + (" + meelezen" if inst.get("meelezen") else "")
     klok, klokbron = beheer.tijd_tekst()
     return f"""
+{beheer.html_operator(verborgen())}
 <section><h2>Diensten</h2><p class="uitleg">Alles moet groen zijn.</p><table>{rijen}</table></section>
 <section><h2>Vandaag</h2><div class="cijfers">
 <div class="cijfer"><b>{mth_mij}</b><span>M/ETHANE voor deze post</span></div>
@@ -324,6 +325,31 @@ Zelfde namen als op het tabblad Netwerk van de steunpunten.</p>
 <div class="rij"><div><label>Gebruiker</label><input type="text" name="mqtt_gebruiker" value="{w('mqtt_gebruiker')}" autocomplete="off"></div>
 <div><label>Wachtwoord</label><input type="text" name="mqtt_wachtwoord" value="{w('mqtt_wachtwoord')}" autocomplete="off"></div></div></details></section>
 <div class="balk"><button type="submit">Opslaan en ontvanger herstarten</button></div></form>"""
+
+
+def schrijf_operator_in_logboek(vorige):
+    """Wissel van operator als eigen regel in het logboek (txt en csv) van vandaag."""
+    import csv as _csv
+    nu = time.time()
+    dag, tijd = time.strftime("%Y-%m-%d", time.localtime(nu)), time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(nu))
+    wie = beheer.operator_tekst()
+    over = f" (neemt over van {vorige['roepnaam']})" if vorige.get("roepnaam") else ""
+    try:
+        os.makedirs(LOGBOEK_DIR, exist_ok=True)
+        pad_csv = os.path.join(LOGBOEK_DIR, dag + ".csv")
+        nieuw = not os.path.exists(pad_csv)
+        kolommen = ["tijd", "soort", "meldcode", "van", "adres", "steunpunt", "aan", "voor_deze_post",
+                    "lat", "lon", "rssi", "accu_rnode", "tekst"]
+        with open(pad_csv, "a", encoding="utf-8-sig" if nieuw else "utf-8", newline="") as f:
+            w = _csv.DictWriter(f, fieldnames=kolommen, delimiter=";", restval="")
+            if nieuw:
+                w.writeheader()
+            w.writerow({"tijd": tijd, "soort": "OPERATOR", "van": beheer.operator().get("roepnaam", ""),
+                        "voor_deze_post": "ja", "tekst": f"Dienstdoende operator: {wie}{over}"})
+        with open(os.path.join(LOGBOEK_DIR, dag + ".txt"), "a", encoding="utf-8") as f:
+            f.write(f"=== {tijd}  OPERATOR  {wie}{over}\n\n")
+    except OSError as fout:
+        sys.stderr.write(f"Operator in logboek schrijven mislukt: {fout}\n")
 
 
 def html_logboek(dag=None):
@@ -442,6 +468,8 @@ class Handler(BaseHTTPRequestHandler):
             meld = meldingen(ok="Radio-instellingen opgeslagen; Direwolf is herstart.")
         elif m.startswith("fout:"):
             meld = meldingen(fouten=[m[5:]])
+        elif m.startswith("ok:"):
+            meld = meldingen(ok=m[3:])
         if pad == "scherm":
             host = (self.headers.get("Host") or "localhost").split(":")[0]
             self.send_response(302)
@@ -527,6 +555,12 @@ class Handler(BaseHTTPRequestHandler):
                 return self._stuur(pagina("radio", radio.html_radio("eindpost", verborgen(), dict(r, **f), fouten), inst))
             ok, fout = herstart("direwolf")
             return self._terug("/radio", "radio" if ok else "fout:Opgeslagen, maar Direwolf herstarten lukte niet: " + fout)
+        if pad == "operator":
+            ok, tekst, vorige = beheer.zet_operator(f.get("roepnaam"), f.get("naam"))
+            if not ok:
+                return self._terug("/status", "fout:" + tekst)
+            schrijf_operator_in_logboek(vorige)
+            return self._terug("/status", "ok:" + tekst)
         if pad == "pi":
             uit = beheer.pi_actie(f.get("actie", ""))
             if uit:

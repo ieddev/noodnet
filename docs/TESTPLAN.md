@@ -85,6 +85,15 @@ via de hotspot.
 | F9 | Back-up downloaden (tabblad Back-up), daarna terugzetten | Instellingen en logboek terug | ☐ |
 | F10 | Radio → Testuitzending en niveaus | Set zendt; steunpunt toont *Ontvangen niveau* rond 50 (en andersom) | ☐ |
 
+## G. Dienstdoende operator
+
+| # | Scenario | Verwacht | OK |
+|---|---|---|---|
+| G1 | Steunpunt: Status → operator invullen (roepnaam + naam) | Groene melding; log van de brug: "Dienstdoende operator: …" | ☐ |
+| G2 | Aflossen: andere roepnaam invullen | Log: "… (neemt over van …)"; lijstje met wissels op Status | ☐ |
+| G3 | Eindpost: operator invullen, daarna een M/ETHANE ontvangen | Logboek: regel OPERATOR; bij de melding "dienstdoende operator: …" | ☐ |
+| G4 | Back-up maken en terugzetten | Operator en lijst met wissels terug | ☐ |
+
 ## Notities
 
 -
