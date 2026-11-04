@@ -21,6 +21,7 @@ SUDO = os.environ.get("NOODNET_SUDO", "sudo")
 DATE = os.environ.get("NOODNET_DATE", "/usr/bin/date")
 TIMEDATECTL = os.environ.get("NOODNET_TIMEDATECTL", "timedatectl")
 TIJD_FILE = os.path.join(MAP, "tijd_gezet.json")
+SYSTEMCTL = os.environ.get("NOODNET_SYSTEMCTL", "/usr/bin/systemctl")
 
 # (map in de zip, pad op de Pi)
 BESTANDEN = {
@@ -174,3 +175,39 @@ bewaard als <span class="mono">.voor-terugzetten</span>. Daarna worden de dienst
 <form method="post" action="/terugzetten" enctype="multipart/form-data">{verborgen}
 <input type="file" name="bestand" accept=".zip" required style="margin:8px 0">
 <div class="balk"><button type="submit" class="gevaar" onclick="return confirm('Back-up terugzetten en diensten herstarten?')">Terugzetten</button></div></form></section>"""
+
+
+# ---------------------------------------------------------------------------
+# Pi uitschakelen / herstarten
+# ---------------------------------------------------------------------------
+
+def html_pi_knoppen(verborgen):
+    return f"""<section><h2>Raspberry Pi</h2><p class="uitleg">Haal nooit zomaar de stroom eraf: dan kan de SD-kaart
+beschadigen. Schakel de Pi hier eerst uit en wacht tot het groene lampje niet meer knippert (± 20 seconden).</p>
+<form method="post" action="/pi" class="balk" style="margin-top:0">{verborgen}
+<button type="submit" name="actie" value="uit" class="gevaar" onclick="return confirm('Pi uitschakelen? Alles stopt. Daarna pas de stroom eraf halen.')">Pi uitschakelen</button>
+<button type="submit" name="actie" value="herstart" class="licht" onclick="return confirm('Pi herstarten? Duurt ongeveer 2 minuten.')">Pi herstarten</button></form></section>"""
+
+
+def pi_actie(actie):
+    """Schakelt de Pi uit of herstart hem, 2 s na het antwoord aan de browser. Geeft html of None."""
+    if actie not in ("uit", "herstart"):
+        return None
+    import threading
+
+    def later():
+        time.sleep(2)
+        subprocess.run([SUDO, "-n", SYSTEMCTL, "poweroff" if actie == "uit" else "reboot"],
+                       capture_output=True, timeout=30)
+    threading.Thread(target=later, daemon=True).start()
+    if actie == "uit":
+        kop, tekst = "De Pi wordt uitgeschakeld", ("Wacht tot het groene lampje op de Pi niet meer knippert "
+                                                   "(ongeveer 20 seconden). Daarna mag de stroom eraf.")
+    else:
+        kop, tekst = "De Pi wordt herstart", ("Over ongeveer 2 minuten is alles weer actief. "
+                                              "Verbind daarna opnieuw met de hotspot en open deze pagina.")
+    return f"""<!doctype html><html lang="nl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>{kop}</title>
+<style>body{{font-family:Arial,sans-serif;margin:0;padding:32px 16px;background:#f4f5f7;color:#1b1f24;text-align:center}}
+h1{{font-size:24px}}p{{font-size:18px;max-width:520px;margin:12px auto}}</style></head>
+<body><h1>{kop}</h1><p>{tekst}</p></body></html>"""

@@ -282,7 +282,8 @@ def html_status(inst):
 <label>Tijd van de Pi</label><div>{e(klok)} <small style="color:var(--zacht)">({e(klokbron)})</small></div></section>
 <section><h2>Steunpunten</h2>{sp_html}</section>
 {radio.html_hotspot()}
-<section><h2>Log van de ontvanger</h2><pre>{e(log_regels())}</pre></section>"""
+<section><h2>Log van de ontvanger</h2><pre>{e(log_regels())}</pre></section>
+{beheer.html_pi_knoppen(verborgen())}"""
 
 
 def html_instellingen(inst, form=None):
@@ -526,6 +527,12 @@ class Handler(BaseHTTPRequestHandler):
                 return self._stuur(pagina("radio", radio.html_radio("eindpost", verborgen(), dict(r, **f), fouten), inst))
             ok, fout = herstart("direwolf")
             return self._terug("/radio", "radio" if ok else "fout:Opgeslagen, maar Direwolf herstarten lukte niet: " + fout)
+        if pad == "pi":
+            uit = beheer.pi_actie(f.get("actie", ""))
+            if uit:
+                sys.stderr.write(f"Pi {f.get('actie')} via de beheerpagina\n")
+                return self._stuur(uit)
+            return self._terug("/status", "fout:Ongeldige opdracht.")
         if pad == "herstart":
             ok, fout = herstart(f.get("dienst", ""))
             return self._terug("/status", "herstart" if ok else "fout:Herstart lukte niet: " + fout)

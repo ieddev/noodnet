@@ -780,7 +780,8 @@ def html_status(inst, net):
 {open_html}
 {radio.html_hotspot()}
 <section><h2>Log van de brug</h2><p class="uitleg">De laatste regels; nieuwste onderaan. Ververs de pagina voor nieuwe regels.</p>
-<pre>{e(log_regels())}</pre></section>"""
+<pre>{e(log_regels())}</pre></section>
+{beheer.html_pi_knoppen(verborgen())}"""
 
 
 def html_steunpunt(inst, form=None):
@@ -1219,6 +1220,12 @@ class Handler(BaseHTTPRequestHandler):
             return self._terug("/status", "beslist" if not os.path.exists(OPDRACHTEN_FILE) else
                                "fout:De brug heeft de opdracht nog niet opgepakt; ververs zo de pagina.")
 
+        if pad == "pi":
+            uit = beheer.pi_actie(f.get("actie", ""))
+            if uit:
+                sys.stderr.write(f"Pi {f.get('actie')} via de beheerpagina\n")
+                return self._stuur(uit)
+            return self._terug("/status", "fout:Ongeldige opdracht.")
         if pad == "herstart":
             ok, fout = herstart(f.get("dienst", ""))
             return self._terug("/status", "herstart" if ok else "fout:Herstart lukte niet: " + fout)
