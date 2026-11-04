@@ -1020,6 +1020,14 @@ def beslis_aanmelding(nr, ja, door, als_beheerder=False):
     return True, f"#{nr} {a['naam']} afgewezen."
 
 
+def meld_afgemeld(adr_hex):
+    try:
+        stuur_lxmf(bytes.fromhex(adr_hex), f"U bent afgemeld bij {STEUNPUNT_NAAM}. Uw berichten worden niet meer "
+                                           f"doorgegeven. Opnieuw meedoen: meld aan met de kaart van het steunpunt.")
+    except ValueError:
+        pass
+
+
 def verwerk_web_opdrachten():
     """Opdrachten van de beheerpagina (JA/NEE/BEHEERDER op een aanmelding)."""
     try:
@@ -1035,6 +1043,11 @@ def verwerk_web_opdrachten():
         return
     for o in opdrachten if isinstance(opdrachten, list) else []:
         try:
+            if o.get("soort") == "AFGEMELD":
+                _load_whitelist()
+                meld_afgemeld(o.get("adr", ""))
+                log(f"[x] Afgemeld via beheerpagina: <{o.get('adr', '')[:8]}>; telefoon wordt ingelicht")
+                continue
             soort, nr = o.get("soort"), int(o.get("nr"))
             ok, tekst = beslis_aanmelding(nr, soort in ("JA", "BEHEERDER"), "beheerpagina", soort == "BEHEERDER")
             log(f"[i] Beheerpagina: {tekst}")
@@ -1077,6 +1090,8 @@ def handle_beheer(src, tekst):
         weg = whitelist_remove(arg)
         if weg:
             log(f"[x] Afgemeld door {door}: " + ", ".join(f"{n} <{h}>" for h, n in weg))
+            for h, _ in weg:
+                meld_afgemeld(h)
             stuur_lxmf(src, "Afgemeld: " + ", ".join(n or h[:8] for h, n in weg))
         else:
             stuur_lxmf(src, f"Niemand gevonden voor '{arg}'. Stuur LIJST voor de namen.")
@@ -1125,6 +1140,7 @@ def verwerk(message):
         return
 
     if not sender_allowed(src, name, "bericht"):
+        meld_geweigerd(src, tekst, verified)
         return
 
     tel = message_telemetry(message)
@@ -1171,6 +1187,24 @@ def verwerk(message):
 
 
 _onbevestigd = {}
+_geweigerd_gemeld = {}
+
+
+def meld_geweigerd(src, tekst, verified):
+    """Een niet (meer) aangemelde telefoon krijgt het als antwoord: anders denkt hij dat
+    zijn bericht is doorgegeven (de app toont 'afgeleverd' zodra het steunpunt het ontvangt).
+    M/ETHANE: altijd. Andere berichten: hoogstens eens per 10 minuten. Bakens: niets."""
+    if not verified or not tekst or tekst == "." or parse_link_stats(tekst):
+        return
+    h = src.hex()
+    mth = tekst.upper().startswith("M/ETHANE")
+    if not mth and time.time() - _geweigerd_gemeld.get(h, 0) < 600:
+        return
+    if not mth:
+        _geweigerd_gemeld[h] = time.time()
+    stuur_lxmf(src, f"{STEUNPUNT_NAAM}: uw {'M/ETHANE-melding' if mth else 'bericht'} is NIET doorgegeven. "
+                    f"Deze telefoon is niet (meer) aangemeld. Meld opnieuw aan met de kaart van het steunpunt.")
+    log(f"[x] {'M/ETHANE' if mth else 'Bericht'} van niet-aangemelde <{h[:8]}> geweigerd; telefoon is ingelicht")
 
 
 def lxmf_delivery_callback(message):

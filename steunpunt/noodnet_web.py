@@ -1173,6 +1173,11 @@ class Handler(BaseHTTPRequestHandler):
         if pad == "afmelden":
             adr = f.get("adres", "").lower()
             if ADRES_RE.match(adr) and afmelden(adr):
+                if dienst_status("noodnet-brug") == "active":   # brug licht de telefoon in
+                    with SCHRIJF_LOCK:
+                        lijst = lees_json(OPDRACHTEN_FILE, []) or []
+                        lijst.append({"soort": "AFGEMELD", "adr": adr, "tijd": int(time.time())})
+                        schrijf_json(OPDRACHTEN_FILE, lijst)
                 return self._terug("/vrijwilligers", "afgemeld")
             return self._terug("/vrijwilligers", "fout:Niet gevonden.")
 

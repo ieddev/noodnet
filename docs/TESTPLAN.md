@@ -18,8 +18,9 @@ via de hotspot.
 | A5 | Al aangemeld, nog eens aanmelden | V1 meldt opnieuw aan | V1: "U bent al aangemeld" | ☐ |
 | A6 | Afwijzen | Nieuwe aanmelding van V2 (na AF, zie A9); B stuurt `NEE X` | V2: "niet goedgekeurd". Daarna opnieuw aanmelden kan | ☐ |
 | A7 | Verkeerde aanmeldcode | B stuurt `CODE TEST123`; V2 meldt aan met de **oude** kaart | V2: "onjuiste aanmeldcode"; B krijgt niets. Daarna terugzetten: `CODE <oude code>` | ☐ |
-| A8 | Onbekende telefoon meldt | Telefoon die **niet** is aangemeld stuurt een M/ETHANE-melding | Wordt **niet** doorgezet; staat op beheerpagina bij *Onbekende telefoons* | ☐ |
-| A9 | Afmelden | B stuurt `AF <naam van V2>` | B: "Afgemeld: …". Melding van V2 wordt niet meer doorgezet | ☐ |
+| A8 | Onbekende telefoon meldt | Telefoon die **niet** is aangemeld stuurt een M/ETHANE-melding | Wordt **niet** doorgezet; telefoon krijgt "NIET doorgegeven"; staat op beheerpagina bij *Onbekende telefoons* | ☐ |
+| A9 | Afmelden | B stuurt `AF <naam van V2>` (of beheerpagina → Vrijwilligers → Afmelden) | B: "Afgemeld: …". V2: "U bent afgemeld" | ☐ |
+| A9b | Afgemelde telefoon meldt toch | V2 stuurt een M/ETHANE-melding en een gewoon bericht | Niet doorgezet. V2 krijgt terug: "… is NIET doorgegeven … niet (meer) aangemeld" | ☐ |
 | A10 | Aanmelding blijft na herstart | V2 meldt aan, **niet** goedkeuren; steunpunt herstarten (`sudo reboot`); daarna `JA X` | Werkt; nummer is bewaard | ☐ |
 
 ## B. Beheeropdrachten (vanaf telefoon B)
