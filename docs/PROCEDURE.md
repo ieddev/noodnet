@@ -219,7 +219,7 @@ wordt meteen op de downloadpagina gezet.
 | Direwolf rood | Tabblad Radio: juiste geluidskaart? Set aan en via USB aangesloten? |
 | Direwolf rood nadat een USB-stekker (bijv. RNode) eruit of erin ging | Vooral op een Pi 3: de USB loopt vast en de geluidskaart van de set geeft fouten. USB-kabel van de set even uit en in, of de Pi herstarten. Liever een Pi 4/5; RNodes niet in- of uitpluggen terwijl het steunpunt in gebruik is. |
 | Set zendt niet | Tabblad Radio → *Testuitzending*. Geen zenden: PTT-poort en RTS. IC-9700: menu *USB SEND* op RTS. SCU-17: tweede poort (if01). |
-| Rode melding *Kaart en radio komen niet overeen* | Tabblad Netwerk opslaan met het vinkje *RNodes gelijkzetten* aan. Nieuwe kaart maken en opnieuw scannen. |
+| Rode melding *Kaart en radio komen niet overeen* | Tabblad Netwerk nog een keer opslaan (de RNodes worden dan gelijkgezet). Nieuwe kaart maken en opnieuw scannen. |
 | Vrijwilligers komen niet door | Status: staan ze bij *Onbekende telefoons*? Laten aanmelden met de kaart. `rnstatus`: IFAC-overtredingen? → IFAC op kaart en Pi gelijk. |
 | Steunpunt blijft herhalen | De roepnaam van de eindpost op het tabblad Netwerk klopt niet, of de eindpost staat uit. |
 | Packets komen slecht door | Tabblad Radio → *Ontvangen niveau*: ideaal rond 50. Te laag/hoog: schuifbalk Ontvangstniveau. Bij de ander niets: Zendniveau iets omhoog; vervormd: omlaag. |

@@ -897,7 +897,7 @@ Hoe ruimer, hoe minder zendtijd op LoRa en 2 m.</p>
 <section><details><summary>IFAC (gevorderd)</summary><p class="uitleg">Alleen invullen als IFAC op de RNodes aan staat. Dan staat het op de kaart en is de kaart VERTROUWELIJK.</p>
 <div class="rij"><div><label>Netwerknaam</label><input type="text" name="ifac_naam" value="{ifn}" autocomplete="off"></div>
 <div><label>Wachtwoord</label><input type="text" name="ifac_ww" value="{ifw}" autocomplete="off"></div></div></details></section>
-<label class="vink"><input type="checkbox" name="pas_rnodes_aan" checked>Ook de RNodes van deze Pi gelijkzetten (frequentie, bandbreedte, SF, CR, IFAC; zendvermogen blijft)</label>
+{'' if os.path.exists(radio.RADIO_FILE) else '<label class="vink"><input type="checkbox" name="pas_rnodes_aan" checked>Ook de RNodes van deze Pi gelijkzetten (frequentie, bandbreedte, SF, CR, IFAC; zendvermogen blijft)</label>'}
 <div class="balk"><button type="submit">Opslaan en herstarten</button></div></form>"""
 
 
@@ -1129,7 +1129,24 @@ class Handler(BaseHTTPRequestHandler):
             with SCHRIJF_LOCK:
                 schrijf_json(NET_FILE, nieuw)
             radio_info, fouten_h = [], []
-            if f.get("pas_rnodes_aan"):
+            if os.path.exists(radio.RADIO_FILE):
+                # Poorten staan op tabblad Radio: Reticulum-config helemaal opnieuw maken met de banden van
+                # dit tabblad. Dan maakt de volgorde (eerst Radio of eerst Netwerk) niet uit.
+                try:
+                    oud = open(radio.RNS_CONFIG, encoding="utf-8").read()
+                except OSError:
+                    oud = ""
+                radio.maak_reticulum(radio.instellingen(), nieuw)
+                nieuw_cfg = open(radio.RNS_CONFIG, encoding="utf-8").read()
+                zonder_tijd = lambda t: "\n".join(x for x in t.split("\n") if not x.startswith("# Gemaakt door"))
+                if zonder_tijd(oud) != zonder_tijd(nieuw_cfg) or rnsd_verouderd():
+                    ok_r, fout_r = herstart("rnsd")
+                    if not ok_r:
+                        fouten_h.append("Radio-instellingen aangepast, maar rnsd herstarten lukte niet: " + fout_r)
+                    radio_info.append("RNodes van deze Pi opnieuw ingesteld en Reticulum herstart.")
+                    time.sleep(3)
+                let = list(let) + radio.rnode_waarschuwingen(radio.instellingen(), nieuw)
+            elif f.get("pas_rnodes_aan"):
                 gewijzigd, radio_info = pas_rns_config_aan(nieuw)
                 if gewijzigd or rnsd_verouderd():
                     ok_r, fout_r = herstart("rnsd")
@@ -1165,6 +1182,10 @@ class Handler(BaseHTTPRequestHandler):
                     mis.append(f"{d}: {fout}")
                 if d == "rnsd":
                     time.sleep(4)
+            waarsch = radio.rnode_waarschuwingen(r, net)
+            if not mis and waarsch:
+                return self._stuur(pagina("radio", meldingen(ok="Radio-instellingen opgeslagen; Direwolf, Reticulum en de brug zijn herstart.",
+                                                             let=waarsch) + radio.html_radio("steunpunt", verborgen()), inst))
             return self._terug("/radio", "radio" if not mis else "fout:Opgeslagen, maar herstarten lukte niet: " + "; ".join(mis))
 
         if pad == "niet_wachten":

@@ -161,6 +161,23 @@ AGWPORT 0
         f.write(tekst)
 
 
+def rnode_waarschuwingen(r, net):
+    """Tegenstrijdigheden tussen tabblad Radio (poorten) en tabblad Netwerk (banden aan/uit)."""
+    lora = (net or {}).get("lora") or {}
+    uit = []
+    for band in ("433", "868"):
+        poort, aan = r.get(f"rnode_{band}"), band in lora
+        if poort and not aan:
+            uit.append(f"RNode {band} MHz heeft een poort (tabblad Radio), maar {band} MHz staat uit op tabblad Netwerk: "
+                       f"deze RNode wordt niet gebruikt. Vink {band} MHz aan op tabblad Netwerk als je hem wilt gebruiken.")
+        if aan and not poort:
+            uit.append(f"{band} MHz staat aan op tabblad Netwerk, maar op tabblad Radio is geen RNode-poort voor {band} MHz gekozen. "
+                       f"Heeft dit steunpunt geen {band}-RNode? Dan is dit goed: vrijwilligers op {band} MHz kunnen hier dan niet melden.")
+    if not any(r.get(f"rnode_{b}") and b in lora for b in ("433", "868")):
+        uit.append("Geen enkele RNode is in gebruik: kies op tabblad Radio een poort voor een band die op tabblad Netwerk aan staat.")
+    return uit
+
+
 def maak_reticulum(r, net):
     """Volledige ~/.reticulum/config voor een steunpunt: transport aan, alleen de RNodes."""
     lora = (net or {}).get("lora") or {}
