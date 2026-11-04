@@ -80,7 +80,7 @@ via de hotspot.
 | F4 | Tabblad **Status** → *Steunpunten* | Het steunpunt staat erbij met laatst gehoord, aangemeld, wachtrij | ☐ |
 | F5 | Eindpost alleen voor één discipline (Instellingen: bijv. alleen *Gemeentehuis*). Melding aan een **andere** discipline | Eindpost toont niets en bevestigt niet; steunpunt wacht niet op deze post | ☐ |
 | F6 | Idem, maar *meelezen* aan | Melding komt in het logboek als *meelezen*; eindpost bevestigt **niet** | ☐ |
-| F7 | Gewoon bericht (chat) van V1 aan *Gemeentehuis* | Komt in het logboek van de eindpost; steunpunt krijgt ACK | ☐ |
+| F7 | Gewoon bericht (chat) van V1. Zonder @ gaat het naar de discipline(s) bij *Berichten aan* (tabblad Netwerk); met `@Gemeentehuis` in de tekst naar die discipline | Komt in het logboek van die eindpost; steunpunt krijgt ACK | ☐ |
 | F8 | Knop *Wis scherm en lijst* in Node-RED (editor) | Scherm en lijst leeg; logboek blijft compleet | ☐ |
 | F9 | Back-up downloaden (tabblad Back-up), daarna terugzetten | Instellingen en logboek terug | ☐ |
 | F10 | Radio → Testuitzending en niveaus | Set zendt; steunpunt toont *Ontvangen niveau* rond 50 (en andersom) | ☐ |
