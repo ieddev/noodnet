@@ -220,6 +220,7 @@ wordt meteen op de downloadpagina gezet.
 | Vrijwilligers komen niet door | Status: staan ze bij *Onbekende telefoons*? Laten aanmelden met de kaart. `rnstatus`: IFAC-overtredingen? → IFAC op kaart en Pi gelijk. |
 | Steunpunt blijft herhalen | De roepnaam van de eindpost op het tabblad Netwerk klopt niet, of de eindpost staat uit. |
 | Packets komen slecht door | Tabblad Radio → *Ontvangen niveau*: ideaal rond 50. Te laag/hoog: schuifbalk Ontvangstniveau. Bij de ander niets: Zendniveau iets omhoog; vervormd: omlaag. |
+| Kaart kwijt of in verkeerde handen | Nieuwe aanmeldcode: vanaf de beheertelefoon `CODE <nieuwe code>` (of tabblad Steunpunt). Daarna tabblad **Kaart** → *Nieuwe kaart maken*, afdrukken en de oude kaarten vernietigen. Aangemelde telefoons merken niets; een onbekende telefoon die al was aangemeld haal je eraf met `AF <naam>`. |
 | Tijd in het logboek klopt niet | Open de beheerpagina op je telefoon: de Pi neemt de tijd over. |
 | Status: *Nog niet bevestigd* | Die eindpost staat uit, is buiten bereik, of de roepnaam klopt niet. Het steunpunt blijft M/ETHANE herhalen tot elke genoemde eindpost bevestigt. |
 
