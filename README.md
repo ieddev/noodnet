@@ -40,6 +40,10 @@ Bijwerken: `noodnet-bijwerken` (instellingen blijven bewaard).
 
 De volledige procedure staat in [docs/PROCEDURE.md](docs/PROCEDURE.md).
 
+## Testen
+
+Zie [docs/TESTPLAN.md](docs/TESTPLAN.md): scenario's voor aanmelden, beheer en melden.
+
 ## Inhoud
 
 | Map | Wat |
