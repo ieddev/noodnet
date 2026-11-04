@@ -40,7 +40,8 @@ via de hotspot.
 |---|---|---|---|
 | C1 | V1 stuurt M/ETHANE via **433** | Eindpost: scherm + logboek. Steunpunt log: bevestigd (ACK) | ☐ |
 | C2 | V2 stuurt M/ETHANE via **868** | Idem | ☐ |
-| C3 | Groot incident (prioriteit hoog) | Rode kop op het scherm, knippert | ☐ |
+| C3 | Groot incident: bij **M** "Ja, …" | Kop **rood** met "– GROOT INCIDENT"; knippert (zoals elke nieuwe melding) | ☐ |
+| C3b | Geen groot incident: bij **M** "Nee, …" | Kop **oranje**; knippert ook | ☐ |
 | C4 | Eindpost uit (of Direwolf stoppen), V1 meldt | Steunpunt blijft herhalen; na 5 min op Status: *Nog niet bevestigd* | ☐ |
 | C5 | Eindpost weer aan | Melding komt alsnog aan, ACK, waarschuwing weg | ☐ |
 | C6 | Discipline met twee eindpost-roepnamen (één bestaat niet) | Blijft herhalen tot beide bevestigen; waarschuwing voor de ontbrekende | ☐ |
