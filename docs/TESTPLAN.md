@@ -60,6 +60,7 @@ via de hotspot.
 
 | # | Scenario | Verwacht | OK |
 |---|---|---|---|
+| E1b | Eindpost herstarten (`sudo reboot`) | M/ETHANE-scherm toont na het opstarten de laatste melding én de lijst met eerdere meldingen | ☐ |
 | E1 | Steunpunt herstarten | Na ± 2 min alles groen, hotspot aan, aanmeldingen bewaard | ☐ |
 | E2 | Een RNode losmaken en terugzetten | Status toont het; na terugzetten werkt de band weer (zo nodig `rnsd` herstarten op Status) | ☐ |
 | E3 | Pi zonder internet opstarten, beheerpagina op telefoon openen | Klok wordt gelijkgezet; tijd in het logboek klopt | ☐ |

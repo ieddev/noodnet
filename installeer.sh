@@ -169,6 +169,29 @@ if [ "$ROL" = "eindpost" ]; then
       cp "$BRON/eindpost/methane_scherm_flow.json" "$HOME/.node-red/flows.json"
       echo "   M/ETHANE-scherm in Node-RED gezet."
     fi
+    # Meldingenlijst van het M/ETHANE-scherm bewaren over een herstart (flow-context op de SD-kaart)
+    NR_SET="$HOME/.node-red/settings.js"
+    if [ ! -f "$NR_SET" ]; then          # settings.js ontstaat bij de eerste start
+      sudo systemctl start nodered
+      for _ in $(seq 60); do [ -f "$NR_SET" ] && break; sleep 1; done
+    fi
+    if [ -f "$NR_SET" ] && ! grep -qE '^[[:space:]]*contextStorage[[:space:]]*:' "$NR_SET"; then
+      cp "$NR_SET" "$NR_SET.voor-noodnet"
+      python3 - "$NR_SET" <<'PY2'
+import re, sys
+p = sys.argv[1]
+s = open(p, encoding="utf-8").read()
+s, n = re.subn(r"(module\.exports\s*=\s*\{)",
+               r'\1\n    // Noodnet: meldingenlijst bewaren over een herstart\n'
+               r'    contextStorage: { default: { module: "localfilesystem", config: { flushInterval: 5 } } },\n',
+               s, count=1)
+if n:
+    open(p, "w", encoding="utf-8").write(s)
+    print("   Node-RED bewaart de meldingenlijst nu ook na een herstart.")
+else:
+    print("   Let op: settings.js van Node-RED niet herkend; meldingenlijst wordt niet bewaard.")
+PY2
+    fi
     sudo systemctl enable -q nodered && sudo systemctl restart nodered
   fi
 
