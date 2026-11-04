@@ -31,6 +31,7 @@ via de hotspot.
 | B2 | `WACHT` | Open aanmeldingen, of "Geen open aanmeldingen" | ☐ |
 | B3 | `LIJST` | Aangemelde telefoons, laatst gehoord, accu | ☐ |
 | B4 | `CODE` | Huidige aanmeldcode | ☐ |
+| B4a | `CODE <nieuwe code>` | B: "Nieuwe aanmeldcode: …". Beheerpagina (Status en Steunpunt) toont de nieuwe code. Aangemelde telefoons blijven aangemeld; nieuwe aanmelding met de oude kaart: "onjuiste aanmeldcode". Tabblad Kaart → nieuwe kaart maken: staat de nieuwe code op? Daarna eventueel terugzetten | ☐ |
 | B5 | `JA 999` (bestaat niet) | "bestaat niet (meer)" | ☐ |
 | B6 | Opdracht vanaf V1 (geen beheerder), bijv. `LIJST` | Geen beheerantwoord; het gaat als gewoon bericht naar de eindpost | ☐ |
 
@@ -45,9 +46,9 @@ via de hotspot.
 | C4 | Eindpost uit (of Direwolf stoppen), V1 meldt | Steunpunt blijft herhalen; na 5 min op Status: *Nog niet bevestigd* | ☐ |
 | C5 | Eindpost weer aan | Melding komt alsnog aan, ACK, waarschuwing weg | ☐ |
 | C6 | Discipline met twee eindpost-roepnamen (één bestaat niet) | Blijft herhalen tot beide bevestigen; waarschuwing voor de ontbrekende | ☐ |
+| C7 | Melding met lange tekst (veel slachtoffers/locatie) | Komt compleet aan (meerdere delen samengevoegd) | ☐ |
 | C8 | Melding met locatie aan (vinkje in de app) | Bij *E - Exacte locatie* staat onder de tekst **GPS 52.xxxxx, 6.xxxxx (± .. m)**; ook in de lijst | ☐ |
 | C9 | (Met 2 steunpunten) V van SP1 en V van SP2 melden tegelijk aan dezelfde eindpost | Beide komen aan, eventueel één tot 1 min later; geen dubbele regels op het scherm | ☐ |
-| C7 | Melding met lange tekst (veel slachtoffers/locatie) | Komt compleet aan (meerdere delen samengevoegd) | ☐ |
 
 ## D. Gehoord en uit beeld
 
