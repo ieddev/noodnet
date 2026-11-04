@@ -634,6 +634,24 @@ class Outbox:
                 return True
         return False
 
+    def niet_meer_wachten(self, msg_id, call):
+        """Beheerpagina: niet langer wachten op de ACK van één eindpost. Geeft tekst voor het log."""
+        call = norm_call(call)
+        with self.lock:
+            for item in self.items:
+                if item["id"] != msg_id:
+                    continue
+                if call not in item["wacht_op"]:
+                    return f"{item['soort']} {msg_id} wachtte niet op {call}"
+                item["wacht_op"].remove(call)
+                if not item["wacht_op"]:
+                    self.items.remove(item)
+                    self._save()
+                    return f"{item['soort']} {msg_id}: niet meer gewacht op {call}; uit de wachtrij"
+                self._save()
+                return f"{item['soort']} {msg_id}: niet meer gewacht op {call}; wacht nog op {', '.join(item['wacht_op'])}"
+        return f"{msg_id} staat niet (meer) in de wachtrij"
+
     def _failed(self, item):
         log(f"[!] MISLUKT: {item['soort']} {item['id']} niet bevestigd door: "
             f"{', '.join(item['wacht_op'])}. Bewaard in {FAILED_FILE}")
@@ -1046,6 +1064,9 @@ def verwerk_web_opdrachten():
         return
     for o in opdrachten if isinstance(opdrachten, list) else []:
         try:
+            if o.get("soort") == "NIET_WACHTEN":
+                log(f"[i] Beheerpagina: " + outbox.niet_meer_wachten(str(o.get("id", "")), str(o.get("call", ""))))
+                continue
             if o.get("soort") == "AFGEMELD":
                 _load_whitelist()
                 meld_afgemeld(o.get("adr", ""))

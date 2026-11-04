@@ -731,10 +731,18 @@ def html_status(inst, net):
         if it.get("soort") in ("MTH", "MSG", "OPR") and it.get("wacht_op") and nu - it.get("gemaakt", nu) > 300:
             wie = ", ".join(x for x in it["wacht_op"] if x != "*") or "een eindpost"
             soort = {"MTH": "M/ETHANE", "MSG": "bericht", "OPR": "operatorbericht"}[it["soort"]]
-            traag.append(f"{wie} heeft een {soort} van {time.strftime('%H:%M', time.localtime(it.get('gemaakt', nu)))} "
-                         f"nog niet bevestigd ({it.get('pogingen', 0)} keer verzonden). Staat die post aan en in bereik?")
+            tekst = (f"{wie} heeft een {soort} van {time.strftime('%H:%M', time.localtime(it.get('gemaakt', nu)))} "
+                     f"nog niet bevestigd ({it.get('pogingen', 0)} keer verzonden). Staat die post aan en in bereik? "
+                     f"Klopt de roepnaam op tabblad Netwerk?")
+            knoppen = "".join(
+                f'<form method="post" action="/niet_wachten" style="display:inline;margin:0">{verborgen()}'
+                f'<input type="hidden" name="id" value="{e(it.get("id", ""))}"><input type="hidden" name="call" value="{e(c)}">'
+                f'<button type="submit" class="licht" style="margin:4px 4px 0 0;padding:4px 10px;font-size:14px" '
+                f'onclick="return confirm(\'Niet meer wachten op {e(c)}? Die post krijgt deze melding dan misschien nooit.\')">'
+                f'Niet meer wachten op {e(c)}</button></form>' for c in it["wacht_op"] if c != "*")
+            traag.append((tekst, knoppen))
     traag_html = ("<div class='melding let'><b>Nog niet bevestigd</b><ul style='margin:6px 0 0 18px;padding:0'>"
-                  + "".join(f"<li>{e(t)}</li>" for t in traag) + "</ul></div>") if traag else ""
+                  + "".join(f"<li>{e(t)}<br>{k}</li>" for t, k in traag) + "</ul></div>") if traag else ""
     klok, klokbron = beheer.tijd_tekst()
     adres = steunpunt_adres()
     open_html = ""
@@ -1040,7 +1048,8 @@ class Handler(BaseHTTPRequestHandler):
                    "beslist": "Verwerkt. De telefoon krijgt bericht via de radio.",
                    "toegelaten": "Op de witte lijst gezet. De brug laat deze telefoon direct door.",
                    "gewist": "Uit de lijst van onbekende telefoons gehaald.",
-                   "radio": "Radio-instellingen opgeslagen; Direwolf, Reticulum en de brug zijn herstart."}
+                   "radio": "Radio-instellingen opgeslagen; Direwolf, Reticulum en de brug zijn herstart.",
+                   "niet_wachten": "Het steunpunt wacht niet meer op de bevestiging van die post."}
         meld = meldingen(ok=teksten.get(m)) if m in teksten else ""
         if m.startswith("fout:"):
             meld = meldingen(fouten=[m[5:]])
@@ -1157,6 +1166,20 @@ class Handler(BaseHTTPRequestHandler):
                 if d == "rnsd":
                     time.sleep(4)
             return self._terug("/radio", "radio" if not mis else "fout:Opgeslagen, maar herstarten lukte niet: " + "; ".join(mis))
+
+        if pad == "niet_wachten":
+            mid, call = f.get("id", ""), f.get("call", "").upper()
+            if not re.match(r"^[A-Za-z0-9]{2,16}$", mid) or not re.match(r"^[A-Z0-9]{3,6}(-([0-9]|1[0-5]))?$", call):
+                return self._terug("/status", "fout:Ongeldige opdracht.")
+            with SCHRIJF_LOCK:
+                lijst = lees_json(OPDRACHTEN_FILE, []) or []
+                lijst.append({"soort": "NIET_WACHTEN", "id": mid, "call": call, "tijd": int(time.time())})
+                schrijf_json(OPDRACHTEN_FILE, lijst)
+            for _ in range(10):
+                time.sleep(0.5)
+                if not os.path.exists(OPDRACHTEN_FILE):
+                    break
+            return self._terug("/status", "niet_wachten")
 
         if pad == "aanmelding":
             soort, nr = f.get("soort", ""), f.get("nr", "")

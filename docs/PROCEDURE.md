@@ -224,7 +224,7 @@ wordt meteen op de downloadpagina gezet.
 | Packets komen slecht door | Tabblad Radio → *Ontvangen niveau*: ideaal rond 50. Te laag/hoog: schuifbalk Ontvangstniveau. Bij de ander niets: Zendniveau iets omhoog; vervormd: omlaag. |
 | Kaart kwijt of in verkeerde handen | Nieuwe aanmeldcode: vanaf de beheertelefoon `CODE <nieuwe code>` (of tabblad Steunpunt). Daarna tabblad **Kaart** → *Nieuwe kaart maken*. Ter plekke geen printer: **QR-code groot tonen** op je telefoon en laten scannen. Oude kaarten vernietigen. Aangemelde telefoons merken niets; een onbekende telefoon die al was aangemeld haal je eraf met `AF <naam>`. |
 | Tijd in het logboek klopt niet | Open de beheerpagina op je telefoon: de Pi neemt de tijd over. |
-| Status: *Nog niet bevestigd* | Die eindpost staat uit, is buiten bereik, of de roepnaam klopt niet. Het steunpunt blijft M/ETHANE herhalen tot elke genoemde eindpost bevestigt. |
+| Status: *Nog niet bevestigd* | Die eindpost staat uit, is buiten bereik, of de roepnaam klopt niet. Het steunpunt blijft M/ETHANE herhalen tot elke genoemde eindpost bevestigt. Bestaat die post niet (tikfout) of komt hij niet meer: eerst de roepnaam op tabblad Netwerk verbeteren, dan op Status **Niet meer wachten op …**. |
 
 ## Veiligheid
 
