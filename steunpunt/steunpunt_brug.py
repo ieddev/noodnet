@@ -26,6 +26,7 @@ In de Reticulum-config van de Pi mag GEEN interface naar Direwolf aan staan.
 import hashlib
 import json
 import os
+import random
 import re
 import struct
 import sys
@@ -591,7 +592,9 @@ class Outbox:
                     self.items.remove(item)
                 else:
                     wacht = HERHAAL_SCHEMA[min(item["pogingen"], len(HERHAAL_SCHEMA)) - 1]
-                    item["volgende"] = time.time() + wacht
+                    # Willekeurig 75-125%: twee steunpunten die elkaar niet horen en tegelijk
+                    # zonden, botsen anders bij elke herhaling opnieuw op hetzelfde moment.
+                    item["volgende"] = time.time() + wacht * random.uniform(0.75, 1.25)
                 break
             self._save()
 
