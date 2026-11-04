@@ -70,6 +70,21 @@ via de hotspot.
 | E3 | Pi zonder internet opstarten, beheerpagina op telefoon openen | Klok wordt gelijkgezet; tijd in het logboek klopt | ☐ |
 | E4 | Telefoon buiten bereik van LoRa, melding versturen, dan terug in bereik | Noteer wat de app doet (blijft hij proberen? komt hij alsnog aan?) | ☐ |
 
+## F. Eindpost
+
+| # | Scenario | Verwacht | OK |
+|---|---|---|---|
+| F1 | Eindpost herstarten (knop *Pi herstarten*) met monitor | M/ETHANE-scherm opent vanzelf schermvullend; scherm gaat niet op zwart na 10 min | ☐ |
+| F2 | Telefoon/laptop op de hotspot: **http://10.42.0.1:1880/ui** | Zelfde M/ETHANE-scherm als op de monitor | ☐ |
+| F3 | Tabblad **Logboek** | Meldingen van vandaag; downloaden als .txt en .csv; CSV opent in Excel/LibreOffice | ☐ |
+| F4 | Tabblad **Status** → *Steunpunten* | Het steunpunt staat erbij met laatst gehoord, aangemeld, wachtrij | ☐ |
+| F5 | Eindpost alleen voor één discipline (Instellingen: bijv. alleen *Gemeentehuis*). Melding aan een **andere** discipline | Eindpost toont niets en bevestigt niet; steunpunt wacht niet op deze post | ☐ |
+| F6 | Idem, maar *meelezen* aan | Melding komt in het logboek als *meelezen*; eindpost bevestigt **niet** | ☐ |
+| F7 | Gewoon bericht (chat) van V1 aan *Gemeentehuis* | Komt in het logboek van de eindpost; steunpunt krijgt ACK | ☐ |
+| F8 | Knop *Wis scherm en lijst* in Node-RED (editor) | Scherm en lijst leeg; logboek blijft compleet | ☐ |
+| F9 | Back-up downloaden (tabblad Back-up), daarna terugzetten | Instellingen en logboek terug | ☐ |
+| F10 | Radio → Testuitzending en niveaus | Set zendt; steunpunt toont *Ontvangen niveau* rond 50 (en andersom) | ☐ |
+
 ## Notities
 
 -
