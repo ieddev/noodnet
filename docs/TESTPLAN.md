@@ -66,6 +66,7 @@ via de hotspot.
 | E1 | Steunpunt herstarten | Na ± 2 min alles groen, hotspot aan, aanmeldingen bewaard | ☐ |
 | E2 | Een RNode losmaken en terugzetten | Status toont het; na terugzetten werkt de band weer (zo nodig `rnsd` herstarten op Status) | ☐ |
 | E2b | Pi uit, één RNode eruit, Pi aan | Na ± 2 min: rnsd en brug groen, steunpunt werkt op de overgebleven band | ☐ |
+| E2c | Stroom eraf (stekker eruit) terwijl het steunpunt draait, daarna weer aan | Brug start vanzelf; staat er een beschadigd bestand, dan in het log "Beschadigd ratchet-bestand opzij gezet" en daarna gewoon groen | ☐ |
 | E3 | Pi zonder internet opstarten, beheerpagina op telefoon openen | Klok wordt gelijkgezet; tijd in het logboek klopt | ☐ |
 | E4 | Telefoon buiten bereik van LoRa, melding versturen, dan terug in bereik | Noteer wat de app doet (blijft hij proberen? komt hij alsnog aan?) | ☐ |
 

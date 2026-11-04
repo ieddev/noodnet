@@ -746,8 +746,52 @@ else:
     identity.to_file(IDENTITY_FILE)
     log("[+] Nieuwe identiteit voor dit steunpunt aangemaakt (eigen adres).")
 
+def ruim_kapotte_ratchets():
+    """Een ratchet-bestand dat leeg of half is (stroom weg tijdens het schrijven) laat de brug
+    bij elke start crashen. Zet zo'n bestand opzij; Reticulum maakt een nieuw en het steunpunt
+    announcet direct na de start, zodat de telefoons de nieuwe sleutel krijgen."""
+    import RNS.vendor.umsgpack as umsgpack
+    weg = []
+    for map_ in (os.path.join(storage_path, "lxmf", "ratchets"),):
+        if not os.path.isdir(map_):
+            continue
+        for naam in os.listdir(map_):
+            pad = os.path.join(map_, naam)
+            if not os.path.isfile(pad) or ".kapot-" in naam or naam.endswith(".tmp"):
+                continue
+            try:
+                with open(pad, "rb") as f:
+                    data = f.read()
+                if not data:
+                    raise ValueError("leeg bestand")
+                umsgpack.unpackb(data)
+            except Exception as fout:
+                kapot = pad + ".kapot-" + time.strftime("%Y%m%d-%H%M%S")
+                try:
+                    os.replace(pad, kapot)
+                    weg.append(naam)
+                    log(f"[!] Beschadigd ratchet-bestand opzij gezet ({str(fout) or type(fout).__name__}): {kapot}")
+                except OSError as e2:
+                    log(f"[-] Kon beschadigd ratchet-bestand niet opzij zetten: {pad} ({e2})")
+    if weg:
+        log("[i] Waarschijnlijk viel de stroom weg tijdens het schrijven. Nieuwe sleutels worden gemaakt en direct ge-announced.")
+    return weg
+
+
+ruim_kapotte_ratchets()
 lxmf_router = LXMF.LXMRouter(identity=identity, storagepath=storage_path)
-my_destination = lxmf_router.register_delivery_identity(identity, display_name=STEUNPUNT_NAAM)
+try:
+    my_destination = lxmf_router.register_delivery_identity(identity, display_name=STEUNPUNT_NAAM)
+except OSError as fout:
+    # Vangnet als de controle hierboven iets mist: bestand opzij en nog één keer proberen
+    if "ratchet" not in str(fout).lower():
+        raise
+    m = re.search(r"([0-9a-f]{32})", str(fout))
+    pad = os.path.join(storage_path, "lxmf", "ratchets", (m.group(1) if m else "") + ".ratchets")
+    if m and os.path.exists(pad):
+        os.replace(pad, pad + ".kapot-" + time.strftime("%Y%m%d-%H%M%S"))
+        log(f"[!] Ratchet-bestand onleesbaar, opzij gezet: {pad}")
+    my_destination = lxmf_router.register_delivery_identity(identity, display_name=STEUNPUNT_NAAM)
 
 
 def stuur_lxmf(dest_hash, tekst):
