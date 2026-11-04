@@ -839,6 +839,21 @@ def duur_tekst(sec):
     return f"{m // 60} u {m % 60:02d}"
 
 
+def accu_tekst(g):
+    """'RNode 80%, tel. 45% (laadt)' - alleen wat bekend is."""
+    delen = []
+    if g.get("rbat") is not None:
+        delen.append(f"RNode {g['rbat']}%")
+    if g.get("tbat") is not None:
+        delen.append(f"tel. {g['tbat']}%" + (" (laadt)" if g.get("tladen") else ""))
+    return ", ".join(delen)
+
+
+def is_laag(g):
+    return ((g.get("rbat") is not None and g["rbat"] <= BATTERIJ_LAAG)
+            or (g.get("tbat") is not None and g["tbat"] <= BATTERIJ_LAAG and not g.get("tladen")))
+
+
 class Gehoord:
     def __init__(self):
         self.lock = threading.Lock()
@@ -863,7 +878,7 @@ class Gehoord:
         except OSError as e:
             log(f"[-] Kon {GEHOORD_FILE} niet bewaren: {e}")
 
-    def gehoord(self, adr_hex, lat=None, lon=None, rbat=None, rssi=None):
+    def gehoord(self, adr_hex, lat=None, lon=None, rbat=None, rssi=None, tbat=None, laden=None):
         terug = None
         with self.lock:
             g = self.data.setdefault(adr_hex, {})
@@ -879,6 +894,11 @@ class Gehoord:
                     g["laag"] = False
             if rssi is not None:
                 g["rssi"] = rssi
+            if tbat is not None:                      # accu van de telefoon (telemetrie van de app)
+                g["tbat"] = tbat
+                g["tladen"] = 1 if laden else 0
+                if g.get("tlaag") and (laden or tbat > BATTERIJ_LAAG + 10):
+                    g["tlaag"] = False
             self._save()
         if terug is not None:
             naam = whitelist_entries().get(adr_hex) or adr_hex[:8]
@@ -902,12 +922,17 @@ class Gehoord:
                 if stil > grens and not g.get("uit_beeld"):
                     g["uit_beeld"] = True
                     waar = f", laatst bij {g['lat']:.5f}, {g['lon']:.5f}" if "lat" in g else ""
-                    bat = f", accu {g['rbat']}%" if "rbat" in g else ""
+                    bat = accu_tekst(g)
+                    bat = f", {bat}" if bat else ""
                     meldingen.append(f"{STEUNPUNT_NAAM}: {naam} niet meer gehoord sinds "
                                      f"{time.strftime('%H:%M', time.localtime(g['t']))}{waar}{bat}.")
                 if g.get("rbat") is not None and g["rbat"] <= BATTERIJ_LAAG and not g.get("laag"):
                     g["laag"] = True
                     meldingen.append(f"{STEUNPUNT_NAAM}: accu RNode van {naam} is {g['rbat']}%.")
+                if (g.get("tbat") is not None and g["tbat"] <= BATTERIJ_LAAG and not g.get("tladen")
+                        and not g.get("tlaag")):
+                    g["tlaag"] = True
+                    meldingen.append(f"{STEUNPUNT_NAAM}: accu telefoon van {naam} is {g['tbat']}%.")
             if meldingen:
                 self._save(nu=True)
         for m in meldingen:
@@ -929,10 +954,10 @@ class Gehoord:
                     continue
                 stil = nu - g["t"]
                 tekst = f"{naam}: {duur_tekst(stil)}"
-                if g.get("rbat") is not None:
-                    tekst += f", accu {g['rbat']}%"
+                if accu_tekst(g):
+                    tekst += ", " + accu_tekst(g)
                 prio = 3
-                if g.get("rbat") is not None and g["rbat"] <= BATTERIJ_LAAG:
+                if is_laag(g):
                     tekst += " LAAG"
                     prio = 1
                 if stil > grens:
@@ -952,7 +977,7 @@ class Gehoord:
     def aantal_laag(self):
         wl = whitelist_entries()
         with self.lock:
-            return sum(1 for adr in wl if (self.data.get(adr, {}).get("rbat") or 101) <= BATTERIJ_LAAG)
+            return sum(1 for adr in wl if is_laag(self.data.get(adr, {})))
 
 
 gehoord = Gehoord()
@@ -1199,7 +1224,8 @@ def verwerk(message):
     # Elk ondertekend bericht van een aangemelde telefoon telt als 'gehoord'
     if verified and src.hex() in whitelist_entries():
         tel0 = message_telemetry(message)
-        gehoord.gehoord(src.hex(), tel0.get("lat"), tel0.get("lon"), None, _num(message.rssi))
+        gehoord.gehoord(src.hex(), tel0.get("lat"), tel0.get("lon"), None, _num(message.rssi),
+                        tel0.get("bat"), tel0.get("laden"))
 
     # Beheer en aanmelden: alleen met geldige handtekening, gaat niet over 2 m
     if verified and is_beheerder(src) and handle_beheer(src, tekst):
@@ -1217,7 +1243,8 @@ def verwerk(message):
 
     tel = message_telemetry(message)
     stats = parse_link_stats(content)
-    gehoord.gehoord(src.hex(), tel.get("lat"), tel.get("lon"), stats.get("rbat"), _num(message.rssi))
+    gehoord.gehoord(src.hex(), tel.get("lat"), tel.get("lon"), stats.get("rbat"), _num(message.rssi),
+                    tel.get("bat"), tel.get("laden"))
 
     base = [("van", name or "onbekend"), ("adr", src.hex()), ("ontv", int(time.time()))]
     if not verified:

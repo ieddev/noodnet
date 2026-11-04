@@ -504,7 +504,8 @@ def vrijwilligers(inst, net):
             continue
         stil = nu - g["t"]
         status, prio = "ok", 3
-        if g.get("rbat") is not None and g["rbat"] <= laag:
+        if ((g.get("rbat") is not None and g["rbat"] <= laag)
+                or (g.get("tbat") is not None and g["tbat"] <= laag and not g.get("tladen"))):
             status, prio = "laag", 1
         if stil > grens:
             status, prio = "uit", 0
@@ -822,7 +823,7 @@ def html_steunpunt(inst, form=None):
 <b>Makkelijkst:</b> scan de kaart met de Noodnet-app en kies op het tabblad Status <i>Goedkeuren als beheerder</i>;
 dan komt de telefoon hier vanzelf bij. Met de hand kan ook: het adres staat in Sideband bij <i>Your address</i> (32 tekens).</p>
 {beh_rijen}</section>
-<section><h2>Bewaking</h2><p class="uitleg">De beheerders krijgen bericht als een vrijwilliger niet meer gehoord wordt of zijn RNode-accu bijna leeg is.</p>
+<section><h2>Bewaking</h2><p class="uitleg">De beheerders krijgen bericht als een vrijwilliger niet meer gehoord wordt of de accu van zijn RNode of telefoon bijna leeg is.</p>
 <div class="rij"><div><label>Uit beeld na <small>minuten; leeg = automatisch (45)</small></label>
 <input type="number" name="uit_beeld_min" value="{w('uit_beeld_min')}" min="10" max="600"></div>
 <div><label>Accu-waarschuwing bij <small>% van de RNode</small></label>
@@ -943,7 +944,9 @@ def html_vrijwilligers(inst, net):
             tijd = duur(r["stil"]) + " geleden"
             if r["status"] == "uit":
                 tijd += " &middot; <b>uit beeld</b>"
-        accu = f"{g['rbat']}%" if g.get("rbat") is not None else "–"
+        accu = "<br>".join(x for x in (
+            f"RNode {g['rbat']}%" if g.get("rbat") is not None else "",
+            f"tel. {g['tbat']}%" + (" (laadt)" if g.get("tladen") else "") if g.get("tbat") is not None else "") if x) or "–"
         waar = f'<a href="https://www.openstreetmap.org/?mlat={g["lat"]}&mlon={g["lon"]}#map=16/{g["lat"]}/{g["lon"]}" target="_blank">kaart</a>' if "lat" in g else "–"
         rijen += f"""<tr><td><span class="punt {punt}"></span>{e(r['naam'])}<div class="mono" style="color:var(--zacht)">{e(r['adr'][:8])}</div></td>
 <td>{tijd}</td><td>{accu}</td><td>{waar}</td>
