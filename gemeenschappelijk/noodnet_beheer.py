@@ -24,6 +24,7 @@ TIMEDATECTL = os.environ.get("NOODNET_TIMEDATECTL", "timedatectl")
 TIJD_FILE = os.path.join(MAP, "tijd_gezet.json")
 OPERATOR_FILE = os.path.join(MAP, "operator.json")
 OPERATOR_LOG = os.path.join(MAP, "operators.csv")
+OPERATORS_FILE = os.path.join(MAP, "operators.json")     # bekende operators voor de keuzelijst
 SYSTEMCTL = os.environ.get("NOODNET_SYSTEMCTL", "systemctl")   # net als herstart(): sudo zoekt het pad
 
 # (map in de zip, pad op de Pi)
@@ -36,6 +37,7 @@ BESTANDEN = {
         ("noodnet/onbekende_afzenders.txt", os.path.join(MAP, "onbekende_afzenders.txt")),
         ("noodnet/operator.json", OPERATOR_FILE),
         ("noodnet/operators.csv", OPERATOR_LOG),
+        ("noodnet/operators.json", OPERATORS_FILE),
         ("lxmf/gateway.id", os.path.join(LXMF_DIR, "gateway.id")),
         ("lxmf/aanmeldingen.json", os.path.join(LXMF_DIR, "aanmeldingen.json")),
         ("lxmf/gehoord.json", os.path.join(LXMF_DIR, "gehoord.json")),
@@ -47,6 +49,7 @@ BESTANDEN = {
         ("noodnet/meldkamer_ontvangen.json", os.path.join(MAP, "meldkamer_ontvangen.json")),
         ("noodnet/operator.json", OPERATOR_FILE),
         ("noodnet/operators.csv", OPERATOR_LOG),
+        ("noodnet/operators.json", OPERATORS_FILE),
     ],
 }
 
@@ -248,14 +251,61 @@ def operator_tekst(o=None):
     return o["roepnaam"] + (f" ({o['naam']})" if o.get("naam") else "")
 
 
-def zet_operator(roepnaam, naam=""):
-    """Geeft (gelukt, melding, vorige operator-dict)."""
-    roepnaam = (roepnaam or "").strip().upper()
-    roepnaam = roepnaam.split("-")[0]                       # SSID hoort bij het station, niet bij de operator
+def bekende_operators():
+    """[{'roepnaam', 'naam'}], gesorteerd op roepnaam."""
+    try:
+        with open(OPERATORS_FILE, encoding="utf-8") as f:
+            lijst = [o for o in json.load(f) if isinstance(o, dict) and ROEPNAAM_RE.match(o.get("roepnaam", ""))]
+    except (OSError, ValueError, TypeError):
+        lijst = []
+    return sorted(lijst, key=lambda o: o["roepnaam"])
+
+
+def _schrijf_operators(lijst):
+    tmp = OPERATORS_FILE + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(sorted(lijst, key=lambda o: o["roepnaam"]), f, ensure_ascii=False, indent=1)
+    os.replace(tmp, OPERATORS_FILE)
+
+
+def _schoon(roepnaam, naam):
+    roepnaam = (roepnaam or "").strip().upper().split("-")[0]   # SSID hoort bij het station, niet bij de operator
     naam = " ".join((naam or "").replace(";", " ").split())[:40]
+    return roepnaam, naam
+
+
+def voeg_operator_toe(roepnaam, naam=""):
+    roepnaam, naam = _schoon(roepnaam, naam)
     if not ROEPNAAM_RE.match(roepnaam):
-        return False, "Vul je eigen roepnaam in, bijvoorbeeld PD3PAM.", {}
+        return False, "Vul een roepnaam in, bijvoorbeeld PD3PAM."
+    lijst = [o for o in bekende_operators() if o["roepnaam"] != roepnaam]
+    oud = next((o for o in bekende_operators() if o["roepnaam"] == roepnaam), None)
+    lijst.append({"roepnaam": roepnaam, "naam": naam or (oud or {}).get("naam", "")})
+    _schrijf_operators(lijst)
+    return True, f"{roepnaam} staat in de lijst met operators."
+
+
+def verwijder_operator(roepnaam):
+    roepnaam, _ = _schoon(roepnaam, "")
+    if operator().get("roepnaam") == roepnaam:
+        return False, f"{roepnaam} heeft nu dienst; laat eerst iemand anders de dienst overnemen."
+    _schrijf_operators([o for o in bekende_operators() if o["roepnaam"] != roepnaam])
+    return True, f"{roepnaam} uit de lijst met operators gehaald."
+
+
+def zet_operator(roepnaam, naam=None):
+    """Maakt roepnaam dienstdoende operator. Naam None: uit de lijst. Geeft (gelukt, melding, vorige)."""
+    roepnaam, naam = _schoon(roepnaam, naam)
+    if not ROEPNAAM_RE.match(roepnaam):
+        return False, "Kies een operator, of voeg je eigen roepnaam toe.", {}
+    bekend = next((o for o in bekende_operators() if o["roepnaam"] == roepnaam), None)
+    if not naam and bekend:
+        naam = bekend.get("naam", "")
+    if not bekend or (naam and bekend.get("naam") != naam):
+        voeg_operator_toe(roepnaam, naam)
     vorige = operator()
+    if vorige.get("roepnaam") == roepnaam:
+        return True, f"{operator_tekst(vorige)} had al dienst.", {"zelfde": True}
     nu = time.time()
     o = {"roepnaam": roepnaam, "naam": naam, "sinds": nu}
     tmp = OPERATOR_FILE + ".tmp"
@@ -271,7 +321,22 @@ def zet_operator(roepnaam, naam=""):
     return True, f"Dienstdoende operator is nu {operator_tekst(o)}.", vorige
 
 
-def operator_geschiedenis(n=6):
+def verwerk_operator(f):
+    """Formulier van het blok Dienstdoende operator. Geeft (gelukt, melding, vorige of None als er niet gewisseld is)."""
+    actie = f.get("actie", "kies")
+    if actie == "verwijder":
+        ok, tekst = verwijder_operator(f.get("roepnaam"))
+        return ok, tekst, None
+    if actie == "nieuw":
+        ok, tekst, vorige = zet_operator(f.get("roepnaam"), f.get("naam", ""))
+    else:
+        ok, tekst, vorige = zet_operator(f.get("roepnaam"))
+    if not ok or vorige.get("zelfde"):
+        return ok, tekst, None
+    return ok, tekst, vorige
+
+
+def operator_geschiedenis(n=10):
     try:
         with open(OPERATOR_LOG, encoding="utf-8") as f:
             regels = [r.rstrip("\n").split(";") for r in f.readlines()[1:] if r.strip()]
@@ -282,21 +347,39 @@ def operator_geschiedenis(n=6):
 
 def html_operator(verborgen):
     o = operator()
+    bekend = bekende_operators()
     if o:
-        huidig = (f"<div style='font-size:20px'><b>{html.escape(operator_tekst(o))}</b> "
-                  f"<small style='color:var(--zacht)'>sinds {time.strftime('%d-%m %H:%M', time.localtime(o['sinds']))}</small></div>")
+        huidig = (f"<b style='font-size:20px'>{html.escape(operator_tekst(o))}</b> "
+                  f"<small style='color:var(--zacht)'>sinds {time.strftime('%d-%m %H:%M', time.localtime(o['sinds']))}</small>")
     else:
-        huidig = "<div class='melding let' style='margin:0'>Nog geen dienstdoende operator ingevuld.</div>"
-    gesch = operator_geschiedenis()
-    gesch_html = ("<table style='margin-top:10px'><tr><th>Vanaf</th><th>Operator</th></tr>" + "".join(
-        f"<tr><td class='mono'>{html.escape(r[0][5:16] if len(r[0]) >= 16 else r[0])}</td>"
-        f"<td>{html.escape(r[1])}{(' (' + html.escape(r[2]) + ')') if len(r) > 2 and r[2] else ''}</td></tr>"
-        for r in gesch) + "</table>") if len(gesch) > 1 else ""
-    return f"""<section><h2>Dienstdoende operator</h2><p class="uitleg">De zendamateur die nu verantwoordelijk is voor dit
-station. Het station zendt altijd onder zijn eigen roepnaam; bij aflossen vul je hier je eigen roepnaam in.
-Elke wissel wordt met tijd vastgelegd.</p>{huidig}
-<form method="post" action="/operator" style="margin-top:10px">{verborgen}
+        huidig = "<span style='color:var(--oranje)'><b>Nog niemand.</b> Kies of voeg toe wie dienst heeft.</span>"
+    opties = "".join(f'<option value="{html.escape(b["roepnaam"])}"{" selected" if b["roepnaam"] == o.get("roepnaam") else ""}>'
+                     f'{html.escape(operator_tekst(b))}</option>' for b in bekend)
+    kies = (f"""<form method="post" action="/operator" style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0">{verborgen}
+<input type="hidden" name="actie" value="kies"><select name="roepnaam" style="flex:1;min-width:180px">{opties}</select>
+<button type="submit">Dienst overnemen</button></form>""" if bekend else "")
+    nieuw = f"""<details{'' if bekend else ' open'} style="margin-top:8px"><summary>Nieuwe operator toevoegen</summary>
+<form method="post" action="/operator" style="margin-top:6px">{verborgen}<input type="hidden" name="actie" value="nieuw">
 <div style="display:flex;gap:8px;flex-wrap:wrap"><input name="roepnaam" placeholder="Roepnaam, bijv. PD3PAM" required
 style="flex:1;min-width:150px;text-transform:uppercase" autocapitalize="characters">
-<input name="naam" placeholder="Naam (mag leeg)" style="flex:1;min-width:150px"></div>
-<div class="balk"><button type="submit">Ik neem de dienst over</button></div></form>{gesch_html}</section>"""
+<input name="naam" placeholder="Naam (mag leeg)" style="flex:1;min-width:150px">
+<button type="submit">Toevoegen en dienst overnemen</button></div></form></details>"""
+    beheren = ""
+    if bekend:
+        rijen = "".join(f"""<tr><td>{html.escape(operator_tekst(b))}</td><td style="text-align:right">
+<form method="post" action="/operator" style="margin:0">{verborgen}<input type="hidden" name="actie" value="verwijder">
+<input type="hidden" name="roepnaam" value="{html.escape(b['roepnaam'])}"><button type="submit" class="licht"
+style="padding:4px 10px;font-size:14px">Uit de lijst</button></form></td></tr>""" for b in bekend)
+        beheren = f"<details style='margin-top:6px'><summary>Operators beheren</summary><table>{rijen}</table></details>"
+    gesch = operator_geschiedenis()
+    wissels = ""
+    if gesch:
+        rijen = "".join(f"<tr><td class='mono'>{html.escape(r[0][5:16] if len(r[0]) >= 16 else r[0])}</td>"
+                        f"<td>{html.escape(r[1])}{(' (' + html.escape(r[2]) + ')') if len(r) > 2 and r[2] else ''}</td></tr>"
+                        for r in gesch)
+        wissels = (f"<details style='margin-top:6px'><summary>Wissels bekijken</summary><table><tr><th>Vanaf</th>"
+                   f"<th>Operator</th></tr>{rijen}</table><p class='uitleg'>Alle wissels staan in operators.csv en in "
+                   f"het log/logboek.</p></details>")
+    return f"""<section><h2>Dienstdoende operator</h2><div>{huidig}</div>{kies}{nieuw}{beheren}{wissels}
+<p class="uitleg" style="margin-top:8px">Het station zendt altijd onder zijn eigen roepnaam. Hier leg je vast wie er
+verantwoordelijk is; elke wissel wordt met tijd vastgelegd.</p></section>"""

@@ -212,7 +212,8 @@ wordt meteen op de downloadpagina gezet.
 
 Het station zendt altijd onder de roepnaam die bij de installatie is ingesteld; die verander je
 niet. Wie op dat moment verantwoordelijk is, leg je vast op tabblad **Status** →
-*Dienstdoende operator*: vul je eigen roepnaam (en naam) in en tik **Ik neem de dienst over**.
+*Dienstdoende operator*: kies jezelf in de keuzelijst en tik **Dienst overnemen**. De eerste keer:
+*Nieuwe operator toevoegen* (roepnaam en naam); daarna sta je in de keuzelijst.
 Doe dit bij het begin van je dienst en bij elke aflossing. Elke wissel komt met tijd in het log
 (steunpunt) en in het logboek (eindpost); bij elke melding in het logboek staat wie dienst had.
 

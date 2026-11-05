@@ -89,8 +89,9 @@ via de hotspot.
 
 | # | Scenario | Verwacht | OK |
 |---|---|---|---|
-| G1 | Steunpunt: Status → operator invullen (roepnaam + naam) | Groene melding; log van de brug: "Dienstdoende operator: …" | ☐ |
-| G2 | Aflossen: andere roepnaam invullen | Log: "… (neemt over van …)"; lijstje met wissels op Status | ☐ |
+| G1 | Steunpunt: Status → *Nieuwe operator toevoegen* (roepnaam + naam) | Groene melding; log van de brug: "Dienstdoende operator: …" | ☐ |
+| G2 | Tweede operator toevoegen; daarna aflossen via de **keuzelijst** | Log: "… (neemt over van …)"; Status blijft compact (wissels ingeklapt onder *Wissels bekijken*) | ☐ |
+| G2b | *Operators beheren* → een operator uit de lijst halen (niet degene met dienst) | Verdwijnt uit de keuzelijst; wie dienst heeft kan niet verwijderd worden | ☐ |
 | G3 | Eindpost: operator invullen, daarna een M/ETHANE ontvangen | Logboek: regel OPERATOR; bij de melding "dienstdoende operator: …" | ☐ |
 | G4 | Back-up maken en terugzetten | Operator en lijst met wissels terug | ☐ |
 

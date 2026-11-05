@@ -556,9 +556,11 @@ class Handler(BaseHTTPRequestHandler):
             ok, fout = herstart("direwolf")
             return self._terug("/radio", "radio" if ok else "fout:Opgeslagen, maar Direwolf herstarten lukte niet: " + fout)
         if pad == "operator":
-            ok, tekst, vorige = beheer.zet_operator(f.get("roepnaam"), f.get("naam"))
+            ok, tekst, vorige = beheer.verwerk_operator(f)
             if not ok:
                 return self._terug("/status", "fout:" + tekst)
+            if vorige is None:                      # niet gewisseld (lijst aangepast of dezelfde operator)
+                return self._terug("/status", "ok:" + tekst)
             schrijf_operator_in_logboek(vorige)
             return self._terug("/status", "ok:" + tekst)
         if pad == "pi":

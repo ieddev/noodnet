@@ -1227,9 +1227,11 @@ class Handler(BaseHTTPRequestHandler):
                                "fout:De brug heeft de opdracht nog niet opgepakt; ververs zo de pagina.")
 
         if pad == "operator":
-            ok, tekst, vorige = beheer.zet_operator(f.get("roepnaam"), f.get("naam"))
+            ok, tekst, vorige = beheer.verwerk_operator(f)
             if not ok:
                 return self._terug("/status", "fout:" + tekst)
+            if vorige is None:                      # niet gewisseld (lijst aangepast of dezelfde operator)
+                return self._terug("/status", "ok:" + tekst)
             sys.stderr.write(f"Operator: {beheer.operator_tekst()} (was {vorige.get('roepnaam') or '-'})\n")
             if dienst_status("noodnet-brug") == "active":       # in het log van de brug zetten
                 with SCHRIJF_LOCK:
