@@ -117,6 +117,7 @@ ook zonder stroomnet en zonder internet. Je thuis-wifi gebruikt de Pi niet meer.
 **Jezelf beheerder maken** (zonder iets over te typen):
 
 1. Installeer de Noodnet-app: open **http://10.42.0.1** en tik op *Noodnet-app downloaden*.
+   Op de telefoon heet de app **Sideband** (de Noodnet-versie daarvan).
 2. Koppel in de app je RNode (Bluetooth).
 3. Open het M/ETHANE-scherm en tik op **Kaart van steunpunt scannen**. Scan de
    QR-code op het tabblad *Kaart* (op een tweede scherm, of afgedrukt).
@@ -162,7 +163,7 @@ Per telefoon, in de buurt van het steunpunt:
 
 1. Verbind met de wifi *Noodnet-&lt;roepnaam van het steunpunt&gt;* (wachtwoord van de hotspot).
 2. Open **http://10.42.0.1** en tik op *Noodnet-app downloaden*. Android vraagt toestemming
-   om apps uit deze bron te installeren: toestaan, dan installeren.
+   om apps uit deze bron te installeren: toestaan, dan installeren. Op de telefoon heet de app **Sideband**.
 3. Open de app en koppel de RNode van de vrijwilliger (Bluetooth).
 4. Open het M/ETHANE-scherm → **Kaart van steunpunt scannen** → scan de kaart. Geen gedrukte kaart?
    Beheerder: beheerpagina → tabblad **Kaart** → **QR-code groot tonen**, en laat scannen van je scherm.

@@ -188,7 +188,7 @@ def main():
     <div class="code"><div class="lab">AANMELDCODE</div><div class="val">{e(code)}</div></div>
   </div>
   <div class="rij">
-    <div class="qr">{svg}<div>Scan met de camera van uw telefoon<br>en open de link in Sideband</div></div>
+    <div class="qr">{svg}<div>Scan met de camera van uw telefoon<br>en open de link in Sideband (Noodnet-app)</div></div>
     <div style="flex:1">
       <table>
         {radio_rijen}
@@ -197,7 +197,7 @@ def main():
       </table>
       <ol>
         <li>Koppel de RNode via Bluetooth (samen met de zendamateur).</li>
-        <li>Scan de QR-code met de camera en open de link in Sideband.</li>
+        <li>Scan de QR-code met de camera en open de link in Sideband (de Noodnet-app). Of in de app: M/ETHANE-scherm &rarr; <i>Kaart van steunpunt scannen</i>.</li>
         <li>Kies uw RNode (433 of 868 MHz), vul uw naam in en tik op <b>AANMELDEN</b>.</li>
         <li>Wacht tot bovenaan in het noodmeldscherm staat: &ldquo;Aangemeld bij {e(naam)}&rdquo;.</li>
       </ol>
