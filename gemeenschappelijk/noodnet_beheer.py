@@ -258,6 +258,19 @@ def bekende_operators():
             lijst = [o for o in json.load(f) if isinstance(o, dict) and ROEPNAAM_RE.match(o.get("roepnaam", ""))]
     except (OSError, ValueError, TypeError):
         lijst = []
+        if not os.path.exists(OPERATORS_FILE):
+            # Eerste keer met deze versie: lijst vullen met wie al eerder dienst had
+            gezien = {}
+            for r in operator_geschiedenis(1000)[::-1] + ([[ "", operator()["roepnaam"], operator().get("naam", "")]]
+                                                           if operator() else []):
+                if len(r) > 1 and ROEPNAAM_RE.match(r[1]):
+                    gezien[r[1]] = r[2] if len(r) > 2 else ""
+            lijst = [{"roepnaam": k, "naam": v} for k, v in gezien.items()]
+            if lijst:
+                try:
+                    _schrijf_operators(lijst)
+                except OSError:
+                    pass
     return sorted(lijst, key=lambda o: o["roepnaam"])
 
 
