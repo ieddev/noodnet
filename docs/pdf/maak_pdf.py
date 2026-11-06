@@ -58,6 +58,8 @@ def afbeelding(naam):
 def inhoud(md_tekst, merktekens):
     # titel + inleiding (alles voor de eerste ---) apart houden
     md_tekst = re.sub(r"^# .*\n", "", md_tekst, count=1)
+    # GitHub accepteert sublijstjes met 3 spaties, Python-Markdown wil er 4
+    md_tekst = re.sub(r"^   - ", "    - ", md_tekst, flags=re.M)
     md = markdown.Markdown(extensions=["tables", "fenced_code", "toc", "sane_lists"],
                            extension_configs={"toc": {"permalink": False}})
     html = md.convert(md_tekst)
@@ -78,6 +80,8 @@ def inhoud(md_tekst, merktekens):
     html = re.sub(r'<h([23]) id="([^"]+)">(.*?)</h\1>', kop, html)
     html = html.replace("<li>[ ] ", '<li class="vink"><span class="vakje"></span>')
     html = re.sub(r"<hr\s*/?>", "", html)
+    # de verwijzing naar de PDF zelf hoort niet in de PDF
+    html = re.sub(r"<p><strong>Afdrukken\?</strong>.*?</p>", "", html, flags=re.S)
     return html, hoofdstukken
 
 
