@@ -1,5 +1,9 @@
 # De Noodnet-app bouwen (Sideband 2.1.0 + Noodnet-patch)
 
+> **Licentie:** Sideband is van Mark Qvist en valt onder CC BY-NC-SA 4.0. Deze patch
+> valt daarom ook onder [CC BY-NC-SA 4.0](LICENSE). De gebouwde app mag je gratis
+> verspreiden, maar **nooit tegen betaling**. Vermeld Sideband als je hem doorgeeft.
+
 De app is Sideband met daarin het M/ETHANE-scherm, de aanmeldkaart met
 ingebouwde QR-scanner, automatisch aanmelden en een zuinig positiebaken.
 Getest op Ubuntu 24.04 / Zorin (ook WSL2 kan; werk dan in de Linux-thuismap).

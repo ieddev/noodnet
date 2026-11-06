@@ -53,8 +53,56 @@ Zie [docs/TESTPLAN.md](docs/TESTPLAN.md): scenario's voor aanmelden, beheer en m
 | `steunpunt/` | Brug LoRa → 2 m, beheerpagina, aanmeldkaart |
 | `eindpost/` | Ontvanger 2 m → MQTT + logboek, beheerpagina, Node-RED M/ETHANE-scherm |
 | `app/` | Patch op Sideband 2.1.0 (M/ETHANE, kaart, QR-scanner, baken) en bouwinstructie |
-| `docs/` | Procedure |
+| `docs/` | Procedure en testplan |
 
 De app (APK) staat bij de [Releases](../../releases) en wordt door de
 installatie op elke Pi gezet, zodat vrijwilligers hem ter plekke via de hotspot
 kunnen downloaden.
+
+## Licentie en openheid
+
+Noodnet is open en blijft open. Wat geldt voor welk deel:
+
+| Deel | Licentie |
+|---|---|
+| De Noodnet-code (installatie, brug, beheerpagina's, scripts, Node-RED-flow) | [EUPL-1.2](LICENSE), de open-sourcelicentie van de Europese Unie, ook officieel in het Nederlands |
+| `app/` (de patch op Sideband) | [CC BY-NC-SA 4.0](app/LICENSE), dezelfde licentie als Sideband zelf |
+| `docs/` (procedure, testplan) en de teksten en schema's op de website | [CC BY-SA 4.0](docs/LICENSE) |
+
+Wat dat in gewone taal betekent:
+
+- Iedereen mag Noodnet gebruiken, aanpassen en doorgeven. Wie een aangepaste versie
+  verspreidt, geeft de broncode daarvan ook vrij, onder dezelfde licentie.
+- De app mag **nooit tegen betaling** worden verspreid of gebruikt, ook niet aan een
+  gemeente of hulpdienst. Gratis uitdelen (zoals via het steunpunt) mag wel.
+
+### Waar Noodnet op voortbouwt
+
+Noodnet maakt geen eigen versie van Reticulum of Sideband na. Het gebruikt de
+officiële pakketten, ongewijzigd, zoals de makers ze verspreiden:
+
+- [Reticulum](https://reticulum.network) (RNS) en [LXMF](https://github.com/markqvist/lxmf)
+  van Mark Qvist, onder de *Reticulum License*. Die staat veel toe, met twee extra
+  voorwaarden die ook gelden voor wie Noodnet draait: niet gebruiken in systemen die
+  bedoeld zijn om mensen schade te doen, en niet gebruiken om datasets voor AI of
+  machine learning te maken.
+- [Sideband](https://github.com/markqvist/Sideband) van Mark Qvist, onder
+  CC BY-NC-SA 4.0. De Noodnet-app is Sideband met een kleine patch erop
+  (zie [app/BOUWEN.md](app/BOUWEN.md)); alle eer voor de app zelf gaat naar Sideband.
+- [Direwolf](https://github.com/wb2osz/direwolf) (GPL-2.0),
+  [Hamlib](https://hamlib.github.io) (LGPL/GPL), Mosquitto (EPL/EDL) en Node-RED
+  (Apache-2.0). Die worden bij de installatie uit de gewone pakketbronnen gehaald.
+
+### Hoe Noodnet gemaakt is
+
+Gert de Haan, PD3PAM, heeft Noodnet ontworpen, de keuzes gemaakt en alles in de
+praktijk getest op echte sets en Raspberry Pi's. Een groot deel van de code en
+documentatie is in samenwerking met een AI-assistent (Claude, van Anthropic)
+geschreven. Elke wijziging is door hem beoordeeld en getest.
+
+Noodnet bevat geen code van Reticulum of Sideband die door AI is herschreven of
+nagebouwd: het gebruikt alleen hun openbare programmeerinterface, of
+(bij de app) een kleine, herkenbare patch op de echte broncode.
+
+Vragen of opmerkingen over de licentie? Neem contact op via
+[noodnet.ied.nl/contact](http://noodnet.ied.nl/contact).
