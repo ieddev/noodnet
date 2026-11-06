@@ -34,6 +34,11 @@ via de hotspot.
 | B4a | `CODE <nieuwe code>` | B: "Nieuwe aanmeldcode: …". Beheerpagina (Status en Steunpunt) toont de nieuwe code. Aangemelde telefoons blijven aangemeld; nieuwe aanmelding met de oude kaart: "onjuiste aanmeldcode". Tabblad Kaart → nieuwe kaart maken: staat de nieuwe code op? Daarna eventueel terugzetten | ☐ |
 | B5 | `JA 999` (bestaat niet) | "bestaat niet (meer)" | ☐ |
 | B6 | Opdracht vanaf V1 (geen beheerder), bijv. `LIJST` | Geen beheerantwoord; het gaat als gewoon bericht naar de eindpost | ☐ |
+| B7 | `ALLEN Testbericht aan allen` (V1 en V2 aan, B zelf ook aangemeld) | B: "Verstuurd naar 2 vrijwilligers…". V1 en V2 krijgen "<steunpunt> aan alle vrijwilligers: Testbericht aan allen" (B zelf niet). Het gaat **niet** over 2 m | ☐ |
+| B7a | Daarna `LIJST` | Onderaan: "Bericht aan allen (hh:mm): ontvangen door 2 van 2." | ☐ |
+| B7b | V2 uit, opnieuw `ALLEN …`, na een paar minuten `LIJST` | "ontvangen door 1 van 2. Nog niet: V2" | ☐ |
+| B7c | Beheerpagina → Vrijwilligers → *Bericht aan alle vrijwilligers* | Groene melding; V1 en V2 (en B) krijgen het; onder het veld staat wie het heeft ontvangen (pagina verversen) | ☐ |
+| B7d | `ALLEN` zonder tekst, en een tekst van meer dan 300 tekens | Uitleg terug, er wordt niets verstuurd | ☐ |
 
 ## C. Melden
 

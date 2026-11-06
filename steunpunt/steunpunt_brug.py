@@ -123,6 +123,7 @@ SENDER_NAMES_PATH = os.path.join(storage_path, "sender_names.json")
 AANMELD_FILE = os.path.join(storage_path, "aanmeldingen.json")
 GEHOORD_FILE = os.path.join(storage_path, "gehoord.json")
 OPDRACHTEN_FILE = os.path.join(storage_path, "web_opdrachten.json")   # van de beheerpagina
+RONDZENDING_FILE = os.path.join(storage_path, "rondzending.json")     # laatste bericht aan alle vrijwilligers
 
 
 def log(msg):
@@ -794,9 +795,13 @@ except OSError as fout:
     my_destination = lxmf_router.register_delivery_identity(identity, display_name=STEUNPUNT_NAAM)
 
 
-def stuur_lxmf(dest_hash, tekst):
-    """Stuurt een kort LXMF-bericht naar een telefoon (via LoRa)."""
+def stuur_lxmf(dest_hash, tekst, afgeleverd=None, mislukt=None, wacht=0):
+    """Stuurt een kort LXMF-bericht naar een telefoon (via LoRa).
+    afgeleverd/mislukt: optioneel, aangeroepen als de telefoon het bericht wel/niet heeft gekregen.
+    wacht: seconden wachten voor het versturen (om een reeks berichten te spreiden)."""
     def _run():
+        if wacht:
+            time.sleep(wacht)
         for i in range(45):
             ident = RNS.Identity.recall(dest_hash)
             if ident:
@@ -806,10 +811,16 @@ def stuur_lxmf(dest_hash, tekst):
             time.sleep(1)
         else:
             log(f"[-] Kan geen bericht sturen naar <{dest_hash.hex()}>: adres onbekend")
+            if mislukt:
+                mislukt(dest_hash.hex())
             return
         dest = RNS.Destination(ident, RNS.Destination.OUT, RNS.Destination.SINGLE, "lxmf", "delivery")
         m = LXMF.LXMessage(dest, my_destination, tekst, desired_method=LXMF.LXMessage.OPPORTUNISTIC)
         m.try_propagation_on_fail = False
+        if afgeleverd:
+            m.register_delivery_callback(lambda _m: afgeleverd(dest_hash.hex()))
+        if mislukt:
+            m.register_failed_callback(lambda _m: mislukt(dest_hash.hex()))
         lxmf_router.handle_outbound(m)
     threading.Thread(target=_run, daemon=True).start()
 
@@ -1033,8 +1044,92 @@ class Aanmeldingen:
 
 
 aanmeldingen = Aanmeldingen()
+
+
+# ---------------------------------------------------------------------------
+# Bericht aan alle vrijwilligers (ALLEN)
+# ---------------------------------------------------------------------------
+
+ALLEN_MAX = 300          # tekens; een kort bericht past in één LoRa-pakket
+ALLEN_SPREIDING = 3      # seconden tussen de berichten, zodat de LoRa-band niet volloopt
+
+
+class Rondzending:
+    """De laatste rondzending: tekst, wie hem kreeg en wie (nog) niet. Wordt bewaard voor de beheerpagina."""
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        try:
+            with open(RONDZENDING_FILE, "r", encoding="utf-8") as f:
+                self.data = json.load(f)
+        except (OSError, ValueError):
+            self.data = {}
+
+    def _bewaar(self):
+        try:
+            tmp = RONDZENDING_FILE + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(self.data, f, ensure_ascii=False)
+            os.replace(tmp, RONDZENDING_FILE)
+        except OSError as e:
+            log(f"[-] Kon {RONDZENDING_FILE} niet bewaren: {e}")
+
+    def start(self, tekst, door, ontvangers):
+        """ontvangers: {adres: naam}. Geeft het aantal ontvangers."""
+        with self.lock:
+            self.data = {"tekst": tekst, "door": door, "t": int(time.time()),
+                         "ontv": {a: {"naam": n or a[:8], "st": "wacht"} for a, n in ontvangers.items()}}
+            self._bewaar()
+        return len(ontvangers)
+
+    def zet(self, adr, status):
+        with self.lock:
+            o = self.data.get("ontv", {}).get(adr)
+            if o is None or o["st"] == "ok":          # 'afgeleverd' blijft afgeleverd
+                return
+            o["st"] = status
+            self._bewaar()
+
+    def samenvatting(self):
+        """Eén regel voor LIJST, of '' als er (vandaag) niets is rondgestuurd."""
+        with self.lock:
+            d = self.data
+            if not d.get("ontv") or time.time() - d.get("t", 0) > 24 * 3600:
+                return ""
+            ontv = d["ontv"].values()
+            ok = sum(1 for o in ontv if o["st"] == "ok")
+            niet = [o["naam"] for o in ontv if o["st"] != "ok"]
+            t = f"Bericht aan allen ({time.strftime('%H:%M', time.localtime(d['t']))}): ontvangen door {ok} van {len(d['ontv'])}"
+            return t + (". Nog niet: " + ", ".join(sorted(niet)) if niet else ".")
+
+
+rondzending = Rondzending()
+
+
+def stuur_aan_allen(tekst, door, behalve=None):
+    """Stuurt tekst naar alle aangemelde vrijwilligers. Geeft (ok, antwoord voor de beheerder)."""
+    tekst = " ".join(tekst.split())
+    if not tekst:
+        return False, "Geen tekst. Voorbeeld: ALLEN Einde oefening, bedankt allemaal!"
+    if len(tekst) > ALLEN_MAX:
+        return False, f"Te lang ({len(tekst)} tekens, max. {ALLEN_MAX}). Maak het bericht korter."
+    ontvangers = {a: n for a, n in whitelist_entries().items() if a != behalve}
+    if not ontvangers:
+        return False, "Er zijn geen aangemelde vrijwilligers."
+    n = rondzending.start(tekst, door, ontvangers)
+    bericht = f"{STEUNPUNT_NAAM} aan alle vrijwilligers: {tekst}"
+    for i, adr in enumerate(sorted(ontvangers)):
+        try:
+            stuur_lxmf(bytes.fromhex(adr), bericht, afgeleverd=lambda a: rondzending.zet(a, "ok"),
+                       mislukt=lambda a: rondzending.zet(a, "mislukt"), wacht=i * ALLEN_SPREIDING)
+        except ValueError:
+            rondzending.zet(adr, "mislukt")
+    log(f"[>] Bericht aan alle vrijwilligers ({n}) door {door}: {tekst}")
+    duur = f" Dat duurt ongeveer {max(1, n * ALLEN_SPREIDING // 60)} min." if n * ALLEN_SPREIDING >= 60 else ""
+    return True, f"Verstuurd naar {n} vrijwilliger{'s' if n != 1 else ''}.{duur} Stuur LIJST om te zien wie het heeft ontvangen."
 BEHEER_HELP = ("Opdrachten: JA <nr> | NEE <nr> | WACHT (open aanmeldingen) | "
-               "LIJST (aangemeld, laatst gehoord, accu) | AF <naam> | CODE (toon) | CODE <nieuw>")
+               "LIJST (aangemeld, laatst gehoord, accu) | AF <naam> | CODE (toon) | CODE <nieuw> | "
+               "ALLEN <tekst> (bericht aan alle vrijwilligers)")
 
 
 def is_beheerder(hash_bytes):
@@ -1144,6 +1239,10 @@ def verwerk_web_opdrachten():
             if o.get("soort") == "NIET_WACHTEN":
                 log(f"[i] Beheerpagina: " + outbox.niet_meer_wachten(str(o.get("id", "")), str(o.get("call", ""))))
                 continue
+            if o.get("soort") == "ALLEN":
+                ok, antwoord = stuur_aan_allen(str(o.get("tekst", "")), "beheerpagina")
+                log(f"[i] Beheerpagina: {antwoord}")
+                continue
             if o.get("soort") == "AFGEMELD":
                 _load_whitelist()
                 meld_afgemeld(o.get("adr", ""))
@@ -1185,7 +1284,12 @@ def handle_beheer(src, tekst):
             kop = f"{STEUNPUNT_NAAM}: {len(rijen)} aangemeld, {gehoord.aantal_gehoord()} gehoord " \
                   f"(uit beeld na {uit_beeld_na() // 60} min)"
             meer = f"\n... en nog {len(rijen) - 40}" if len(rijen) > 40 else ""
-            stuur_lxmf(src, kop + "\n" + "\n".join(rijen[:40]) + meer)
+            rz = rondzending.samenvatting()
+            stuur_lxmf(src, kop + "\n" + "\n".join(rijen[:40]) + meer + ("\n" + rz if rz else ""))
+        return True
+    if opdracht == "ALLEN":
+        ok, antwoord = stuur_aan_allen(arg, door, behalve=src.hex())
+        stuur_lxmf(src, antwoord)
         return True
     if opdracht == "AF" and arg:
         weg = whitelist_remove(arg)

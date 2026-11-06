@@ -56,6 +56,8 @@ GEHOORD_FILE = os.path.join(LXMF_DIR, "gehoord.json")
 AANMELD_FILE = os.path.join(LXMF_DIR, "aanmeldingen.json")
 WACHTRIJ_FILE = os.path.join(LXMF_DIR, "brug_wachtrij.json")
 OPDRACHTEN_FILE = os.path.join(LXMF_DIR, "web_opdrachten.json")
+RONDZENDING_FILE = os.path.join(LXMF_DIR, "rondzending.json")
+ALLEN_MAX = 300
 ID_FILE = os.path.join(LXMF_DIR, "gateway.id")
 RNS_CONFIG = os.path.expanduser(os.environ.get("NOODNET_RNS_CONFIG", "~/.reticulum/config"))
 
@@ -698,7 +700,8 @@ main{max-width:880px;margin:0 auto;padding:16px}
 section{background:var(--kaart);border:1px solid var(--lijn);border-radius:12px;padding:16px;margin-bottom:16px}
 h2{margin:0 0 4px;font-size:18px}p.uitleg{margin:0 0 12px;color:var(--zacht);font-size:14px}
 label{display:block;font-weight:600;margin:12px 0 4px}label small{font-weight:400;color:var(--zacht)}
-input[type=text],input[type=number],input[type=password],select{width:100%;padding:10px;border:1px solid var(--lijn);border-radius:8px;background:var(--bg);color:var(--tekst);font-size:16px}
+textarea{font-family:inherit;resize:vertical}
+input[type=text],input[type=number],input[type=password],select,textarea{width:100%;padding:10px;border:1px solid var(--lijn);border-radius:8px;background:var(--bg);color:var(--tekst);font-size:16px}
 .rij{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:560px){.rij{grid-template-columns:1fr}}
 .rij3{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}@media(max-width:560px){.rij3{grid-template-columns:1fr 1fr}}
 button,.knop{display:inline-block;padding:10px 18px;border:0;border-radius:8px;background:var(--knop);color:#fff;font-size:16px;font-weight:600;cursor:pointer;text-decoration:none}
@@ -974,6 +977,32 @@ Het adres staat in Sideband bij <i>Your address</i>.</p><form method="post" acti
     return onb_html + hand
 
 
+def html_allen():
+    """Formulier 'Bericht aan alle vrijwilligers' + wie het laatste bericht heeft ontvangen."""
+    rz = lees_json(RONDZENDING_FILE, {}) or {}
+    laatste = ""
+    if rz.get("ontv"):
+        ontv = list(rz["ontv"].values())
+        ok = [o["naam"] for o in ontv if o.get("st") == "ok"]
+        mis = [o["naam"] for o in ontv if o.get("st") == "mislukt"]
+        wacht = [o["naam"] for o in ontv if o.get("st") not in ("ok", "mislukt")]
+        regels = f"<b>{len(ok)} van {len(ontv)}</b> ontvangen."
+        if wacht:
+            regels += f"<br>Nog onderweg: {e(', '.join(sorted(wacht)))}"
+        if mis:
+            regels += f"<br><span style='color:var(--rood,#c0392b)'>Niet aangekomen:</span> {e(', '.join(sorted(mis)))} " \
+                      "(RNode uit of buiten bereik?)"
+        laatste = (f"<p class='uitleg' style='margin-top:12px'>Laatste bericht, "
+                   f"{time.strftime('%d-%m %H:%M', time.localtime(rz.get('t', 0)))} door {e(rz.get('door', '?'))}:<br>"
+                   f"<i>&ldquo;{e(rz.get('tekst', ''))}&rdquo;</i><br>{regels}<br>Ververs de pagina voor de laatste stand.</p>")
+    return f"""<section><h2>Bericht aan alle vrijwilligers</h2>
+<p class="uitleg">Bijvoorbeeld <i>Einde oefening, bedankt allemaal!</i> Gaat via LoRa naar elke aangemelde vrijwilliger van dit
+steunpunt, één voor één (een paar seconden per telefoon). Vanaf je telefoon kan het ook: stuur <b>ALLEN &lt;tekst&gt;</b> naar het steunpunt.</p>
+<form method="post" action="/allen" onsubmit="return confirm('Dit bericht naar alle vrijwilligers sturen?')">{verborgen()}
+<textarea name="tekst" rows="3" maxlength="{ALLEN_MAX}" required placeholder="Einde oefening, bedankt allemaal!"></textarea>
+<div class="balk" style="margin-top:8px"><button type="submit">Versturen aan allen</button></div></form>{laatste}</section>"""
+
+
 def html_vrijwilligers(inst, net):
     vw = vrijwilligers(inst, net)
     if not vw:
@@ -998,7 +1027,7 @@ def html_vrijwilligers(inst, net):
 {verborgen()}<input type="hidden" name="adres" value="{e(r['adr'])}"><button class="licht" type="submit">Afmelden</button></form></td></tr>"""
     return f"""<section><h2>Vrijwilligers</h2><p class="uitleg">Wie aandacht nodig heeft staat bovenaan. Uit beeld na {uit_beeld_na(inst, net) // 60} minuten stilte.
 Ververs de pagina voor de laatste stand.</p>
-<table><tr><th>Naam</th><th>Laatst gehoord</th><th>Accu</th><th>Positie</th><th></th></tr>{rijen}</table></section>""" + html_onbekend_en_handmatig(inst)
+<table><tr><th>Naam</th><th>Laatst gehoord</th><th>Accu</th><th>Positie</th><th></th></tr>{rijen}</table></section>""" + html_allen() + html_onbekend_en_handmatig(inst)
 
 
 def html_qr_groot(inst, kaart_html):
@@ -1097,7 +1126,8 @@ class Handler(BaseHTTPRequestHandler):
                    "toegelaten": "Op de witte lijst gezet. De brug laat deze telefoon direct door.",
                    "gewist": "Uit de lijst van onbekende telefoons gehaald.",
                    "radio": "Radio-instellingen opgeslagen; Direwolf, Reticulum en de brug zijn herstart.",
-                   "niet_wachten": "Het steunpunt wacht niet meer op de bevestiging van die post."}
+                   "niet_wachten": "Het steunpunt wacht niet meer op de bevestiging van die post.",
+                   "allen": "Bericht wordt verstuurd naar alle vrijwilligers. Hieronder zie je wie het heeft ontvangen."}
         meld = meldingen(ok=teksten.get(m)) if m in teksten else ""
         if m.startswith("fout:"):
             meld = meldingen(fouten=[m[5:]])
@@ -1369,6 +1399,25 @@ class Handler(BaseHTTPRequestHandler):
             if ADRES_RE.match(adr):
                 wis_onbekend(adr)
             return self._terug("/vrijwilligers", "gewist")
+
+        if pad == "allen":
+            tekst = " ".join(f.get("tekst", "").split())
+            if not tekst:
+                return self._terug("/vrijwilligers", "fout:Geen tekst ingevuld.")
+            if len(tekst) > ALLEN_MAX:
+                return self._terug("/vrijwilligers", f"fout:Te lang (max. {ALLEN_MAX} tekens).")
+            if dienst_status("noodnet-brug") != "active":
+                return self._terug("/vrijwilligers", "fout:De brug draait niet; start die eerst (Herstart).")
+            with SCHRIJF_LOCK:
+                lijst = lees_json(OPDRACHTEN_FILE, []) or []
+                lijst.append({"soort": "ALLEN", "tekst": tekst, "tijd": int(time.time())})
+                schrijf_json(OPDRACHTEN_FILE, lijst)
+            for _ in range(10):
+                time.sleep(0.5)
+                if not os.path.exists(OPDRACHTEN_FILE):
+                    break
+            return self._terug("/vrijwilligers", "allen" if not os.path.exists(OPDRACHTEN_FILE) else
+                               "fout:De brug heeft het bericht nog niet opgepakt; ververs zo de pagina.")
 
         if pad == "afmelden":
             adr = f.get("adres", "").lower()

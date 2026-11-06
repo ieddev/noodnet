@@ -180,7 +180,8 @@ def zakkaart_beheer():
     opdrachten = [("WACHT", "open aanmeldingen"), ("JA &lt;nr&gt;", "aanmelding goedkeuren"),
                   ("NEE &lt;nr&gt;", "aanmelding afwijzen"), ("LIJST", "wie, laatst gehoord, accu"),
                   ("AF &lt;naam&gt;", "vrijwilliger afmelden"), ("CODE", "aanmeldcode tonen"),
-                  ("CODE &lt;nieuw&gt;", "nieuwe aanmeldcode"), ("HELP", "alle opdrachten")]
+                  ("CODE &lt;nieuw&gt;", "nieuwe aanmeldcode"), ("ALLEN &lt;tekst&gt;", "bericht aan alle vrijwilligers"),
+                  ("HELP", "alle opdrachten")]
     rijen = "".join('<tr><td class="opdr">%s</td><td>%s</td></tr>' % o for o in opdrachten)
     gegevens = "".join("<tr><th>%s</th><td></td></tr>" % g for g in
                        ["Steunpunt (roepnaam)", "Wifi", "Eindposten", "2 m-frequentie", "Andere beheerders"])
@@ -201,7 +202,7 @@ def zakkaart_beheer():
   <ol class="kort"><li>Antennes erop, alles aan, 2 min wachten</li><li>Beheerpagina openen (klok)</li>
   <li><b>Status</b>: alles groen, zelfde netwerkversie</li><li><b>Dienst overnemen</b></li><li><b>LIJST</b> en <b>WACHT</b></li></ol>
   <div class="kaartkop klein-kop">EINDE</div>
-  <ol class="kort"><li>Vrijwilligers laten weten</li><li><b>Status → Pi uitschakelen</b></li>
+  <ol class="kort"><li><b>ALLEN Einde oefening</b>, dan <b>LIJST</b></li><li><b>Status → Pi uitschakelen</b></li>
   <li>Lampje uit (± 20 s), dan pas stroom eraf</li></ol>
   <div class="kaartkop klein-kop">MIJN STEUNPUNT</div>
   <table class="invul klein-invul">%s</table>

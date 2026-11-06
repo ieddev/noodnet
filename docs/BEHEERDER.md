@@ -12,7 +12,7 @@ Je kunt het steunpunt op twee manieren beheren:
 
 | Hoe | Waar | Wat kan het |
 |---|---|---|
-| **Berichten** vanuit de Noodnet-app, via je RNode | Overal binnen LoRa-bereik van het steunpunt | Aanmeldingen goedkeuren, lijst van vrijwilligers, afmelden, aanmeldcode |
+| **Berichten** vanuit de Noodnet-app, via je RNode | Overal binnen LoRa-bereik van het steunpunt | Aanmeldingen goedkeuren, lijst van vrijwilligers, afmelden, aanmeldcode, bericht aan allen |
 | **Beheerpagina** via de wifi van het steunpunt | Vlak bij het steunpunt | Alles: status, dienstdoende operator, kaart en QR-code, radio, uitzetten |
 
 Je krijgt ook zelf berichten van het steunpunt: nieuwe aanmeldingen, en waarschuwingen als een
@@ -50,10 +50,17 @@ hetzelfde gesprek.
 | `AF <naam>` | Meldt een vrijwilliger af; zijn meldingen worden daarna niet meer doorgegeven | `AF Jan` |
 | `CODE` | Toont de huidige aanmeldcode | `CODE` |
 | `CODE <nieuw>` | Zet een nieuwe aanmeldcode (bijv. als een kaart kwijt is) | `CODE ZOMER26` |
+| `ALLEN <tekst>` | Stuurt een bericht naar alle aangemelde vrijwilligers van dit steunpunt | `ALLEN Einde oefening, bedankt!` |
 | `HELP` | Toont alle opdrachten | `HELP` |
 
 Controleer bij een aanmelding wie het is voordat je `JA` stuurt. Twijfel je: stuur `NEE`, of laat de
 aanmelding even staan.
+
+**Bericht aan allen.** Met `ALLEN` gaat je tekst (max. 300 tekens) naar elke aangemelde vrijwilliger,
+één voor één met een paar seconden ertussen: bij twintig vrijwilligers duurt het ongeveer een minuut.
+Jij krijgt terug naar hoeveel vrijwilligers het gaat. Stuur daarna `LIJST`: onderaan staat wie het
+bericht heeft ontvangen en wie nog niet (RNode uit of buiten bereik). Het bericht gaat alleen naar de
+vrijwilligers van dit steunpunt.
 
 Na een nieuwe aanmeldcode werken de oude kaarten niet meer om je aan te melden. Wie al is aangemeld,
 merkt er niets van. Maak dan op de beheerpagina een nieuwe kaart (tabblad **Kaart**).
@@ -79,6 +86,7 @@ Verbind met de wifi **Noodnet-…** van het steunpunt en open **http://10.42.0.1
 | Dienst overnemen of aflossen | **Status** → *Dienstdoende operator* → kies jezelf → **Dienst overnemen** |
 | Aanmelding goedkeuren of afwijzen | **Status** → *Wachten op goedkeuring* |
 | Wie is actief, accu's, afmelden | Tabblad **Vrijwilligers** (ook *Onbekende telefoons*) |
+| Bericht aan alle vrijwilligers | **Vrijwilligers** → *Bericht aan alle vrijwilligers*; daaronder zie je wie het heeft ontvangen |
 | Vrijwilliger laten aanmelden zonder printer | **Kaart** → **QR-code groot tonen** en laat scannen van je scherm |
 | Melding blijft *Nog niet bevestigd* | **Status**: die eindpost staat uit of is buiten bereik. Bestaat hij niet: **Niet meer wachten op …** |
 | Radio controleren | Tabblad **Radio** → *Gehoorde stations* en *Testuitzending* |
@@ -96,7 +104,8 @@ Verbind met de wifi **Noodnet-…** van het steunpunt en open **http://10.42.0.1
 
 **Einde:**
 
-- [ ] Laat de vrijwilligers weten dat het steunpunt stopt.
+- [ ] Laat de vrijwilligers weten dat het steunpunt stopt: `ALLEN Einde oefening, bedankt allemaal!`
+- [ ] `LIJST`: heeft iedereen het bericht ontvangen?
 - [ ] Beheerpagina → **Status** → **Pi uitschakelen**. Wacht tot het groene lampje op de Pi niet meer
       knippert (± 20 seconden); dan pas de stroom eraf.
 
