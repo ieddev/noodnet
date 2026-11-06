@@ -4,6 +4,15 @@ Hier staat per gemeente het **netwerkbestand** van Noodnet: de 2 m-frequentie, d
 roepnamen van de eindposten, en de LoRa-instellingen. De supervisor van de gemeente beheert het.
 
 **Alleen bestanden ZONDER IFAC** (tabblad Netwerk → *Exporteren zonder IFAC*). Deze map is openbaar.
+Gebruikt je gemeente IFAC (aanbevolen: dan kan niemand anders met een RNode en de app op jullie
+LoRa-netwerk), geef het IFAC-wachtwoord dan apart, via een vertrouwelijk kanaal, aan de beheerders van
+de steunpunten. Zij vullen het één keer in op het tabblad Netwerk (*IFAC*); bij het ophalen van een
+bestand zonder IFAC blijft hun eigen IFAC staan.
+
+| Bestand | Voor wie |
+|---|---|
+| `voorbeeld.json` | Zendamateurs elders in het land die willen testen: inladen en op het tabblad Netwerk aanpassen aan de eigen gemeente (naam, frequentie, roepnamen van de eindposten). |
+| `deventer.json` | Deelnemers in Deventer (beheerd door PD3PAM). |
 
 ## Bestand toevoegen of bijwerken (supervisor)
 

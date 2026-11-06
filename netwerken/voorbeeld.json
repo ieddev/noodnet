@@ -1,0 +1,63 @@
+{
+  "_uitleg": "Netwerkconfig per gemeente. Zelfde bestand op elk Steunpunt van deze gemeente. Zet bij 'eindposten' ALLEEN roepnamen van posten die echt draaien: een M/ETHANE wordt herhaald tot elke genoemde eindpost bevestigt.",
+  "gemeente": "Voorbeeldgemeente",
+  "disciplines": {
+    "brandweer": {
+      "label": "Brandweer",
+      "eindposten": []
+    },
+    "ambulance": {
+      "label": "Ambulance",
+      "eindposten": []
+    },
+    "politie": {
+      "label": "Politie",
+      "eindposten": []
+    },
+    "waterschap": {
+      "label": "Waterschap",
+      "eindposten": []
+    },
+    "gemeente": {
+      "label": "Gemeente",
+      "eindposten": []
+    }
+  },
+  "_vangnet": "Disciplines zonder eindpost gaan naar deze disciplines.",
+  "vangnet": [
+    "gemeente"
+  ],
+  "_berichten_aan": "Chatberichten zonder @discipline gaan hierheen.",
+  "berichten_aan": [
+    "gemeente"
+  ],
+  "_lora": "Voor de kaart. Gelijk houden aan de RNodes op de Steunpunten.",
+  "lora": {
+    "433": {
+      "frequentie": 434100000,
+      "bandbreedte": 125000,
+      "sf": 9,
+      "cr": 5,
+      "vermogen_dbm": 10
+    },
+    "868": {
+      "frequentie": 869525000,
+      "bandbreedte": 125000,
+      "sf": 8,
+      "cr": 5,
+      "vermogen_dbm": 14
+    }
+  },
+  "_ifac": "Leeg laten zolang IFAC niet aan staat. Ingevuld = kaart VERTROUWELIJK.",
+  "baken": {
+    "min_interval_s": 600,
+    "max_interval_s": 1800,
+    "afstand_m": 300
+  },
+  "frequentie_2m": 144925000,
+  "versie": {
+    "datum": "2026-11-06 13:00",
+    "door": "PD3PAM (sjabloon)"
+  },
+  "ifac_weggelaten": true
+}
