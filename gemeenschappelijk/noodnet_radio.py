@@ -541,8 +541,10 @@ geluid van USB. PTT gaat via CAT. Icom: CI-V-adres op standaard laten.</p></div>
 {rnode}
 <div class="balk"><button type="submit">Opslaan en herstarten</button></div></form>
 <form method="post" action="/set_zoek" style="margin:20px 0 16px">{verborgen}<section><h2>Zoek mijn set</h2>
-<p class="uitleg">Weet je niet welk model, welke poort of welke snelheid? De Pi probeert de bekende sets op alle USB-poorten
-(behalve de RNodes). Zet de set aan. Dit duurt tot anderhalve minuut; Direwolf is zolang even uit.</p>
+<p class="uitleg">Weet je niet welk model, welke poort of welke snelheid? De Pi probeert de bekende sets op de USB-poorten
+(niet de RNodes, en niet de PTT-poort van een SCU-17). Zet de set aan. Dit duurt tot anderhalve minuut; Direwolf is zolang even uit.</p>
+<div class="melding let">Zet vóór het zoeken <b>PTT via RTS/DTR in de set uit</b> (IC-9700: <i>USB SEND</i> = OFF), en zorg dat er een
+goede antenne of dummyload op de set zit. Anders kan de set kort gaan zenden als de Pi een poort opent.</div>
 <button type="submit" class="licht">Zoek mijn set</button></section></form>
 <script>function toonCat(){{var c=document.getElementById('ptt_methode').value==='CAT';
 document.getElementById('cat_deel').style.display=c?'':'none';document.getElementById('rts_deel').style.display=c?'none':'';}}toonCat();</script>
@@ -553,7 +555,7 @@ def verwerk_zoek(rol, roepnaam, herstart, verborgen):
     """Zoek mijn set: CAT-poorten vrijmaken, zoeken, uitslag tonen (nog niet opslaan). Geeft html."""
     r = instellingen()
     bezet = {r.get("rnode_433"), r.get("rnode_868")} - {""}
-    poorten = [(p, l) for p, l in seriele_poorten() if p not in bezet]
+    poorten = [(p, l) for p, l in seriele_poorten() if p not in bezet and rig.kandidaten(os.path.basename(p))]
     if not poorten:
         return "<div class='melding fout'>Geen USB-poorten gevonden om te proberen (de RNodes worden overgeslagen).</div>"
     # poorten vrijmaken: rigctld laten wachten en Direwolf zonder PTT starten

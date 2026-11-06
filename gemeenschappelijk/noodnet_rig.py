@@ -173,6 +173,8 @@ def status():
                 uit[sleutel] = float(v[-1])
             except ValueError:
                 pass
+    if uit.get("vermogen") is not None and not 0 <= uit["vermogen"] <= 1:
+        uit.pop("vermogen")                                  # bijv. FT-817/818: kan het vermogen niet uitlezen
     if uit.get("vermogen") is not None:                     # 0..1 -> watt (hamlib kent het maximum per set)
         ok, v = opdracht(f"\\power2mW {uit['vermogen']:.4f} {uit['frequentie']} {uit.get('mode') or 'FM'}")
         w = _waarde(v, "Power mW") if ok else None
@@ -186,7 +188,7 @@ def status():
 def watt_tekst(st):
     if st.get("watt"):
         return f"{st['watt']:g} W"
-    return "–" if st.get("vermogen") is None else f"{int(round(st['vermogen'] * 100))}%"
+    return "niet uit te lezen" if st.get("vermogen") is None else f"{int(round(st['vermogen'] * 100))}%"
 
 
 def s_meter(db):
@@ -295,6 +297,8 @@ def start_bewaker(lees_instellingen, schrijf_log=None, interval=60):
 def kandidaten(poortnaam):
     """Modellen om te proberen voor een USB-poort, op basis van de naam."""
     n = poortnaam.lower()
+    if "cp2105" in n and "if01" in n:
+        return []          # Yaesu SCU-17 / FT-991 poort B: dat is de PTT-poort (RTS = zenden). Nooit openen.
     for m, merk, naam, _ in MODELLEN:
         kern = naam.split()[0].lower()
         if kern in n or kern.replace("-", "") in n:
@@ -310,7 +314,8 @@ def probeer(model, poort, baud, timeout=4):
     """rigctl -m model -r poort -s baud f -> frequentie in Hz of None."""
     try:
         r = subprocess.run([RIGCTL, "-m", str(model), "-r", poort, "-s", str(baud),
-                            "-C", "timeout=500,retry=0", "f"], capture_output=True, text=True, timeout=timeout)
+                            "-C", "timeout=500,retry=0,rts_state=OFF,dtr_state=OFF", "f"],
+                           capture_output=True, text=True, timeout=timeout)
     except (OSError, subprocess.TimeoutExpired):
         return None
     if r.returncode != 0:

@@ -235,6 +235,14 @@ Instellingen in de set voor CAT (getest met de IC-9700):
 | SET > Connectors > CI-V > CI-V USB Port | **Unlink from [REMOTE]** |
 | SET > Connectors > CI-V > CI-V USB Baud Rate | Auto of 115200 |
 | Band | 2 m op de **MAIN**-band |
+
+Yaesu FT-817/818 met SCU-17: CAT gaat via **poort A** (Zoek mijn set vindt die); poort B (PTT) is
+dan niet meer nodig. Het vermogen kan de FT-817/818 niet via CAT instellen of doorgeven: stel het
+op de set zelf in en laat het veld *Zendvermogen* leeg.
+
+**Vóór Zoek mijn set:** zet PTT via RTS/DTR in de set uit (IC-9700: *USB SEND* = OFF) en zorg voor
+een goede antenne of dummyload. Opent de Pi een poort waarop PTT via RTS staat, dan kan de set kort
+gaan zenden.
  Staat je set er niet bij, gebruik dan
 RTS/DTR (bijv. met een Digirig) en zet de frequentie met de hand; de Pi toont welke.
 
