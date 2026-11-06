@@ -223,7 +223,19 @@ tikt **Exporteren**; de andere steunpunten en de eindposten **laden dat bestand 
 - schakelt de zender via CAT (geen RTS/DTR of menu *USB SEND* nodig);
 - zet desgewenst het zendvermogen, in watt (blijf binnen je vergunning);
 - zet de set **terug** als iemand eraan draait (binnen een minuut; nooit tijdens het zenden).
-Weet je model, poort of snelheid niet: **Zoek mijn set**. Staat je set er niet bij, gebruik dan
+Weet je model, poort of snelheid niet: **Zoek mijn set**.
+
+Instellingen in de set voor CAT (getest met de IC-9700):
+
+| IC-9700-menu | Instelling |
+|---|---|
+| SET > Connectors > USB SEND | **OFF** (anders kan de set gaan zenden zodra de Pi de poort opent) |
+| SET > Connectors > MOD Input > DATA MOD | **USB** |
+| SET > Connectors > CI-V > CI-V Address | standaard (A2h) |
+| SET > Connectors > CI-V > CI-V USB Port | **Unlink from [REMOTE]** |
+| SET > Connectors > CI-V > CI-V USB Baud Rate | Auto of 115200 |
+| Band | 2 m op de **MAIN**-band |
+ Staat je set er niet bij, gebruik dan
 RTS/DTR (bijv. met een Digirig) en zet de frequentie met de hand; de Pi toont welke.
 
 ## Dienstdoende operator en aflossen
