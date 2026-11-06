@@ -184,6 +184,9 @@ bekijken op een andere pc of telefoon via de hotspot: **http://10.42.0.1:1880/ui
 
 ## Stap 6 - Telefoons van vrijwilligers
 
+Geef vrijwilligers de **handleiding voor vrijwilligers** mee ([VRIJWILLIGER.md](VRIJWILLIGER.md),
+of afgedrukt: *Noodnet-vrijwilliger.pdf*, met zakkaart).
+
 Per telefoon, in de buurt van het steunpunt:
 
 1. Verbind met de wifi *Noodnet-&lt;roepnaam van het steunpunt&gt;* (wachtwoord van de hotspot).
