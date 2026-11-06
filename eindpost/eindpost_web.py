@@ -623,8 +623,12 @@ def _netwerk_import(self):
         if ff:
             return self._terug("/instellingen", "fout:" + " ".join(ff))
         nieuw["frequentie_2m"] = hz
-        meld.append(f"2 m-frequentie {radio.rig.mhz(hz)}.")
+        oud_hz = inst.get("frequentie_2m") or radio.rig.STANDAARD_FREQ
+        meld.append(f"2 m-frequentie {radio.rig.mhz(hz)}" + (f" (was {radio.rig.mhz(oud_hz)})." if oud_hz != hz else " (ongewijzigd)."))
         let += ww
+    else:
+        let.append("Er staat geen 2 m-frequentie in dit bestand (gemaakt met een oudere versie?). De frequentie van deze post "
+                   "is niet gewijzigd. Exporteer het bestand opnieuw op het steunpunt.")
     rn = (inst.get("roepnaam") or "").upper()
     mijn = [k for k, d in net["disciplines"].items() if isinstance(d, dict) and rn and rn in [str(x).upper() for x in d.get("eindposten") or []]]
     if mijn:

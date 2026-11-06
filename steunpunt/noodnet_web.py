@@ -1098,7 +1098,8 @@ class Handler(BaseHTTPRequestHandler):
         elif m.startswith("ok:"):
             meld = meldingen(ok=m[3:])
         if pad == "netwerk.json":
-            net_nu = netwerk()
+            net_nu = dict(netwerk())
+            net_nu.setdefault("frequentie_2m", radio.rig.STANDAARD_FREQ)   # ook als Netwerk nog nooit is opgeslagen
             data = json.dumps(net_nu, ensure_ascii=False, indent=2).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
