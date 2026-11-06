@@ -45,6 +45,10 @@ Voor **vrijwilligers** (RNode en app, aanmelden en melden) is er een aparte, kor
 [docs/VRIJWILLIGER.md](docs/VRIJWILLIGER.md), ook als PDF met zakkaart:
 [docs/Noodnet-vrijwilliger.pdf](docs/Noodnet-vrijwilliger.pdf).
 
+Voor de **beheerder** van een steunpunt (opdrachten via de app, beheerpagina, begin en einde van een inzet)
+is er een korte handleiding: [docs/BEHEERDER.md](docs/BEHEERDER.md), ook als PDF met zakkaart:
+[docs/Noodnet-beheerder.pdf](docs/Noodnet-beheerder.pdf).
+
 ## Testen
 
 Zie [docs/TESTPLAN.md](docs/TESTPLAN.md): scenario's voor aanmelden, beheer en melden.
@@ -58,7 +62,7 @@ Zie [docs/TESTPLAN.md](docs/TESTPLAN.md): scenario's voor aanmelden, beheer en m
 | `steunpunt/` | Brug LoRa → 2 m, beheerpagina, aanmeldkaart |
 | `eindpost/` | Ontvanger 2 m → MQTT + logboek, beheerpagina, Node-RED M/ETHANE-scherm |
 | `app/` | Patch op Sideband 2.1.0 (M/ETHANE, kaart, QR-scanner, baken) en bouwinstructie |
-| `docs/` | Procedure en vrijwilligershandleiding (ook als PDF), testplan; `docs/pdf/maak_pdf.py` maakt de PDF's opnieuw |
+| `docs/` | Procedure, handleidingen voor vrijwilliger en beheerder (ook als PDF), testplan; `docs/pdf/maak_pdf.py` maakt de PDF's opnieuw |
 
 De app (APK) staat bij de [Releases](../../releases) en wordt door de
 installatie op elke Pi gezet, zodat vrijwilligers hem ter plekke via de hotspot

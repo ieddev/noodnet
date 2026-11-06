@@ -150,7 +150,8 @@ ook zonder stroomnet en zonder internet. Je thuis-wifi gebruikt de Pi niet meer.
 5. Tabblad **Status** → *Wachten op goedkeuring* → **Goedkeuren als beheerder**.
 
 Daarna krijg jij de aanmeldingen van vrijwilligers en kun je vanaf je telefoon
-`LIJST`, `JA <nr>`, `NEE <nr>` en `CODE <nieuw>` sturen.
+`LIJST`, `JA <nr>`, `NEE <nr>` en `CODE <nieuw>` sturen. Alle opdrachten en een zakkaart staan in de korte
+[handleiding voor de beheerder](BEHEERDER.md) (*Noodnet-beheerder.pdf*).
 
 **Kaart afdrukken:** tabblad Kaart → *Kaart openen om af te drukken* (A5/A6,
 lamineren). Ter plekke zonder printer: **QR-code groot tonen** en van je telefoonscherm laten scannen. Staat er IFAC op, dan is de kaart **VERTROUWELIJK**.
