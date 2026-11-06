@@ -105,4 +105,4 @@ nagebouwd: het gebruikt alleen hun openbare programmeerinterface, of
 (bij de app) een kleine, herkenbare patch op de echte broncode.
 
 Vragen of opmerkingen over de licentie? Neem contact op via
-[noodnet.ied.nl/contact](http://noodnet.ied.nl/contact).
+[noodnet.ied.nl/contact](http://noodnet.ied.nl).
