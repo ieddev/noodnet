@@ -576,11 +576,16 @@ def controleer_instellingen(f, oud):
     return inst, fouten
 
 
-def netwerk_naar_formulier(net):
+def netwerk_naar_formulier(net, oud=None):
     """Netwerkbestand -> dezelfde velden als het formulier op tabblad Netwerk (zodat dezelfde controles gelden)."""
     f = {"gemeente": str(net.get("gemeente") or ""),
          "frequentie_2m": f"{int(net.get('frequentie_2m') or radio.rig.STANDAARD_FREQ) / 1e6:.4f}",
          "ifac_naam": str(net.get("ifac_netwerknaam") or ""), "ifac_ww": str(net.get("ifac_wachtwoord") or "")}
+    if not any(k in net for k in beheer.IFAC_SLEUTELS):         # bestand zonder IFAC: eigen IFAC houden
+        oud = oud or {}
+        f["ifac_naam"], f["ifac_ww"] = str(oud.get("ifac_netwerknaam") or ""), str(oud.get("ifac_wachtwoord") or "")
+    if isinstance(net.get("versie"), dict):
+        f["_versie"] = json.dumps(net["versie"])
     for i, (k, d) in enumerate(list((net.get("disciplines") or {}).items())[:12]):
         d = d if isinstance(d, dict) else {}
         f[f"d_sleutel_{i}"] = str(k)
@@ -812,7 +817,8 @@ def html_status(inst, net):
 <div class="cijfer"><b>{wachtrij}</b><span>in wachtrij 2 m</span></div></div>
 <label>Adres van dit steunpunt</label><div class="mono">{e(adres) or 'nog onbekend (start de brug eerst)'}</div>
 <label>Aanmeldcode</label><div>{e(inst.get('aanmeldcode') or '— niet ingesteld —')}</div>
-<label>Tijd van de Pi</label><div>{e(klok)} <small style="color:var(--zacht)">({e(klokbron)})</small></div></section>
+<label>Tijd van de Pi</label><div>{e(klok)} <small style="color:var(--zacht)">({e(klokbron)})</small></div>
+<label>Netwerkinstellingen</label><div>{e(beheer.versie_tekst(net))} · 2 m {radio.rig.mhz(net.get('frequentie_2m') or radio.rig.STANDAARD_FREQ)}</div></section>
 {open_html}
 {radio.html_hotspot()}
 <section><h2>Log van de brug</h2><p class="uitleg">De laatste regels; nieuwste onderaan. Ververs de pagina voor nieuwe regels.</p>
@@ -938,7 +944,7 @@ Hoe ruimer, hoe minder zendtijd op LoRa en 2 m.</p>
 <div><label>Wachtwoord</label><input type="text" name="ifac_ww" value="{ifw}" autocomplete="off"></div></div></details></section>
 {'' if os.path.exists(radio.RADIO_FILE) else '<label class="vink"><input type="checkbox" name="pas_rnodes_aan" checked>Ook de RNodes van deze Pi gelijkzetten (frequentie, bandbreedte, SF, CR, IFAC; zendvermogen blijft)</label>'}
 <div class="balk"><button type="submit">Opslaan en herstarten</button></div></form>
-{beheer.html_netwerk_delen(verborgen(), "steunpunt") if form is None else ""}"""
+{beheer.html_netwerk_delen(verborgen(), "steunpunt", net) if form is None else ""}"""
 
 
 def html_onbekend_en_handmatig(inst):
@@ -1098,12 +1104,18 @@ class Handler(BaseHTTPRequestHandler):
         elif m.startswith("ok:"):
             meld = meldingen(ok=m[3:])
         if pad == "netwerk.json":
+            zonder = "zonder_ifac=1" in (urlparse(self.path).query or "")
             net_nu = dict(netwerk())
             net_nu.setdefault("frequentie_2m", radio.rig.STANDAARD_FREQ)   # ook als Netwerk nog nooit is opgeslagen
+            if not isinstance(net_nu.get("versie"), dict):
+                net_nu["versie"] = beheer.nieuwe_versie(beheer.operator().get("roepnaam") or inst.get("roepnaam") or "")
+                with SCHRIJF_LOCK:
+                    schrijf_json(NET_FILE, dict(netwerk(), versie=net_nu["versie"], frequentie_2m=net_nu["frequentie_2m"]))
+            net_nu = beheer.netwerk_export(net_nu, zonder)
             data = json.dumps(net_nu, ensure_ascii=False, indent=2).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Content-Disposition", f'attachment; filename="{beheer.netwerk_export_naam(net_nu)}"')
+            self.send_header("Content-Disposition", f'attachment; filename="{beheer.netwerk_export_naam(net_nu, zonder)}"')
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
             self.wfile.write(data)
@@ -1160,13 +1172,19 @@ class Handler(BaseHTTPRequestHandler):
                 return self._terug("/netwerk", "fout:Formulier verlopen, probeer het opnieuw.")
             if fout_imp:
                 return self._terug("/netwerk", "fout:" + fout_imp)
-            f = dict(netwerk_naar_formulier(ingeladen), csrf=csrf)
+            f = dict(netwerk_naar_formulier(ingeladen, netwerk()), csrf=csrf)
             pad = "netwerk"
         else:
             f = self._formulier()
             pad = urlparse(self.path).path.strip("/")
         if not hmac.compare_digest(f.get("csrf", ""), CSRF):
             return self._terug("/status", "fout:Formulier verlopen, probeer het opnieuw.")
+        if pad == "netwerk_ophalen":
+            ingeladen, fout_imp = beheer.haal_netwerk(f.get("url", ""))
+            if fout_imp:
+                return self._terug("/netwerk", "fout:" + fout_imp)
+            f = dict(netwerk_naar_formulier(ingeladen, netwerk()), csrf=f["csrf"])
+            pad = "netwerk"
         inst, net = instellingen(), netwerk()
 
         if pad == "steunpunt":
@@ -1190,6 +1208,13 @@ class Handler(BaseHTTPRequestHandler):
             nieuw, fouten, let = controleer_netwerk(f, net)
             if fouten:
                 return self._stuur(pagina("netwerk", html_netwerk(net, f), inst, meldingen(fouten=fouten, let=let)))
+            nieuw.pop("ifac_weggelaten", None)
+            try:
+                nieuw["versie"] = json.loads(f["_versie"]) if f.get("_versie") else None
+            except ValueError:
+                nieuw["versie"] = None
+            if not isinstance(nieuw.get("versie"), dict):            # zelf gewijzigd: nieuwe versie
+                nieuw["versie"] = beheer.nieuwe_versie(beheer.operator().get("roepnaam") or inst.get("roepnaam") or "")
             with SCHRIJF_LOCK:
                 schrijf_json(NET_FILE, nieuw)
             radio_info, fouten_h = [], []

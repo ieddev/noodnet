@@ -281,6 +281,7 @@ def html_status(inst):
 <div class="cijfer"><b>{mth - mth_mij}</b><span>M/ETHANE meegelezen</span></div>
 <div class="cijfer"><b>{msg}</b><span>berichten</span></div></div>
 <label>Deze post</label><div>{e(inst.get('roepnaam') or '— roepnaam niet ingesteld —')} &middot; {e(disc)}</div>
+<label>Netwerkinstellingen</label><div>{e(beheer.versie_tekst(inst.get('netwerk_versie') or {}, inst.get('gemeente', '')))} · 2 m {radio.rig.mhz(inst.get('frequentie_2m') or radio.rig.STANDAARD_FREQ)}</div>
 <label>Tijd van de Pi</label><div>{e(klok)} <small style="color:var(--zacht)">({e(klokbron)})</small></div></section>
 <section><h2>Steunpunten</h2>{sp_html}</section>
 {radio.html_hotspot()}
@@ -540,6 +541,11 @@ class Handler(BaseHTTPRequestHandler):
             return self._terug("/status", "fout:Formulier verlopen, probeer het opnieuw.")
         pad = urlparse(self.path).path.strip("/")
         inst = instellingen()
+        if pad == "netwerk_ophalen":
+            net, fout = beheer.haal_netwerk(f.get("url", ""))
+            if fout:
+                return self._terug("/instellingen", "fout:" + fout)
+            return self._netwerk_toepassen(net)
         if pad == "instellingen":
             nieuw, fouten = controleer(f, inst)
             if fouten:
@@ -610,12 +616,17 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def _netwerk_import(self):
-    """Netwerkbestand van de gemeente: 2 m-frequentie en de disciplines waar deze post bij staat overnemen."""
+    """Upload van het netwerkbestand."""
     net, csrf, fout = beheer.lees_netwerkbestand(self)
     if not hmac.compare_digest(csrf, CSRF):
         return self._terug("/instellingen", "fout:Formulier verlopen, probeer het opnieuw.")
     if fout:
         return self._terug("/instellingen", "fout:" + fout)
+    return self._netwerk_toepassen(net)
+
+
+def _netwerk_toepassen(self, net):
+    """Netwerkbestand van de gemeente: 2 m-frequentie en de disciplines waar deze post bij staat overnemen."""
     inst = instellingen()
     nieuw, meld, let = dict(inst), [], []
     if net.get("frequentie_2m"):
@@ -644,6 +655,8 @@ def _netwerk_import(self):
         let.append("Vul eerst de roepnaam van deze post in; dan kunnen ook de disciplines worden overgenomen.")
     if net.get("gemeente"):
         meld.insert(0, f"Netwerk van {net['gemeente']} ingeladen.")
+    nieuw["gemeente"] = net.get("gemeente", "")
+    nieuw["netwerk_versie"] = net.get("versie") if isinstance(net.get("versie"), dict) else None
     with SCHRIJF_LOCK:
         schrijf_json(INST_FILE, nieuw)
     herstart("noodnet-eindpost")
@@ -657,6 +670,7 @@ def _netwerk_import(self):
 
 
 Handler._netwerk_import = _netwerk_import
+Handler._netwerk_toepassen = _netwerk_toepassen
 
 
 def main():

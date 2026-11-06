@@ -109,6 +109,9 @@ via de hotspot.
 | H8 | Aan de VFO draaien, 1 minuut wachten | Set staat weer op de gemeentefrequentie; bij *Laatste acties* "teruggezet" | ☐ |
 | H9 | Zendvermogen 25 (watt) invullen en opslaan | Set op 25 W (op de set en bij *Vermogen*); opslaan zonder foutmelding | ☐ |
 | H10 | Pi herstarten met CAT | Set na het opstarten vanzelf op frequentie en mode | ☐ |
+| H12 | Netwerk met IFAC: **Exporteren zonder IFAC**, op een ander steunpunt inladen | Geen IFAC in het bestand; het andere steunpunt houdt zijn eigen IFAC | ☐ |
+| H13 | Bestand op GitHub/website zetten; op de eindpost **Ophalen** met de link | Frequentie en disciplines overgenomen; daarna knop *Opnieuw ophalen* | ☐ |
+| H14 | Status op alle Pi's | Overal dezelfde *Netwerkinstellingen: … versie … door …* | ☐ |
 | H11 | FT-818 + SCU-17 (steunpunt): Zoek mijn set | FT-818 gevonden; PTT en frequentie werken (of: terug naar RTS als het niet lukt) | ☐ |
 
 ## Notities

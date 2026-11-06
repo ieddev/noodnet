@@ -214,8 +214,22 @@ wordt meteen op de downloadpagina gezet.
 **Frequentie per gemeente.** Elke gemeente kiest een eigen 2 m-frequentie, in overleg met de
 buurgemeenten, zodat jullie elkaar niet storen (binnen het segment voor digitale modes van het
 bandplan; niet 144,800, dat is APRS). Die staat op het tabblad **Netwerk** van elk steunpunt en
-op **Instellingen** van elke eindpost. Makkelijkst: één persoon vult het tabblad Netwerk in en
-tikt **Exporteren**; de andere steunpunten en de eindposten **laden dat bestand in**.
+op **Instellingen** van elke eindpost.
+
+**Netwerkbestand (supervisor).** Eén persoon, de supervisor, stelt in overleg met de gemeente het
+tabblad Netwerk in (frequentie, disciplines en eindposten, LoRa) en tikt **Exporteren**. Dat bestand
+gaat naar iedereen die meedoet:
+- **rondsturen** (mail, app, USB-stick) → op elk steunpunt (tabblad Netwerk) en elke eindpost
+  (tabblad Instellingen) **Inladen**; of
+- **op GitHub of de website zetten** → daar **Ophalen** met de link. De Pi onthoudt de link: vóór
+  een oefening is één tik op **Opnieuw ophalen** genoeg (de Pi heeft dan wel internet nodig).
+
+Elk bestand heeft een **versie** (datum, tijd, door wie). Op het tabblad **Status** van elke Pi staat
+welke versie hij heeft: controleer bij het begin van een oefening of iedereen dezelfde heeft.
+
+Staat er **IFAC** in, dan zijn er twee knoppen: **Exporteren zonder IFAC** (mag openbaar, bijv. op
+GitHub; wie hem inlaadt houdt zijn eigen IFAC) en **Exporteren compleet** (vertrouwelijk). Geef het
+IFAC-wachtwoord alleen via een vertrouwelijk kanaal door.
 
 **CAT (hamlib).** Staat je set in de lijst op het tabblad Radio, kies dan *CAT*. De Pi:
 - zet de set op de frequentie van de gemeente, in de **datamode** (FM-D / PKT), zodat het geluid

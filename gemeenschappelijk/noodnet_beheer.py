@@ -402,6 +402,21 @@ verantwoordelijk is; elke wissel wordt met tijd vastgelegd.</p></section>"""
 # Netwerkinstellingen van de gemeente delen (export/import)
 # ---------------------------------------------------------------------------
 
+NET_BRON_FILE = os.path.join(MAP, "netwerk_bron.json")     # onthouden link voor 'Opnieuw ophalen'
+IFAC_SLEUTELS = ("ifac_netwerknaam", "ifac_wachtwoord")
+
+
+def lees_netwerk_bytes(data):
+    """Bytes -> (netwerk-dict, fout)."""
+    try:
+        net = json.loads(data.decode("utf-8-sig"))
+    except (ValueError, UnicodeDecodeError):
+        return None, "Dit is geen netwerkbestand van Noodnet (geen geldige JSON)."
+    if not isinstance(net, dict) or not isinstance(net.get("disciplines"), dict):
+        return None, "Dit is geen netwerkbestand van Noodnet (geen disciplines)."
+    return net, ""
+
+
 def lees_netwerkbestand(handler, max_bytes=1_000_000):
     """Upload van een netwerkbestand (JSON). Geeft (netwerk-dict, csrf, fout)."""
     lengte = int(handler.headers.get("Content-Length", 0) or 0)
@@ -410,31 +425,109 @@ def lees_netwerkbestand(handler, max_bytes=1_000_000):
     data, velden = lees_upload(handler.headers.get("Content-Type", ""), handler.rfile.read(lengte))
     if not data:
         return None, velden.get("csrf", ""), "Geen bestand gekozen."
+    net, fout = lees_netwerk_bytes(data)
+    return net, velden.get("csrf", ""), fout
+
+
+def haal_netwerk(url, max_bytes=1_000_000):
+    """Netwerkbestand ophalen van internet (GitHub, website). Geeft (netwerk-dict, fout)."""
+    import urllib.request
+    url = (url or "").strip()
+    if not url.lower().startswith(("https://", "http://")):
+        return None, "Vul een internetadres in dat begint met https:// (of http://)."
+    if "github.com/" in url and "/blob/" in url:                 # gewone GitHub-pagina -> ruw bestand
+        url = url.replace("github.com/", "raw.githubusercontent.com/", 1).replace("/blob/", "/", 1)
     try:
-        net = json.loads(data.decode("utf-8-sig"))
-    except (ValueError, UnicodeDecodeError):
-        return None, velden.get("csrf", ""), "Dit is geen netwerkbestand van Noodnet (geen geldige JSON)."
-    if not isinstance(net, dict) or not isinstance(net.get("disciplines"), dict):
-        return None, velden.get("csrf", ""), "Dit is geen netwerkbestand van Noodnet (geen disciplines)."
-    return net, velden.get("csrf", ""), ""
+        req = urllib.request.Request(url, headers={"User-Agent": "Noodnet"})
+        with urllib.request.urlopen(req, timeout=15) as r:
+            data = r.read(max_bytes + 1)
+    except Exception as fout:
+        return None, f"Ophalen lukte niet ({fout}). Heeft deze Pi internet (netwerkkabel of thuis-wifi)?"
+    if len(data) > max_bytes:
+        return None, "Bestand is te groot voor een netwerkbestand."
+    net, fout = lees_netwerk_bytes(data)
+    if not fout:
+        try:
+            with open(NET_BRON_FILE, "w", encoding="utf-8") as f:
+                json.dump({"url": url, "opgehaald": time.strftime("%Y-%m-%d %H:%M")}, f)
+        except OSError:
+            pass
+    return net, fout
 
 
-def netwerk_export_naam(net):
-    g = "".join(c for c in (net.get("gemeente") or "gemeente").lower().replace(" ", "-") if c.isalnum() or c == "-")
-    return f"noodnet-netwerk-{g or 'gemeente'}-{time.strftime('%Y%m%d')}.json"
+def netwerk_bron():
+    try:
+        with open(NET_BRON_FILE, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
 
 
-def html_netwerk_delen(verborgen, rol):
-    if rol == "steunpunt":
-        uitleg = ("Eén persoon maakt de instellingen van de gemeente (frequentie, disciplines en eindposten, LoRa, IFAC) en "
-                  "deelt het bestand. Op de andere steunpunten: <b>Inladen</b>; op de eindposten: tabblad Instellingen.")
-        export = '<a class="knop" href="/netwerk.json">Exporteren</a>'
+def nieuwe_versie(door=""):
+    return {"datum": time.strftime("%Y-%m-%d %H:%M"), "door": door}
+
+
+def versie_tekst(net_of_versie, gemeente=""):
+    v = net_of_versie.get("versie") if "versie" in net_of_versie else net_of_versie
+    if not isinstance(v, dict) or not v.get("datum"):
+        return "geen versie (nog nooit gedeeld of opgeslagen)"
+    g = gemeente or (net_of_versie.get("gemeente") if isinstance(net_of_versie, dict) else "") or ""
+    try:
+        d = time.strftime("%d-%m-%Y %H:%M", time.strptime(v["datum"], "%Y-%m-%d %H:%M"))
+    except ValueError:
+        d = v["datum"]
+    return " · ".join(x for x in (g, "versie " + d, ("door " + v["door"]) if v.get("door") else "") if x)
+
+
+def netwerk_export(net, zonder_ifac=False):
+    uit = dict(net)
+    if zonder_ifac:
+        for k in IFAC_SLEUTELS:
+            uit.pop(k, None)
+        uit["ifac_weggelaten"] = True
     else:
-        uitleg = ("Heb je het netwerkbestand van de gemeente (gemaakt op een steunpunt, tabblad Netwerk)? Laad het hier in: "
+        uit.pop("ifac_weggelaten", None)
+    return uit
+
+
+def netwerk_export_naam(net, zonder_ifac=False):
+    g = "".join(c for c in (net.get("gemeente") or "gemeente").lower().replace(" ", "-") if c.isalnum() or c == "-")
+    return f"noodnet-netwerk-{g or 'gemeente'}-{time.strftime('%Y%m%d')}{'-zonder-ifac' if zonder_ifac else ''}.json"
+
+
+def html_netwerk_delen(verborgen, rol, net=None):
+    net = net or {}
+    heeft_ifac = bool(net.get("ifac_wachtwoord") or net.get("ifac_netwerknaam"))
+    if rol == "steunpunt":
+        uitleg = ("Eén persoon (de supervisor) maakt de instellingen van de gemeente (frequentie, disciplines en eindposten, "
+                  "LoRa) en deelt het bestand: rondsturen, of op GitHub of de website zetten. Op de andere steunpunten: "
+                  "<b>Inladen</b> of <b>Ophalen</b>; op de eindposten hetzelfde op het tabblad Instellingen.")
+        if heeft_ifac:
+            export = ('<a class="knop" href="/netwerk.json?zonder_ifac=1">Exporteren zonder IFAC (om te delen)</a>'
+                      '<a class="knop" href="/netwerk.json" style="background:var(--rood)">Exporteren compleet (vertrouwelijk)</a>')
+            ifac = ("<p class='uitleg'>Er staat IFAC in. De versie <b>zonder IFAC</b> kun je openbaar delen; wie hem inlaadt, "
+                    "houdt zijn eigen IFAC. Geef het IFAC-wachtwoord alleen via een vertrouwelijk kanaal door.</p>")
+        else:
+            export, ifac = '<a class="knop" href="/netwerk.json">Exporteren</a>', ""
+        versie = f"<p class='uitleg'>Deze Pi: <b>{html.escape(versie_tekst(net))}</b></p>"
+    else:
+        uitleg = ("Heb je het netwerkbestand van de gemeente (gemaakt op een steunpunt)? Laad het hier in of haal het op: "
                   "de 2 m-frequentie en de disciplines waarbij deze post staat, worden overgenomen.")
-        export = ""
-    return f"""<section><h2>Netwerkbestand van de gemeente</h2><p class="uitleg">{uitleg}
-Staat er IFAC in, dan is het bestand <b>vertrouwelijk</b>: niet mailen naar onbekenden.</p>
+        export, ifac, versie = "", "", ""
+    bron = netwerk_bron()
+    url = html.escape(bron.get("url", ""))
+    bevestig = "return confirm('De netwerkinstellingen van deze Pi worden vervangen door die uit het bestand. Doorgaan?')"
+    opnieuw = (f"<p class='uitleg' style='margin-top:6px'>Laatst opgehaald {html.escape(bron.get('opgehaald', ''))} van "
+               f"<span class='mono'>{url}</span></p>") if url else ""
+    return f"""<section><h2>Netwerkbestand van de gemeente</h2><p class="uitleg">{uitleg}</p>{versie}{ifac}
+<div class="balk" style="margin-top:0">{export}</div>
+<h3 style="margin:16px 0 4px;font-size:16px">Inladen (bestand)</h3>
 <form method="post" action="/netwerk_import" enctype="multipart/form-data">{verborgen}
 <input type="file" name="bestand" accept=".json,application/json" required style="margin:4px 0">
-<div class="balk">{export}<button type="submit" class="licht" onclick="return confirm('De netwerkinstellingen van deze Pi worden vervangen door die uit het bestand. Doorgaan?')">Inladen</button></div></form></section>"""
+<div class="balk" style="margin-top:6px"><button type="submit" class="licht" onclick="{bevestig}">Inladen</button></div></form>
+<h3 style="margin:16px 0 4px;font-size:16px">Ophalen (internet)</h3>
+<form method="post" action="/netwerk_ophalen">{verborgen}
+<input type="text" name="url" value="{url}" placeholder="https://github.com/…/deventer.json of https://noodnet.ied.nl/…" autocomplete="off">
+<div class="balk" style="margin-top:6px"><button type="submit" class="licht" onclick="{bevestig}">{'Opnieuw ophalen' if url else 'Ophalen'}</button></div></form>
+{opnieuw}<p class="uitleg" style="margin-top:6px">Ophalen werkt alleen als deze Pi internet heeft (netwerkkabel of thuis-wifi),
+dus vóór een oefening of inzet.</p></section>"""
