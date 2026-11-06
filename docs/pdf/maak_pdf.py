@@ -32,7 +32,7 @@ DOCUMENTEN = {
         sub="De procedure voor zendamateurs: installeren, instellen, testen en problemen oplossen. Leg dit naast je set.",
         voorblad="noodnet-overzicht.svg", qr2="Nieuwste procedure",
         # hoofdstukken die op een nieuwe bladzijde beginnen
-        nieuwe_pagina={"volgorde-bij-een-complete-nieuwe-opzet", "stap-4-instellen-via-de-beheerpagina",
+        nieuwe_pagina={"volgorde-bij-een-complete-nieuwe-opzet",
                        "problemen-oplossen"},
         # afbeeldingen onder een kopje
         schema={"noodsteunpunt": ("noodnet-noodsteunpunt.svg", "Opbouw van een Noodsteunpunt"),
@@ -106,6 +106,10 @@ def inhoud(md_tekst, merktekens):
     # de verwijzing naar de PDF zelf hoort niet in de PDF
     html = re.sub(r"<p><strong>Afdrukken\?</strong>.*?</p>", "", html, flags=re.S)
     html = doortellen(html)
+    # korte tabellen niet over twee pagina's verdelen; lange wel
+    html = re.sub(r"<table>(.*?)</table>",
+                  lambda m: ('<table class="heel">' if m.group(1).count("<tr") <= 9 else "<table>") + m.group(1) + "</table>",
+                  html, flags=re.S)
     return html, hoofdstukken
 
 
@@ -205,7 +209,7 @@ li { margin: 2pt 0; }
 table { border-collapse: collapse; width: 100%; margin: 6pt 0 10pt; font-size: 9pt; }
 thead { display: table-header-group; }
 tr { break-inside: avoid; }
-table { break-inside: avoid; }
+table.heel { break-inside: avoid; }
 th, td { border: 0.6pt solid #c9d1db; padding: 4pt 6pt; vertical-align: top; text-align: left; }
 thead th { background: #30363f; color: #fff; font-weight: 600; }
 tbody tr:nth-child(even) td { background: #f4f6f8; }
