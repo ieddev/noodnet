@@ -6,6 +6,9 @@ Reken op ongeveer een uur, waarvan de meeste tijd wachten.
 
 Achtergrond en visie op het noodnet: [noodnet.ied.nl](http://noodnet.ied.nl).
 
+**Afdrukken?** Deze procedure staat ook als PDF-naslagwerk (A4) in
+[Noodnet-procedure.pdf](Noodnet-procedure.pdf), met achterin een invulblad voor je eigen station.
+
 | | Noodsteunpunt | Eindpost |
 |---|---|---|
 | Doel | Doorgeefluik: vrijwilligers (LoRa) naar 2 m | Ontvangt meldingen bij een hulpdienst |
@@ -257,8 +260,9 @@ op de set zelf in en laat het veld *Zendvermogen* leeg.
 **Vóór Zoek mijn set:** zet PTT via RTS/DTR in de set uit (IC-9700: *USB SEND* = OFF) en zorg voor
 een goede antenne of dummyload. Opent de Pi een poort waarop PTT via RTS staat, dan kan de set kort
 gaan zenden.
- Staat je set er niet bij, gebruik dan
-RTS/DTR (bijv. met een Digirig) en zet de frequentie met de hand; de Pi toont welke.
+
+Staat je set er niet bij, gebruik dan RTS/DTR (bijv. met een Digirig) en zet de frequentie met de
+hand; de Pi toont welke.
 
 ## Dienstdoende operator en aflossen
 

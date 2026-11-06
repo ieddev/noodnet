@@ -38,7 +38,8 @@ bash <(curl -sL https://raw.githubusercontent.com/ieddev/noodnet/main/installeer
 
 Bijwerken: `noodnet-bijwerken` (instellingen blijven bewaard).
 
-De volledige procedure staat in [docs/PROCEDURE.md](docs/PROCEDURE.md).
+De volledige procedure staat in [docs/PROCEDURE.md](docs/PROCEDURE.md), en om af te drukken
+als PDF: [docs/Noodnet-procedure.pdf](docs/Noodnet-procedure.pdf).
 
 ## Testen
 
@@ -53,7 +54,7 @@ Zie [docs/TESTPLAN.md](docs/TESTPLAN.md): scenario's voor aanmelden, beheer en m
 | `steunpunt/` | Brug LoRa → 2 m, beheerpagina, aanmeldkaart |
 | `eindpost/` | Ontvanger 2 m → MQTT + logboek, beheerpagina, Node-RED M/ETHANE-scherm |
 | `app/` | Patch op Sideband 2.1.0 (M/ETHANE, kaart, QR-scanner, baken) en bouwinstructie |
-| `docs/` | Procedure en testplan |
+| `docs/` | Procedure (ook als PDF), testplan; `docs/pdf/maak_pdf.py` maakt de PDF opnieuw |
 
 De app (APK) staat bij de [Releases](../../releases) en wordt door de
 installatie op elke Pi gezet, zodat vrijwilligers hem ter plekke via de hotspot

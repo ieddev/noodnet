@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 660" width="1200" height="660" role="img" aria-label="Overzicht van Noodnet"><title>Overzicht van Noodnet</title><defs>
+<style>
+ text{font-family:'Segoe UI',Helvetica,Arial,sans-serif;fill:#1d2530}
+ .t{font-size:15px} .s{font-size:13px;fill:#5b6573} .k{font-size:18px;font-weight:700}
+ .h{font-size:24px;font-weight:700} .w{fill:#fff} .m{font-family:Consolas,Menlo,monospace;font-size:13px}
+ .lbl{font-size:13px;font-weight:600}
+</style>
+<marker id="pijl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+ <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker>
+
+<!-- Transceiver 200x92 -->
+<symbol id="set" viewBox="0 0 200 92" width="200" height="92">
+ <rect x="1" y="1" width="198" height="90" rx="9" fill="#2b313a" stroke="#14181d" stroke-width="2"/>
+ <rect x="14" y="16" width="96" height="34" rx="4" fill="#9fd8b0"/>
+ <text x="62" y="40" text-anchor="middle" style="font-family:Consolas,Menlo,monospace;font-size:17px;font-weight:700;fill:#13351f">144.925</text>
+ <circle cx="158" cy="44" r="24" fill="#3c444f" stroke="#59636f" stroke-width="3"/>
+ <circle cx="158" cy="44" r="7" fill="#59636f"/>
+ <rect x="14" y="62" width="18" height="10" rx="2" fill="#59636f"/><rect x="38" y="62" width="18" height="10" rx="2" fill="#59636f"/>
+ <rect x="62" y="62" width="18" height="10" rx="2" fill="#59636f"/><rect x="86" y="62" width="18" height="10" rx="2" fill="#59636f"/>
+</symbol>
+
+<!-- Raspberry Pi (generieke printplaat) 170x112 -->
+<symbol id="pi" viewBox="0 0 170 112" width="170" height="112">
+ <rect x="1" y="1" width="168" height="110" rx="8" fill="#2f7a46" stroke="#1d5530" stroke-width="2"/>
+ <g fill="#e8c95a"><circle cx="18.0" cy="10" r="2"/><circle cx="25.6" cy="10" r="2"/><circle cx="33.2" cy="10" r="2"/><circle cx="40.8" cy="10" r="2"/><circle cx="48.4" cy="10" r="2"/><circle cx="56.0" cy="10" r="2"/><circle cx="63.599999999999994" cy="10" r="2"/><circle cx="71.19999999999999" cy="10" r="2"/><circle cx="78.8" cy="10" r="2"/><circle cx="86.39999999999999" cy="10" r="2"/><circle cx="94.0" cy="10" r="2"/><circle cx="101.6" cy="10" r="2"/><circle cx="109.19999999999999" cy="10" r="2"/><circle cx="116.8" cy="10" r="2"/><circle cx="124.39999999999999" cy="10" r="2"/><circle cx="132.0" cy="10" r="2"/><circle cx="139.6" cy="10" r="2"/><circle cx="147.2" cy="10" r="2"/></g>
+ <rect x="30" y="34" width="44" height="44" rx="3" fill="#1d2228"/>
+ <rect x="84" y="40" width="26" height="22" rx="2" fill="#1d2228"/>
+ <rect x="138" y="22" width="30" height="26" rx="2" fill="#c7ccd1" stroke="#8a9199"/>
+ <rect x="138" y="54" width="30" height="26" rx="2" fill="#c7ccd1" stroke="#8a9199"/>
+ <rect x="138" y="86" width="30" height="20" rx="2" fill="#c7ccd1" stroke="#8a9199"/>
+ <rect x="14" y="96" width="20" height="10" rx="2" fill="#c7ccd1"/><rect x="44" y="96" width="16" height="10" rx="2" fill="#c7ccd1"/>
+</symbol>
+
+<!-- RNode 84x52 (met antenne erboven, 0..-60) -->
+<symbol id="rnode" viewBox="0 -62 84 114" width="84" height="114">
+ <line x1="64" y1="0" x2="64" y2="-56" stroke="#30363f" stroke-width="5" stroke-linecap="round"/>
+ <rect x="60" y="-6" width="9" height="8" fill="#b0b6bd"/>
+ <rect x="1" y="1" width="82" height="50" rx="7" fill="#1f3a5f" stroke="#12253d" stroke-width="2"/>
+ <circle cx="16" cy="16" r="4" fill="#58d68d"/>
+ <text x="40" y="38" text-anchor="middle" style="font-family:Segoe UI,Arial;font-size:13px;font-weight:700;fill:#fff">RNode</text>
+</symbol>
+
+<!-- Telefoon 76x140 -->
+<symbol id="tel" viewBox="0 0 76 140" width="76" height="140">
+ <rect x="1" y="1" width="74" height="138" rx="12" fill="#22272e" stroke="#0f1215" stroke-width="2"/>
+ <rect x="7" y="14" width="62" height="108" rx="4" fill="#f4f6f8"/>
+ <rect x="7" y="14" width="62" height="18" rx="4" fill="#d35400"/>
+ <rect x="13" y="38" width="50" height="7" rx="2" fill="#c9d1db"/><rect x="13" y="50" width="40" height="7" rx="2" fill="#c9d1db"/>
+ <rect x="13" y="62" width="50" height="7" rx="2" fill="#c9d1db"/><rect x="13" y="74" width="34" height="7" rx="2" fill="#c9d1db"/>
+ <rect x="13" y="100" width="50" height="14" rx="3" fill="#1e8449"/>
+ <rect x="30" y="127" width="16" height="4" rx="2" fill="#4a525c"/>
+</symbol>
+
+<!-- Monitor 260x190 -->
+<symbol id="monitor" viewBox="0 0 260 190" width="260" height="190">
+ <rect x="1" y="1" width="258" height="160" rx="8" fill="#22272e" stroke="#0f1215" stroke-width="2"/>
+ <rect x="10" y="10" width="240" height="140" rx="3" fill="#1b1f24"/>
+ <rect x="10" y="10" width="240" height="26" fill="#c0392b"/>
+ <text x="20" y="28" style="font-family:Segoe UI,Arial;font-size:13px;font-weight:700;fill:#fff">M/ETHANE · GROOT INCIDENT</text>
+ <rect x="18" y="44" width="22" height="12" rx="2" fill="#2c3e50"/><text x="29" y="54" text-anchor="middle" style="font-family:Arial;font-size:10px;font-weight:700;fill:#fff">M</text><rect x="46" y="46" width="150" height="8" rx="2" fill="#7b8794"/><rect x="18" y="61" width="22" height="12" rx="2" fill="#2c3e50"/><text x="29" y="71" text-anchor="middle" style="font-family:Arial;font-size:10px;font-weight:700;fill:#fff">E</text><rect x="46" y="63" width="127" height="8" rx="2" fill="#7b8794"/><rect x="18" y="78" width="22" height="12" rx="2" fill="#2c3e50"/><text x="29" y="88" text-anchor="middle" style="font-family:Arial;font-size:10px;font-weight:700;fill:#fff">T</text><rect x="46" y="80" width="104" height="8" rx="2" fill="#7b8794"/><rect x="18" y="95" width="22" height="12" rx="2" fill="#2c3e50"/><text x="29" y="105" text-anchor="middle" style="font-family:Arial;font-size:10px;font-weight:700;fill:#fff">H</text><rect x="46" y="97" width="81" height="8" rx="2" fill="#7b8794"/><rect x="18" y="112" width="22" height="12" rx="2" fill="#2c3e50"/><text x="29" y="122" text-anchor="middle" style="font-family:Arial;font-size:10px;font-weight:700;fill:#fff">A</text><rect x="46" y="114" width="148" height="8" rx="2" fill="#7b8794"/><rect x="18" y="129" width="22" height="12" rx="2" fill="#2c3e50"/><text x="29" y="139" text-anchor="middle" style="font-family:Arial;font-size:10px;font-weight:700;fill:#fff">N</text><rect x="46" y="131" width="125" height="8" rx="2" fill="#7b8794"/>
+ <rect x="114" y="161" width="32" height="18" fill="#3a414b"/>
+ <rect x="80" y="178" width="100" height="10" rx="4" fill="#3a414b"/>
+</symbol>
+
+<!-- Laptop 150x96 -->
+<symbol id="laptop" viewBox="0 0 150 96" width="150" height="96">
+ <rect x="18" y="1" width="114" height="76" rx="6" fill="#22272e"/>
+ <rect x="24" y="7" width="102" height="64" rx="2" fill="#1b1f24"/>
+ <rect x="24" y="7" width="102" height="12" fill="#d35400"/>
+ <rect x="30" y="25" width="70" height="6" rx="2" fill="#7b8794"/><rect x="30" y="37" width="55" height="6" rx="2" fill="#7b8794"/><rect x="30" y="49" width="64" height="6" rx="2" fill="#7b8794"/>
+ <path d="M2,80 H148 L140,94 H10 z" fill="#3a414b"/>
+</symbol>
+
+<!-- Accu 120x66 -->
+<symbol id="accu" viewBox="0 0 120 66" width="120" height="66">
+ <rect x="18" y="1" width="16" height="9" fill="#555"/><rect x="86" y="1" width="16" height="9" fill="#555"/>
+ <rect x="1" y="9" width="118" height="56" rx="6" fill="#3a414b" stroke="#1d2228" stroke-width="2"/>
+ <text x="26" y="34" text-anchor="middle" style="font-family:Arial;font-size:20px;font-weight:700;fill:#e74c3c">+</text>
+ <text x="94" y="34" text-anchor="middle" style="font-family:Arial;font-size:20px;font-weight:700;fill:#ecf0f1">−</text>
+ <text x="60" y="55" text-anchor="middle" style="font-family:Arial;font-size:14px;font-weight:700;fill:#ecf0f1">12 V</text>
+</symbol>
+
+<!-- Wifi-teken 40x30 -->
+<symbol id="wifi" viewBox="0 0 40 30" width="40" height="30">
+ <g fill="none" stroke="#2471a3" stroke-width="3.5" stroke-linecap="round">
+  <path d="M4,11 Q20,-3 36,11"/><path d="M10,17 Q20,8 30,17"/><path d="M15.5,22.5 Q20,19 24.5,22.5"/></g>
+ <circle cx="20" cy="27" r="2.6" fill="#2471a3"/>
+</symbol>
+
+<!-- Golven 60x60 (naar rechts) -->
+<symbol id="golf" viewBox="0 0 60 60" width="60" height="60">
+ <g fill="none" stroke-width="3.5" stroke-linecap="round">
+  <path d="M10,18 Q18,30 10,42"/><path d="M22,10 Q35,30 22,50"/><path d="M34,2 Q52,30 34,58"/></g>
+</symbol>
+</defs><rect width="1200" height="660" fill="#ffffff"/><text x="40" y="52" class="h">Noodnet: zo loopt een melding</text><text x="40" y="78" class="s" style="font-size:15px">Van de vrijwilliger in de wijk, via het Noodsteunpunt, naar het scherm bij de hulpdienst – zonder stroomnet, internet of mobiel netwerk.</text><text x="150" y="128" text-anchor="middle" class="k">Vrijwilligers</text><text x="150" y="148" text-anchor="middle" class="s">telefoon + RNode</text><text x="560" y="128" text-anchor="middle" class="k">Noodsteunpunten</text><text x="560" y="148" text-anchor="middle" class="s">zendamateur, op accu</text><text x="990" y="128" text-anchor="middle" class="k">Eindposten</text><text x="990" y="148" text-anchor="middle" class="s">bij de hulpdiensten</text><use href="#tel" x="90" y="180" width="56" height="103"/><use href="#rnode" x="160" y="210" width="58" height="79"/><path d="M146,232 L162,236" fill="none" stroke="#2471a3" stroke-width="2" stroke-linecap="round" stroke-dasharray="7 6"/><use href="#tel" x="90" y="330" width="56" height="103"/><use href="#rnode" x="160" y="360" width="58" height="79"/><path d="M146,382 L162,386" fill="none" stroke="#2471a3" stroke-width="2" stroke-linecap="round" stroke-dasharray="7 6"/><use href="#tel" x="90" y="480" width="56" height="103"/><use href="#rnode" x="160" y="510" width="58" height="79"/><path d="M146,532 L162,536" fill="none" stroke="#2471a3" stroke-width="2" stroke-linecap="round" stroke-dasharray="7 6"/><rect x="440" y="220" width="240" height="120" rx="12" fill="#f4f6f8" stroke="#c9d1db" stroke-width="1.5"/><use href="#rnode" x="458" y="270" width="50" height="68"/><use href="#pi" x="522" y="276" width="72" height="47"/><use href="#set" x="606" y="280" width="62" height="29"/><text x="560" y="250" text-anchor="middle" class="t" style="font-weight:700">Steunpunt A</text><rect x="440" y="440" width="240" height="120" rx="12" fill="#f4f6f8" stroke="#c9d1db" stroke-width="1.5"/><use href="#rnode" x="458" y="490" width="50" height="68"/><use href="#pi" x="522" y="496" width="72" height="47"/><use href="#set" x="606" y="500" width="62" height="29"/><text x="560" y="470" text-anchor="middle" class="t" style="font-weight:700">Steunpunt B</text><rect x="880" y="190" width="230" height="110" rx="12" fill="#fdf2e9" stroke="#e59866" stroke-width="1.5"/><use href="#set" x="898" y="240" width="62" height="29"/><use href="#monitor" x="980" y="230" width="92" height="67"/><text x="995" y="218" text-anchor="middle" class="t" style="font-weight:700">Brandweer</text><rect x="880" y="360" width="230" height="110" rx="12" fill="#fdf2e9" stroke="#e59866" stroke-width="1.5"/><use href="#set" x="898" y="410" width="62" height="29"/><use href="#monitor" x="980" y="400" width="92" height="67"/><text x="995" y="388" text-anchor="middle" class="t" style="font-weight:700">Gemeentehuis</text><rect x="880" y="530" width="230" height="110" rx="12" fill="#fdf2e9" stroke="#e59866" stroke-width="1.5"/><use href="#set" x="898" y="580" width="62" height="29"/><use href="#monitor" x="980" y="570" width="92" height="67"/><text x="995" y="558" text-anchor="middle" class="t" style="font-weight:700">Ziekenhuis</text><path d="M220,232 C320,232 340,280 440,280" fill="none" stroke="#1e8449" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="7 6"/><path d="M220,382 C320,382 340,290 440,290" fill="none" stroke="#1e8449" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="7 6"/><path d="M220,382 C320,382 340,500 440,500" fill="none" stroke="#1e8449" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="7 6"/><path d="M220,532 C320,532 340,510 440,510" fill="none" stroke="#1e8449" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="7 6"/><text x="330" y="610" text-anchor="middle" class="lbl" style="fill:#1e8449">LoRa 433 / 868 MHz</text><text x="330" y="628" text-anchor="middle" class="s">versleuteld · enkele km</text><path d="M680,280 C780,280 780,245 880,245" fill="none" stroke="#c0392b" stroke-width="2.5" stroke-linecap="round"/><path d="M680,280 C780,280 780,415 880,415" fill="none" stroke="#c0392b" stroke-width="2.5" stroke-linecap="round"/><path d="M680,500 C780,500 780,415 880,415" fill="none" stroke="#c0392b" stroke-width="2.5" stroke-linecap="round"/><path d="M680,500 C780,500 780,585 880,585" fill="none" stroke="#c0392b" stroke-width="2.5" stroke-linecap="round"/><text x="745" y="610" text-anchor="middle" class="lbl" style="fill:#c0392b">2 m · per gemeente</text><text x="745" y="628" text-anchor="middle" class="s">leesbaar · roepnaam · tot tientallen km</text><path d="M872,212 C820,170 740,170 690,212" fill="none" stroke="#5b6573" stroke-width="2" stroke-dasharray="5 5" marker-end="url(#pijl)"/><text x="781" y="172" text-anchor="middle" class="s">ACK terug, anders herhalen</text></svg>
