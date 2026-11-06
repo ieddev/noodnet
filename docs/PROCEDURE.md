@@ -221,7 +221,7 @@ tikt **Exporteren**; de andere steunpunten en de eindposten **laden dat bestand 
 - zet de set op de frequentie van de gemeente, in de **datamode** (FM-D / PKT), zodat het geluid
   van USB komt;
 - schakelt de zender via CAT (geen RTS/DTR of menu *USB SEND* nodig);
-- zet desgewenst het zendvermogen;
+- zet desgewenst het zendvermogen, in watt (blijf binnen je vergunning);
 - zet de set **terug** als iemand eraan draait (binnen een minuut; nooit tijdens het zenden).
 Weet je model, poort of snelheid niet: **Zoek mijn set**. Staat je set er niet bij, gebruik dan
 RTS/DTR (bijv. met een Digirig) en zet de frequentie met de hand; de Pi toont welke.

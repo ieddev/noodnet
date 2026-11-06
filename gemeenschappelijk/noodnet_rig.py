@@ -173,7 +173,20 @@ def status():
                 uit[sleutel] = float(v[-1])
             except ValueError:
                 pass
+    if uit.get("vermogen") is not None:                     # 0..1 -> watt (hamlib kent het maximum per set)
+        ok, v = opdracht(f"\\power2mW {uit['vermogen']:.4f} {uit['frequentie']} {uit.get('mode') or 'FM'}")
+        w = _waarde(v, "Power mW") if ok else None
+        try:
+            uit["watt"] = float(w) / 1000 if w is not None else None
+        except ValueError:
+            pass
     return uit
+
+
+def watt_tekst(st):
+    if st.get("watt"):
+        return f"{st['watt']:g} W"
+    return "–" if st.get("vermogen") is None else f"{int(round(st['vermogen'] * 100))}%"
 
 
 def s_meter(db):
@@ -203,10 +216,26 @@ def zet_set(r, freq=None):
             meld.append("Deze set kent geen datamode via CAT; FM gekozen. Controleer of het geluid van USB komt.")
     if not ok:
         meld.append("Mode zetten lukte niet: " + " ".join(uit))
-    if r.get("cat_vermogen"):
-        ok, uit = opdracht(f"L RFPOWER {int(r['cat_vermogen']) / 100:.2f}")
-        if not ok:
-            meld.append("Vermogen zetten lukte niet (niet elke set kan dat via CAT).")
+    watt = r.get("cat_watt")
+    if watt:
+        deel = None
+        for m in (mode, "FM"):                               # niet elke set kent de datamode in zijn zendbereik
+            ok, uit = opdracht(f"\\mW2power {int(float(watt) * 1000)} {freq} {m}")
+            try:
+                deel = float(_waarde(uit, "Power [0.0..1.0]")) if ok else None
+            except (TypeError, ValueError):
+                deel = None
+            if deel is not None:
+                break
+        if deel is None:
+            meld.append(f"{watt:g} W instellen lukte niet: meer dan deze set kan, of de set kent geen omrekening naar watt. "
+                        f"Vul minder in, of stel het vermogen op de set zelf in.")
+        else:
+            if deel >= 0.999:
+                meld.append(f"{watt:g} W is het maximum van deze set (of meer); vermogen op maximaal gezet.")
+            ok, uit = opdracht(f"L RFPOWER {min(deel, 1.0):.3f}")
+            if not ok:
+                meld.append("Vermogen zetten lukte niet (niet elke set kan dat via CAT).")
     return meld
 
 

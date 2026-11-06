@@ -33,7 +33,7 @@ SERIAL_BY_ID = os.environ.get("NOODNET_SERIAL_BY_ID", "/dev/serial/by-id")
 NMCLI = os.environ.get("NOODNET_NMCLI", "nmcli")
 
 STANDAARD = {"geluidskaart": "", "ptt_poort": "", "ptt_methode": "RTS",
-             "cat_model": 0, "cat_poort": "", "cat_baud": 0, "cat_vermogen": None, "cat_mode": "PKTFM",
+             "cat_model": 0, "cat_poort": "", "cat_baud": 0, "cat_watt": None, "cat_mode": "PKTFM",
              "rnode_433": "", "rnode_868": "", "txpower_433": 10, "txpower_868": 14}
 
 
@@ -61,6 +61,9 @@ def instellingen():
         r["cat_poort"] = r.get("cat_poort") or r.get("ptt_poort", "")
         r["cat_baud"] = r.get("cat_baud") or 19200
         r["ptt_methode"] = "CAT"
+    if r.get("cat_vermogen") and not r.get("cat_watt"):     # korte tijd in procenten (nov 2026); ingevuld als watt
+        r["cat_watt"] = r.pop("cat_vermogen")
+    r.pop("cat_vermogen", None)
     return r
 
 
@@ -472,7 +475,7 @@ def html_set(rol, verborgen, r):
                 f"{'✓' if abs(st['frequentie'] - doel) <= 100 else '<span style=color:var(--rood)>≠ ' + rig.mhz(doel) + '</span>'}</td></tr>"
                 f"<tr><td>Mode</td><td>{e(st.get('mode') or '?')}</td></tr>"
                 f"<tr><td>S-meter</td><td>{rig.s_meter(st.get('s'))}</td></tr>"
-                f"<tr><td>Vermogen</td><td>{'–' if st.get('vermogen') is None else str(int(round(st['vermogen'] * 100))) + '%'}</td></tr>"
+                f"<tr><td>Vermogen</td><td>{rig.watt_tekst(st)}</td></tr>"
                 f"<tr><td>Zenden</td><td>{'ja' if st.get('ptt') else 'nee'}</td></tr></table>")
         if not goed:
             live += "<div class='melding let'>De set staat niet op de frequentie/mode van de gemeente; de Pi zet hem binnen een minuut terug.</div>"
@@ -507,7 +510,7 @@ def html_radio(rol, verborgen, r=None, fouten=(), zoekuitslag=""):
     model_opties = opties([(m, f"{merk} {naam}") for m, merk, naam, _ in rig.MODELLEN], r.get("cat_model") or "", "- kies je set -")
     cat_poort_opties = opties(poorten, r.get("cat_poort") or "", "- kies -")
     baud_opties = opties([(b, f"{b} baud") for b in rig.SNELHEDEN], r.get("cat_baud") or "", "standaard van het model")
-    verm = "" if r.get("cat_vermogen") in (None, "") else str(r.get("cat_vermogen"))
+    verm = "" if r.get("cat_watt") in (None, "") else f"{float(r['cat_watt']):g}"
     fout_html = "".join(f'<div class="melding fout">{e(f)}</div>' for f in fouten)
     rnode = ""
     if rol == "steunpunt":
@@ -528,8 +531,8 @@ Na opslaan worden Direwolf (en bij CAT rigctld) opnieuw gestart.</p>
 <label>Set <small>staat je set er niet bij? Kies RTS/DTR hierboven</small></label><select name="cat_model">{model_opties}</select>
 <div class="rij"><div><label>CAT-poort</label><select name="cat_poort">{cat_poort_opties}</select></div>
 <div><label>Snelheid</label><select name="cat_baud">{baud_opties}</select></div></div>
-<label>Zendvermogen <small>% van het maximum van de set; leeg = niet aanpassen. Blijf binnen je vergunning.</small></label>
-<input type="number" name="cat_vermogen" value="{e(verm)}" min="1" max="100" placeholder="leeg = zoals de set staat">
+<label>Zendvermogen <small>in watt; leeg = niet aanpassen. Blijf binnen je vergunning (bijv. N-licentie 25 W).</small></label>
+<input type="text" name="cat_watt" value="{e(verm)}" inputmode="decimal" placeholder="leeg = zoals de set staat">
 <p class="uitleg" style="margin-top:8px">De Pi zet de set op de frequentie van de gemeente in de <b>datamode</b> (FM-D/PKT): dan komt het
 geluid van USB. PTT gaat via CAT. Icom: CI-V-adres op standaard laten.</p></div>
 <div id="rts_deel"><label>PTT-poort</label><select name="ptt_poort">{poort_opties}</select>
@@ -630,15 +633,15 @@ def verwerk_radio(rol, f, roepnaam, net=None):
         try:
             r["cat_model"] = int(f.get("cat_model") or 0)
             r["cat_baud"] = int(f.get("cat_baud") or 0)
-            v = (f.get("cat_vermogen") or "").strip()
-            r["cat_vermogen"] = int(v) if v else None
+            v = (f.get("cat_watt") or "").strip().replace(",", ".").lower().replace("w", "").strip()
+            r["cat_watt"] = float(v) if v else None
         except ValueError:
-            fouten.append("CAT: kies een set en vul het vermogen in als heel getal.")
+            fouten.append("CAT: kies een set, en vul het vermogen in als getal (watt).")
         r["cat_poort"] = f.get("cat_poort", "").strip()
         if not r.get("cat_model") or not r["cat_poort"]:
             fouten.append("CAT: kies je set en de CAT-poort (of gebruik Zoek mijn set).")
-        if r.get("cat_vermogen") is not None and not 1 <= r["cat_vermogen"] <= 100:
-            fouten.append("CAT: vermogen tussen 1 en 100%.")
+        if r.get("cat_watt") is not None and not 0.1 <= r["cat_watt"] <= 200:
+            fouten.append("CAT: vul het zendvermogen in watt in (bijv. 25), of laat het leeg.")
         if not r.get("cat_baud"):
             r["cat_baud"] = next((b[0] for m, _, _, b in rig.MODELLEN if m == r.get("cat_model")), 19200)
         r["ptt_poort"] = ""

@@ -107,7 +107,7 @@ via de hotspot.
 | H6 | Na *Gebruiken*: tabblad Radio | *Set (CAT)*: frequentie van de gemeente ✓, mode FM-D | ☐ |
 | H7 | Testuitzending met CAT | Set gaat op zenden (PTT via CAT), packet-geluid schoon | ☐ |
 | H8 | Aan de VFO draaien, 1 minuut wachten | Set staat weer op de gemeentefrequentie; bij *Laatste acties* "teruggezet" | ☐ |
-| H9 | Zendvermogen 25% instellen, *Set nu instellen* | Set op 25% (ziet je op de set en bij *Vermogen*) | ☐ |
+| H9 | Zendvermogen 25 (watt) invullen en opslaan | Set op 25 W (op de set en bij *Vermogen*); opslaan zonder foutmelding | ☐ |
 | H10 | Pi herstarten met CAT | Set na het opstarten vanzelf op frequentie en mode | ☐ |
 | H11 | FT-818 + SCU-17 (steunpunt): Zoek mijn set | FT-818 gevonden; PTT en frequentie werken (of: terug naar RTS als het niet lukt) | ☐ |
 
