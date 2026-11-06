@@ -19,7 +19,7 @@ Achtergrond en visie op het noodnet: [noodnet.ied.nl](http://noodnet.ied.nl).
 
 Getest met Raspberry Pi OS **Trixie** (Debian 13), november 2026.
 
-Frequenties: 2 m **144,925 MHz** (AX.25 1200 baud). LoRa **434,100 MHz** en
+Frequenties: 2 m **per gemeente afgesproken** (standaard 144,925 MHz; AX.25 1200 baud). LoRa **434,100 MHz** en
 **869,525 MHz** (ISM). Op de amateurband gaat alles **leesbaar** en onder je eigen
 roepnaam.
 
@@ -109,8 +109,8 @@ ook zonder stroomnet en zonder internet. Je thuis-wifi gebruikt de Pi niet meer.
 | Tabblad | Wat doen |
 |---|---|
 | **Steunpunt** | Naam van het steunpunt, aanmeldcode (min. 4 tekens), *Wie mag melden* = **Aan**. Opslaan. |
-| **Radio** | Geluidskaart van de set, PTT-poort (+ RTS), RNode-poort voor 433 en/of 868 (heb je er maar één: de andere op *Niet aangesloten*), zendvermogen. Opslaan. Dan **Testuitzending**: gaat de set op zenden? Zendniveau met de schuifbalk zo dat het packet-geluid schoon klinkt (begin bij 50%). |
-| **Netwerk** | Gemeente, disciplines met de roepnaam van hun eindpost, LoRa-instellingen. Gelijk houden op alle steunpunten van de gemeente. Opslaan. |
+| **Radio** | Geluidskaart van de set. *Besturing*: **CAT** als je set in de lijst staat (of tik *Zoek mijn set*), anders RTS/DTR met de PTT-poort. RNode-poort voor 433 en/of 868 (heb je er maar één: de andere op *Niet aangesloten*), zendvermogen. Opslaan. Dan **Testuitzending**: gaat de set op zenden? Zendniveau met de schuifbalk zo dat het packet-geluid schoon klinkt (begin bij 50%). |
+| **Netwerk** | Gemeente, **2 m-frequentie**, disciplines met de roepnaam van hun eindpost, LoRa-instellingen. Gelijk houden op alle steunpunten van de gemeente: één persoon vult dit in en deelt het met **Exporteren**; de anderen **Inladen**. Opslaan. |
 | **Kaart** | *Nieuwe kaart maken*. |
 | **Status** | Alles groen? Geen rode melding? Vul *Dienstdoende operator* in. |
 
@@ -134,8 +134,8 @@ lamineren). Ter plekke zonder printer: **QR-code groot tonen** en van je telefoo
 
 | Tabblad | Wat doen |
 |---|---|
-| **Instellingen** | Naam van de post, roepnaam (= die van de installatie), disciplines (of *Alle meldingen*), eventueel meelezen. Opslaan. |
-| **Radio** | Geluidskaart van de set, PTT-poort (+ RTS). Opslaan. Dan **Testuitzending**: gaat de set op zenden? Zendniveau met de schuifbalk zo dat het packet-geluid schoon klinkt (begin bij 50%). |
+| **Instellingen** | Naam van de post, roepnaam (= die van de installatie), **2 m-frequentie**, disciplines (of *Alle meldingen*), eventueel meelezen. Opslaan. Heb je het netwerkbestand van de gemeente: onderaan **Inladen** (neemt frequentie en disciplines over). |
+| **Radio** | Geluidskaart van de set. *Besturing*: **CAT** als je set in de lijst staat (of *Zoek mijn set*), anders RTS/DTR met de PTT-poort. Opslaan. Dan **Testuitzending**: gaat de set op zenden? Zendniveau met de schuifbalk zo dat het packet-geluid schoon klinkt (begin bij 50%). |
 | **Status** | Alles groen? Vul *Dienstdoende operator* in. |
 
 Laat daarna de beheerder van elk steunpunt in de gemeente jouw roepnaam
@@ -209,6 +209,23 @@ noodnet-bijwerken
 Instellingen, aanmeldingen en het logboek blijven bewaard. De nieuwste app
 wordt meteen op de downloadpagina gezet.
 
+## 2 m-frequentie en CAT
+
+**Frequentie per gemeente.** Elke gemeente kiest een eigen 2 m-frequentie, in overleg met de
+buurgemeenten, zodat jullie elkaar niet storen (binnen het segment voor digitale modes van het
+bandplan; niet 144,800, dat is APRS). Die staat op het tabblad **Netwerk** van elk steunpunt en
+op **Instellingen** van elke eindpost. Makkelijkst: één persoon vult het tabblad Netwerk in en
+tikt **Exporteren**; de andere steunpunten en de eindposten **laden dat bestand in**.
+
+**CAT (hamlib).** Staat je set in de lijst op het tabblad Radio, kies dan *CAT*. De Pi:
+- zet de set op de frequentie van de gemeente, in de **datamode** (FM-D / PKT), zodat het geluid
+  van USB komt;
+- schakelt de zender via CAT (geen RTS/DTR of menu *USB SEND* nodig);
+- zet desgewenst het zendvermogen;
+- zet de set **terug** als iemand eraan draait (binnen een minuut; nooit tijdens het zenden).
+Weet je model, poort of snelheid niet: **Zoek mijn set**. Staat je set er niet bij, gebruik dan
+RTS/DTR (bijv. met een Digirig) en zet de frequentie met de hand; de Pi toont welke.
+
 ## Dienstdoende operator en aflossen
 
 Het station zendt altijd onder de roepnaam die bij de installatie is ingesteld; die verander je
@@ -237,7 +254,9 @@ dan een **UPS-HAT** op de Pi.
 | Beheerpagina opent niet | Op de hotspot? Adres **http://10.42.0.1:8080**. Mobiele data even uit. |
 | Direwolf rood | Tabblad Radio: juiste geluidskaart? Set aan en via USB aangesloten? |
 | Direwolf rood nadat een USB-stekker (bijv. RNode) eruit of erin ging | Vooral op een Pi 3: de USB loopt vast en de geluidskaart van de set geeft fouten. USB-kabel van de set even uit en in, of de Pi herstarten. Liever een Pi 4/5; RNodes niet in- of uitpluggen terwijl het steunpunt in gebruik is. |
-| Set zendt niet | Tabblad Radio → *Testuitzending*. Geen zenden: PTT-poort en RTS. IC-9700: menu *USB SEND* op RTS. SCU-17: tweede poort (if01). |
+| Set zendt niet | Tabblad Radio → *Testuitzending*. Met CAT: staat *Set (CAT)* op Radio/Status groen? Zonder CAT: PTT-poort en RTS (IC-9700: menu *USB SEND* op RTS; SCU-17: poort B). |
+| *Set (CAT): geen verbinding* | Set aan? USB-kabel? Juiste CAT-poort en snelheid? Tik *Zoek mijn set*. Icom: CI-V-adres op standaard, *CI-V USB Port* niet gekoppeld aan REMOTE. |
+| Set springt terug naar een andere frequentie | Dat is de bewaker: de Pi houdt de set op de frequentie van de gemeente (tabblad Netwerk/Instellingen). Andere frequentie nodig? Pas die daar aan. |
 | Rode melding *Kaart en radio komen niet overeen* | Tabblad Netwerk nog een keer opslaan (de RNodes worden dan gelijkgezet). Nieuwe kaart maken en opnieuw scannen. |
 | Vrijwilligers komen niet door | Status: staan ze bij *Onbekende telefoons*? Laten aanmelden met de kaart. `rnstatus`: IFAC-overtredingen? → IFAC op kaart en Pi gelijk. |
 | Steunpunt blijft herhalen | De roepnaam van de eindpost op het tabblad Netwerk klopt niet, of de eindpost staat uit. |

@@ -7,7 +7,7 @@ de melding **leesbaar** door over **2 m** (AX.25, onder eigen roepnaam) naar de
 
 ```
 telefoon + RNode ──LoRa 433/868──► NOODSTEUNPUNT (Pi + 2 m-set + RNodes)
-                                         │  leesbaar AX.25, 144,925 MHz
+                                         │  leesbaar AX.25, 2 m (per gemeente)
                                          ▼
                                    EINDPOST (Pi + 2 m-set + scherm)  ── M/ETHANE-scherm, logboek
 ```

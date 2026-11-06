@@ -88,7 +88,7 @@ sudo -E apt-get full-upgrade "${APT_OPT[@]}"
 sudo apt-get autoremove -y -qq || true
 
 stap "Pakketten installeren"
-PAKKETTEN="git python3-venv direwolf alsa-utils iw curl hostapd dnsmasq-base rfkill"
+PAKKETTEN="git python3-venv direwolf alsa-utils iw curl hostapd dnsmasq-base rfkill libhamlib-utils"
 [ "$ROL" = "eindpost" ] && PAKKETTEN="$PAKKETTEN mosquitto mosquitto-clients"
 sudo -E apt-get install "${APT_OPT[@]}" $PAKKETTEN
 sudo usermod -aG dialout,audio,plugdev,systemd-journal "$GEBRUIKER" || true
@@ -226,9 +226,9 @@ plaats() { sed -e "s#@GEBRUIKER@#$GEBRUIKER#g" -e "s#@MAP@#$DOEL#g" -e "s#@VENV@
              | sudo tee "/etc/systemd/system/$(basename "$1")" >/dev/null; }
 for f in "$BRON"/gemeenschappelijk/diensten/*.service "$BRON"/gemeenschappelijk/diensten/*.timer "$BRON/$ROL"/diensten/*.service; do plaats "$f"; done
 if [ "$ROL" = "steunpunt" ]; then
-  DIENSTEN="direwolf rnsd noodnet-brug noodnet-web noodnet-download"; WEB="noodnet_web.py"
+  DIENSTEN="noodnet-rigctld direwolf rnsd noodnet-brug noodnet-web noodnet-download"; WEB="noodnet_web.py"
 else
-  DIENSTEN="direwolf noodnet-eindpost noodnet-eindpost-web noodnet-download mosquitto nodered"; WEB="eindpost_web.py"
+  DIENSTEN="noodnet-rigctld direwolf noodnet-eindpost noodnet-eindpost-web noodnet-download mosquitto nodered"; WEB="eindpost_web.py"
 fi
 SC="$(command -v systemctl)"
 REGEL="$GEBRUIKER ALL=(root) NOPASSWD:"; EERSTE=1

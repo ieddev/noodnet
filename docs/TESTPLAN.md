@@ -95,6 +95,22 @@ via de hotspot.
 | G3 | Eindpost: operator invullen, daarna een M/ETHANE ontvangen | Logboek: regel OPERATOR; bij de melding "dienstdoende operator: …" | ☐ |
 | G4 | Back-up maken en terugzetten | Operator en lijst met wissels terug | ☐ |
 
+## H. Frequentie, CAT en netwerkbestand
+
+| # | Scenario | Verwacht | OK |
+|---|---|---|---|
+| H1 | Steunpunt, tabblad Netwerk: 2 m-frequentie wijzigen (bijv. 144.950) | Opgeslagen; zonder CAT: melding "zet de set op …"; met CAT: set gaat mee | ☐ |
+| H2 | 144.800 of 145.500 invullen | Waarschuwing (APRS / buiten digitaal segment); 146.500: geweigerd | ☐ |
+| H3 | Netwerk → **Exporteren**, op de eindpost (Instellingen) **Inladen** | Eindpost neemt frequentie en zijn eigen disciplines over | ☐ |
+| H4 | Zelfde bestand op een tweede steunpunt **Inladen** | Tabblad Netwerk gelijk aan het eerste steunpunt | ☐ |
+| H5 | Radio → **Zoek mijn set** (IC-9700 aan) | IC-9700 gevonden met poort en snelheid → **Gebruiken** | ☐ |
+| H6 | Na *Gebruiken*: tabblad Radio | *Set (CAT)*: frequentie van de gemeente ✓, mode FM-D | ☐ |
+| H7 | Testuitzending met CAT | Set gaat op zenden (PTT via CAT), packet-geluid schoon | ☐ |
+| H8 | Aan de VFO draaien, 1 minuut wachten | Set staat weer op de gemeentefrequentie; bij *Laatste acties* "teruggezet" | ☐ |
+| H9 | Zendvermogen 25% instellen, *Set nu instellen* | Set op 25% (ziet je op de set en bij *Vermogen*) | ☐ |
+| H10 | Pi herstarten met CAT | Set na het opstarten vanzelf op frequentie en mode | ☐ |
+| H11 | FT-818 + SCU-17 (steunpunt): Zoek mijn set | FT-818 gevonden; PTT en frequentie werken (of: terug naar RTS als het niet lukt) | ☐ |
+
 ## Notities
 
 -

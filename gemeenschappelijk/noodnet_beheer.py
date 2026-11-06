@@ -396,3 +396,45 @@ style="padding:4px 10px;font-size:14px">Uit de lijst</button></form></td></tr>""
     return f"""<section><h2>Dienstdoende operator</h2><div>{huidig}</div>{kies}{nieuw}{beheren}{wissels}
 <p class="uitleg" style="margin-top:8px">Het station zendt altijd onder zijn eigen roepnaam. Hier leg je vast wie er
 verantwoordelijk is; elke wissel wordt met tijd vastgelegd.</p></section>"""
+
+
+# ---------------------------------------------------------------------------
+# Netwerkinstellingen van de gemeente delen (export/import)
+# ---------------------------------------------------------------------------
+
+def lees_netwerkbestand(handler, max_bytes=1_000_000):
+    """Upload van een netwerkbestand (JSON). Geeft (netwerk-dict, csrf, fout)."""
+    lengte = int(handler.headers.get("Content-Length", 0) or 0)
+    if lengte > max_bytes:
+        return None, "", "Bestand is te groot voor een netwerkbestand."
+    data, velden = lees_upload(handler.headers.get("Content-Type", ""), handler.rfile.read(lengte))
+    if not data:
+        return None, velden.get("csrf", ""), "Geen bestand gekozen."
+    try:
+        net = json.loads(data.decode("utf-8-sig"))
+    except (ValueError, UnicodeDecodeError):
+        return None, velden.get("csrf", ""), "Dit is geen netwerkbestand van Noodnet (geen geldige JSON)."
+    if not isinstance(net, dict) or not isinstance(net.get("disciplines"), dict):
+        return None, velden.get("csrf", ""), "Dit is geen netwerkbestand van Noodnet (geen disciplines)."
+    return net, velden.get("csrf", ""), ""
+
+
+def netwerk_export_naam(net):
+    g = "".join(c for c in (net.get("gemeente") or "gemeente").lower().replace(" ", "-") if c.isalnum() or c == "-")
+    return f"noodnet-netwerk-{g or 'gemeente'}-{time.strftime('%Y%m%d')}.json"
+
+
+def html_netwerk_delen(verborgen, rol):
+    if rol == "steunpunt":
+        uitleg = ("Eén persoon maakt de instellingen van de gemeente (frequentie, disciplines en eindposten, LoRa, IFAC) en "
+                  "deelt het bestand. Op de andere steunpunten: <b>Inladen</b>; op de eindposten: tabblad Instellingen.")
+        export = '<a class="knop" href="/netwerk.json">Exporteren</a>'
+    else:
+        uitleg = ("Heb je het netwerkbestand van de gemeente (gemaakt op een steunpunt, tabblad Netwerk)? Laad het hier in: "
+                  "de 2 m-frequentie en de disciplines waarbij deze post staat, worden overgenomen.")
+        export = ""
+    return f"""<section><h2>Netwerkbestand van de gemeente</h2><p class="uitleg">{uitleg}
+Staat er IFAC in, dan is het bestand <b>vertrouwelijk</b>: niet mailen naar onbekenden.</p>
+<form method="post" action="/netwerk_import" enctype="multipart/form-data">{verborgen}
+<input type="file" name="bestand" accept=".json,application/json" required style="margin:4px 0">
+<div class="balk">{export}<button type="submit" class="licht" onclick="return confirm('De netwerkinstellingen van deze Pi worden vervangen door die uit het bestand. Doorgaan?')">Inladen</button></div></form></section>"""

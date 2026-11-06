@@ -1,12 +1,14 @@
 [Unit]
 Description=Direwolf (Noodnet, 2 m)
-After=sound.target network.target
+After=sound.target network.target noodnet-rigctld.service
+Wants=noodnet-rigctld.service
 
 [Service]
 Type=simple
 User=@GEBRUIKER@
 WorkingDirectory=@MAP@
 ExecStartPre=-/usr/bin/python3 @MAP@/noodnet_radio.py --niveau
+ExecStartPre=-/usr/bin/python3 @MAP@/noodnet_rig.py --wacht
 ExecStart=/usr/bin/direwolf -c @MAP@/direwolf.conf -t 0 -q d
 Restart=always
 RestartSec=5

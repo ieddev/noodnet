@@ -59,7 +59,7 @@ OPDRACHTEN_FILE = os.path.join(LXMF_DIR, "web_opdrachten.json")
 ID_FILE = os.path.join(LXMF_DIR, "gateway.id")
 RNS_CONFIG = os.path.expanduser(os.environ.get("NOODNET_RNS_CONFIG", "~/.reticulum/config"))
 
-DIENSTEN = [("direwolf", "Direwolf (2 m)"), ("rnsd", "Reticulum (LoRa)"), ("noodnet-brug", "Steunpunt-brug"),
+DIENSTEN = [("noodnet-rigctld", "CAT-besturing set (rigctld)"), ("direwolf", "Direwolf (2 m)"), ("rnsd", "Reticulum (LoRa)"), ("noodnet-brug", "Steunpunt-brug"),
             ("noodnet-download", "Downloadpagina (app)")]
 SYSTEMCTL = os.environ.get("NOODNET_SYSTEMCTL", "systemctl")
 SUDO = os.environ.get("NOODNET_SUDO", "sudo")
@@ -576,10 +576,44 @@ def controleer_instellingen(f, oud):
     return inst, fouten
 
 
+def netwerk_naar_formulier(net):
+    """Netwerkbestand -> dezelfde velden als het formulier op tabblad Netwerk (zodat dezelfde controles gelden)."""
+    f = {"gemeente": str(net.get("gemeente") or ""),
+         "frequentie_2m": f"{int(net.get('frequentie_2m') or radio.rig.STANDAARD_FREQ) / 1e6:.4f}",
+         "ifac_naam": str(net.get("ifac_netwerknaam") or ""), "ifac_ww": str(net.get("ifac_wachtwoord") or "")}
+    for i, (k, d) in enumerate(list((net.get("disciplines") or {}).items())[:12]):
+        d = d if isinstance(d, dict) else {}
+        f[f"d_sleutel_{i}"] = str(k)
+        f[f"d_label_{i}"] = str(d.get("label") or k)
+        f[f"d_posten_{i}"] = ", ".join(str(x) for x in (d.get("eindposten") or []))
+    for k in net.get("vangnet") or []:
+        f[f"vangnet_{k}"] = "on"
+    for k in net.get("berichten_aan") or []:
+        f[f"chat_{k}"] = "on"
+    for band, r in (net.get("lora") or {}).items():
+        if band in ("433", "868") and isinstance(r, dict):
+            f[f"lora_{band}_aan"] = "on"
+            f[f"lora_{band}_f"] = f"{(r.get('frequentie') or 0) / 1e6:.3f}"
+            f[f"lora_{band}_bw"] = f"{(r.get('bandbreedte') or 0) / 1000:g}"
+            f[f"lora_{band}_sf"], f[f"lora_{band}_cr"] = str(r.get("sf", "")), str(r.get("cr", ""))
+            f[f"lora_{band}_p"] = str(r.get("vermogen_dbm", ""))
+    bk = net.get("baken") or {}
+    if bk:
+        f["baken_min"] = str(int(bk.get("min_interval_s", 600) // 60))
+        f["baken_max"] = str(int(bk.get("max_interval_s", 1800) // 60))
+        f["baken_afstand"] = str(int(bk.get("afstand_m", 300)))
+    return f
+
+
 def controleer_netwerk(f, oud):
     fouten, waarschuwingen = [], []
     net = dict(oud)
     net["gemeente"] = " ".join(f.get("gemeente", "").split())
+    hz, ff, ww = radio.rig.controleer_frequentie(f.get("frequentie_2m", ""))
+    fouten += ff
+    waarschuwingen += ww
+    if hz:
+        net["frequentie_2m"] = hz
     disciplines = {}
     for i in range(12):
         label = " ".join(f.get(f"d_label_{i}", "").split())
@@ -769,7 +803,7 @@ def html_status(inst, net):
     return f"""{zonder_beheerder}{html_radiocontrole(net)}{traag_html}
 {beheer.html_operator(verborgen())}
 <section><h2>Diensten</h2><p class="uitleg">Alles moet groen zijn. Herstart alleen als er iets hapert.</p>
-<table>{rijen}</table></section>
+<table>{rijen}{radio.html_set_kort()}</table></section>
 <section><h2>Overzicht</h2><div class="cijfers">
 <div class="cijfer"><b>{len(vw)}</b><span>aangemeld</span></div>
 <div class="cijfer"><b>{gehoord}</b><span>gehoord</span></div>
@@ -883,7 +917,9 @@ def html_netwerk(net, form=None):
     ifw = e(v.get("ifac_ww", "") if form is not None else net.get("ifac_wachtwoord", ""))
     return f"""{html_radiocontrole(net) if form is None else ""}<form method="post" action="/netwerk">{verborgen()}
 <div class="melding let">Dit deel geldt voor de hele gemeente. Houd het bestand gelijk op alle steunpunten van {g or 'de gemeente'}, en maak na een wijziging nieuwe kaarten.</div>
-<section><h2>Gemeente</h2><label>Naam van de gemeente</label><input type="text" name="gemeente" value="{g}"></section>
+<section><h2>Gemeente</h2><label>Naam van de gemeente</label><input type="text" name="gemeente" value="{g}">
+<label>2 m-frequentie <small>MHz; voor alle steunpunten én eindposten van de gemeente. Afspreken met de buurgemeenten, zodat jullie elkaar niet storen.</small></label>
+<input type="text" name="frequentie_2m" value="{e(v.get('frequentie_2m', '') if form is not None else radio.rig.mhz(net.get('frequentie_2m') or radio.rig.STANDAARD_FREQ).replace(' MHz', '').replace(',', '.'))}" inputmode="decimal" placeholder="144.925"></section>
 <section><h2>Disciplines en eindposten</h2>
 <p class="uitleg">Vul bij elke discipline de roepnaam van de eindpost in (bijv. PD3PAM-2), meerdere met een komma.
 Zet hier <b>alleen</b> eindposten die echt draaien: een M/ETHANE wordt herhaald tot elke genoemde post bevestigt.</p>
@@ -901,7 +937,8 @@ Hoe ruimer, hoe minder zendtijd op LoRa en 2 m.</p>
 <div class="rij"><div><label>Netwerknaam</label><input type="text" name="ifac_naam" value="{ifn}" autocomplete="off"></div>
 <div><label>Wachtwoord</label><input type="text" name="ifac_ww" value="{ifw}" autocomplete="off"></div></div></details></section>
 {'' if os.path.exists(radio.RADIO_FILE) else '<label class="vink"><input type="checkbox" name="pas_rnodes_aan" checked>Ook de RNodes van deze Pi gelijkzetten (frequentie, bandbreedte, SF, CR, IFAC; zendvermogen blijft)</label>'}
-<div class="balk"><button type="submit">Opslaan en herstarten</button></div></form>"""
+<div class="balk"><button type="submit">Opslaan en herstarten</button></div></form>
+{beheer.html_netwerk_delen(verborgen(), "steunpunt") if form is None else ""}"""
 
 
 def html_onbekend_en_handmatig(inst):
@@ -1060,6 +1097,16 @@ class Handler(BaseHTTPRequestHandler):
             meld = meldingen(fouten=[m[5:]])
         elif m.startswith("ok:"):
             meld = meldingen(ok=m[3:])
+        if pad == "netwerk.json":
+            net_nu = netwerk()
+            data = json.dumps(net_nu, ensure_ascii=False, indent=2).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Disposition", f'attachment; filename="{beheer.netwerk_export_naam(net_nu)}"')
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+            return
         if pad == "backup.zip":
             data, naam = beheer.maak_backup("steunpunt", inst.get("roepnaam", ""))
             self.send_response(200)
@@ -1106,10 +1153,19 @@ class Handler(BaseHTTPRequestHandler):
             return
         if urlparse(self.path).path.strip("/") == "terugzetten":
             return self._terugzetten()
-        f = self._formulier()
+        if urlparse(self.path).path.strip("/") == "netwerk_import":
+            ingeladen, csrf, fout_imp = beheer.lees_netwerkbestand(self)
+            if not hmac.compare_digest(csrf, CSRF):
+                return self._terug("/netwerk", "fout:Formulier verlopen, probeer het opnieuw.")
+            if fout_imp:
+                return self._terug("/netwerk", "fout:" + fout_imp)
+            f = dict(netwerk_naar_formulier(ingeladen), csrf=csrf)
+            pad = "netwerk"
+        else:
+            f = self._formulier()
+            pad = urlparse(self.path).path.strip("/")
         if not hmac.compare_digest(f.get("csrf", ""), CSRF):
             return self._terug("/status", "fout:Formulier verlopen, probeer het opnieuw.")
-        pad = urlparse(self.path).path.strip("/")
         inst, net = instellingen(), netwerk()
 
         if pad == "steunpunt":
@@ -1163,6 +1219,13 @@ class Handler(BaseHTTPRequestHandler):
             ok, fout = herstart("noodnet-brug")
             if not ok:
                 fouten_h.append("Opgeslagen, maar herstart van de brug lukte niet: " + fout)
+            if nieuw.get("frequentie_2m") != net.get("frequentie_2m"):
+                if radio.rig.cat_actief(radio.instellingen()):
+                    meld_set = radio.rig.zet_set(radio.instellingen(), nieuw["frequentie_2m"])
+                    radio.rig.log(f"Nieuwe frequentie {radio.rig.mhz(nieuw['frequentie_2m'])} ingesteld" + (": " + "; ".join(meld_set) if meld_set else ""))
+                    radio_info.append(f"Set (CAT) op {radio.rig.mhz(nieuw['frequentie_2m'])} gezet." + (" " + "; ".join(meld_set) if meld_set else ""))
+                else:
+                    let = list(let) + [f"Nieuwe 2 m-frequentie: zet de set op {radio.rig.mhz(nieuw['frequentie_2m'])}, en ook de eindposten (tabblad Instellingen)."]
             melding = meldingen(ok="Opgeslagen. Maak ook een nieuwe kaart (tabblad Kaart) en laat de telefoons die opnieuw scannen."
                                 if not fouten_h else None, fouten=fouten_h, let=let)
             if radio_info:
@@ -1175,6 +1238,22 @@ class Handler(BaseHTTPRequestHandler):
             if uit:
                 sys.stderr.write(uit + "\n")
             return self._stuur(uit or "ok", soort="text/plain; charset=utf-8")
+        if pad == "set_nu":
+            meld = radio.rig.zet_set(radio.instellingen())
+            radio.rig.log("Set ingesteld via de beheerpagina" + (": " + "; ".join(meld) if meld else ""))
+            uit = meldingen(fouten=meld) if meld else meldingen(ok="Set ingesteld op " + radio.rig.mhz(radio.rig.doelfrequentie()) + ".")
+            return self._stuur(pagina("radio", uit + radio.html_radio("steunpunt", verborgen()), inst))
+        if pad == "set_zoek":
+            uitslag = radio.verwerk_zoek("steunpunt", inst.get("roepnaam"), herstart, verborgen())
+            return self._stuur(pagina("radio", radio.html_radio("steunpunt", verborgen(), zoekuitslag=uitslag), inst))
+        if pad == "set_kies":
+            fouten, diensten = radio.kies_set("steunpunt", f, inst.get("roepnaam"), net)
+            if fouten:
+                return self._stuur(pagina("radio", meldingen(fouten=fouten) + radio.html_radio("steunpunt", verborgen()), inst))
+            for d in diensten:
+                herstart(d)
+            time.sleep(4)
+            return self._terug("/radio", "ok:CAT ingesteld; de set gaat naar de frequentie van de gemeente. Doe nu een Testuitzending.")
         if pad == "radiotest":
             return self._stuur(pagina("radio", radio.verwerk_test(inst.get("roepnaam"), f) +
                                       radio.html_radio("steunpunt", verborgen()), inst))
@@ -1307,12 +1386,13 @@ def _terugzetten(self):
     r = radio.instellingen()
     try:
         inst = instellingen()
+        radio.rig.schrijf_env(r)
         radio.maak_direwolf(inst.get("roepnaam"), r)
         if r.get("rnode_433") or r.get("rnode_868"):
             radio.maak_reticulum(r, netwerk())
     except Exception as ex:
         meld.append(f"Radio-instellingen niet opnieuw gemaakt: {ex}")
-    for d in ("direwolf", "rnsd", "noodnet-brug"):
+    for d in ("noodnet-rigctld", "direwolf", "rnsd", "noodnet-brug"):
         herstart(d)
         if d == "rnsd":
             time.sleep(4)
@@ -1347,6 +1427,7 @@ def main():
         return stel_wachtwoord_in()
     if not lees_json(WW_FILE):
         sys.exit("Stel eerst een wachtwoord in:  python noodnet_web.py --wachtwoord")
+    radio.rig.start_bewaker(radio.instellingen, lambda t: print("Set: " + t, flush=True))
     server = ThreadingHTTPServer(("0.0.0.0", args.poort), Handler)
     print(f"Noodnet beheerpagina op http://0.0.0.0:{args.poort}  (gebruiker: beheer)", flush=True)
     try:

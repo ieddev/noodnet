@@ -1,0 +1,15 @@
+[Unit]
+Description=Noodnet: CAT-besturing van de 2 m-set (rigctld)
+After=network.target
+Before=direwolf.service
+
+[Service]
+Type=simple
+User=@GEBRUIKER@
+WorkingDirectory=@MAP@
+ExecStart=/bin/bash @MAP@/start_rigctld.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

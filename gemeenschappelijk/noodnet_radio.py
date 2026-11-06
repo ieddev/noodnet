@@ -19,6 +19,8 @@ import re
 import subprocess
 import time
 
+import noodnet_rig as rig
+
 e = html.escape
 
 MAP = os.path.dirname(os.path.abspath(__file__))
@@ -31,6 +33,7 @@ SERIAL_BY_ID = os.environ.get("NOODNET_SERIAL_BY_ID", "/dev/serial/by-id")
 NMCLI = os.environ.get("NOODNET_NMCLI", "nmcli")
 
 STANDAARD = {"geluidskaart": "", "ptt_poort": "", "ptt_methode": "RTS",
+             "cat_model": 0, "cat_poort": "", "cat_baud": 0, "cat_vermogen": None, "cat_mode": "PKTFM",
              "rnode_433": "", "rnode_868": "", "txpower_433": 10, "txpower_868": 14}
 
 
@@ -53,6 +56,11 @@ def schrijf(pad, data):
 def instellingen():
     r = dict(STANDAARD)
     r.update(lees(RADIO_FILE, {}) or {})
+    if str(r.get("ptt_methode", "")).startswith("CAT:"):        # oude notatie (CAT:3081 op de PTT-poort)
+        r["cat_model"] = int(r["ptt_methode"].split(":", 1)[1] or 0)
+        r["cat_poort"] = r.get("cat_poort") or r.get("ptt_poort", "")
+        r["cat_baud"] = r.get("cat_baud") or 19200
+        r["ptt_methode"] = "CAT"
     return r
 
 
@@ -135,11 +143,10 @@ def raad_aan(kaarten, poorten):
 def maak_direwolf(roepnaam, r):
     kaart = r.get("geluidskaart") or "CODEC"
     ptt = ""
-    if r.get("ptt_poort") and r.get("ptt_methode") in ("RTS", "DTR"):
+    if rig.cat_actief(r):
+        ptt = "# PTT via CAT: rigctld (dienst noodnet-rigctld)\nPTT RIG 2 localhost:4532"
+    elif r.get("ptt_poort") and r.get("ptt_methode") in ("RTS", "DTR"):
         ptt = f"PTT {r['ptt_poort']} {r['ptt_methode']}"
-    elif r.get("ptt_poort") and r.get("ptt_methode", "").startswith("CAT:"):
-        model = r["ptt_methode"].split(":", 1)[1]
-        ptt = f"PTT RIG {model} {r['ptt_poort']} 19200"
     tekst = f"""# Gemaakt door de Noodnet-beheerpagina ({time.strftime('%Y-%m-%d %H:%M')}).
 # Wijzig via de beheerpagina (tabblad Radio); met de hand wijzigen wordt overschreven.
 ADEVICE plughw:CARD={kaart},DEV=0
@@ -378,7 +385,7 @@ def advies_niveau(niveau):
 def html_testuitzending(verborgen, r=None):
     r = r or instellingen()
     m = mixer(r.get("geluidskaart"))
-    ptt = "Er is geen PTT-poort gekozen: de set moet dan op VOX staan." if not r.get("ptt_poort") else ""
+    ptt = "Er is geen PTT-poort gekozen: de set moet dan op VOX staan." if not r.get("ptt_poort") and not rig.cat_actief(r) else ""
 
     def balk(sleutel, titel, uitleg):
         if sleutel not in m:
@@ -448,7 +455,35 @@ def html_testuitslag(gelukt, regels):
 # Tabblad Radio
 # ---------------------------------------------------------------------------
 
-def html_radio(rol, verborgen, r=None, fouten=()):
+def html_set(rol, verborgen, r):
+    """Live gegevens van de set (CAT) of een duidelijke opdracht zonder CAT."""
+    doel = rig.doelfrequentie()
+    waar = "tabblad Netwerk" if rol == "steunpunt" else "tabblad Instellingen"
+    if not rig.cat_actief(r):
+        return (f"<section><h2>Frequentie</h2><div class='melding let' style='font-size:18px'>Zet je set op "
+                f"<b>{rig.mhz(doel)}</b>, FM (datamode als je set dat heeft).</div><p class='uitleg'>De frequentie van de "
+                f"gemeente staat op het {waar}. Met CAT (hieronder) zet de Pi de set zelf goed.</p></section>")
+    st = rig.status()
+    if "fout" in st:
+        live = f"<div class='melding fout'>Geen verbinding met de set via CAT: {e(st['fout'])}. Staat de set aan en klopt de CAT-poort?</div>"
+    else:
+        goed = abs(st["frequentie"] - doel) <= 100 and (st.get("mode") or "").upper() in rig.PAKKET_MODES | {"FM"}
+        live = (f"<table><tr><td>Frequentie</td><td><b>{rig.mhz(st['frequentie'])}</b> "
+                f"{'✓' if abs(st['frequentie'] - doel) <= 100 else '<span style=color:var(--rood)>≠ ' + rig.mhz(doel) + '</span>'}</td></tr>"
+                f"<tr><td>Mode</td><td>{e(st.get('mode') or '?')}</td></tr>"
+                f"<tr><td>S-meter</td><td>{rig.s_meter(st.get('s'))}</td></tr>"
+                f"<tr><td>Vermogen</td><td>{'–' if st.get('vermogen') is None else str(int(round(st['vermogen'] * 100))) + '%'}</td></tr>"
+                f"<tr><td>Zenden</td><td>{'ja' if st.get('ptt') else 'nee'}</td></tr></table>")
+        if not goed:
+            live += "<div class='melding let'>De set staat niet op de frequentie/mode van de gemeente; de Pi zet hem binnen een minuut terug.</div>"
+    log = "".join(f"<tr><td class='mono'>{e(t)}</td><td>{e(x)}</td></tr>" for t, x in rig.logregels())
+    return f"""<section><h2>Set (CAT)</h2><p class="uitleg">{e(rig.MODEL_NAAM.get(int(r.get('cat_model') or 0), 'model ' + str(r.get('cat_model'))))}
+· frequentie van de gemeente: <b>{rig.mhz(doel)}</b> ({waar}). Draait iemand aan de set, dan zet de Pi hem terug.</p>{live}
+<form method="post" action="/set_nu" class="balk">{verborgen}<button type="submit">Set nu instellen</button></form>
+{('<details style="margin-top:10px"><summary>Laatste acties</summary><table>' + log + '</table></details>') if log else ''}</section>"""
+
+
+def html_radio(rol, verborgen, r=None, fouten=(), zoekuitslag=""):
     r = r or instellingen()
     kaarten = geluidskaarten()
     poorten = seriele_poorten()
@@ -459,17 +494,20 @@ def html_radio(rol, verborgen, r=None, fouten=()):
     def opties(lijst, gekozen, leeg=None):
         uit = f'<option value="">{e(leeg)}</option>' if leeg else ""
         for waarde, tekst in lijst:
-            uit += f'<option value="{e(waarde)}" {"selected" if waarde == gekozen else ""}>{e(tekst)}</option>'
-        if gekozen and gekozen not in [w for w, _ in lijst]:
-            uit += f'<option value="{e(gekozen)}" selected>{e(gekozen)} (niet gevonden!)</option>'
+            uit += f'<option value="{e(str(waarde))}" {"selected" if str(waarde) == str(gekozen) else ""}>{e(tekst)}</option>'
+        if gekozen and str(gekozen) not in [str(w) for w, _ in lijst]:
+            uit += f'<option value="{e(str(gekozen))}" selected>{e(str(gekozen))} (niet gevonden!)</option>'
         return uit
 
     kaart_opties = opties([(k, f"{k} - {b}") for k, b in kaarten], kaart, "- kies -")
     poort_opties = opties(poorten, ptt, "Geen PTT-poort (VOX)")
     methode = r.get("ptt_methode") or "RTS"
-    methode_opties = opties([("RTS", "RTS (SCU-17, IC-9700 'USB SEND = RTS', Digirig)"),
-                             ("DTR", "DTR"), ("CAT:3081", "CAT - Icom IC-9700"),
-                             ("CAT:1020", "CAT - Yaesu FT-817/818")], methode)
+    methode_opties = opties([("CAT", "CAT – de Pi bestuurt de set (aanbevolen)"),
+                             ("RTS", "RTS – alleen PTT (Digirig, SCU-17)"), ("DTR", "DTR – alleen PTT")], methode)
+    model_opties = opties([(m, f"{merk} {naam}") for m, merk, naam, _ in rig.MODELLEN], r.get("cat_model") or "", "- kies je set -")
+    cat_poort_opties = opties(poorten, r.get("cat_poort") or "", "- kies -")
+    baud_opties = opties([(b, f"{b} baud") for b in rig.SNELHEDEN], r.get("cat_baud") or "", "standaard van het model")
+    verm = "" if r.get("cat_vermogen") in (None, "") else str(r.get("cat_vermogen"))
     fout_html = "".join(f'<div class="melding fout">{e(f)}</div>' for f in fouten)
     rnode = ""
     if rol == "steunpunt":
@@ -481,16 +519,101 @@ komen van het tabblad Netwerk; hier alleen de poort en het zendvermogen van de P
 <label>Zendvermogen 868 <small>dBm; max 500 mW e.r.p. op 869,525 MHz</small></label><input type="number" name="txpower_868" value="{e(str(r.get('txpower_868', 14)))}" min="0" max="27">
 <p class="uitleg" style="margin-top:8px">Weet je niet welke poort welke RNode is? Trek er één uit, ververs de pagina en kijk welke verdwijnt.</p></section>"""
     geen = "" if poorten else "<div class='melding let'>Geen USB-seriële apparaten gevonden. Zijn de set en de RNodes aangesloten en aan?</div>"
-    return f"""{fout_html}{geen}<form method="post" action="/radio">{verborgen}
-<section><h2>2 m-transceiver (Direwolf)</h2><p class="uitleg">De roepnaam komt van het tabblad {'Steunpunt' if rol == 'steunpunt' else 'Instellingen'}.
-Na opslaan wordt Direwolf opnieuw gestart.</p>
+    return f"""{fout_html}{zoekuitslag}{geen}{html_set(rol, verborgen, r)}<form method="post" action="/radio">{verborgen}
+<section><h2>2 m-transceiver</h2><p class="uitleg">De roepnaam komt van het tabblad {'Steunpunt' if rol == 'steunpunt' else 'Instellingen'}.
+Na opslaan worden Direwolf (en bij CAT rigctld) opnieuw gestart.</p>
 <label>Geluidskaart van de set</label><select name="geluidskaart">{kaart_opties}</select>
-<label>PTT-poort</label><select name="ptt_poort">{poort_opties}</select>
-<label>PTT-methode</label><select name="ptt_methode">{methode_opties}</select>
-<p class="uitleg" style="margin-top:8px">FT-818 met SCU-17: poort B (if01) met RTS. IC-9700: in de set <i>MENU &gt; SET &gt; Connectors &gt; USB SEND</i> op <b>USB (A) RTS</b> zetten en hier poort A met RTS kiezen. Daarna de knop Testuitzending.</p></section>
+<label>Besturing van de set</label><select name="ptt_methode" id="ptt_methode" onchange="toonCat()">{methode_opties}</select>
+<div id="cat_deel">
+<label>Set <small>staat je set er niet bij? Kies RTS/DTR hierboven</small></label><select name="cat_model">{model_opties}</select>
+<div class="rij"><div><label>CAT-poort</label><select name="cat_poort">{cat_poort_opties}</select></div>
+<div><label>Snelheid</label><select name="cat_baud">{baud_opties}</select></div></div>
+<label>Zendvermogen <small>% van het maximum van de set; leeg = niet aanpassen. Blijf binnen je vergunning.</small></label>
+<input type="number" name="cat_vermogen" value="{e(verm)}" min="1" max="100" placeholder="leeg = zoals de set staat">
+<p class="uitleg" style="margin-top:8px">De Pi zet de set op de frequentie van de gemeente in de <b>datamode</b> (FM-D/PKT): dan komt het
+geluid van USB. PTT gaat via CAT. Icom: CI-V-adres op standaard laten.</p></div>
+<div id="rts_deel"><label>PTT-poort</label><select name="ptt_poort">{poort_opties}</select>
+<p class="uitleg" style="margin-top:8px">FT-818 met SCU-17: poort B met RTS. IC-9700: in de set <i>MENU &gt; SET &gt; Connectors &gt; USB SEND</i> op
+<b>USB (A) RTS</b> zetten en hier poort A met RTS kiezen.</p></div></section>
 {rnode}
 <div class="balk"><button type="submit">Opslaan en herstarten</button></div></form>
+<form method="post" action="/set_zoek" style="margin:20px 0 16px">{verborgen}<section><h2>Zoek mijn set</h2>
+<p class="uitleg">Weet je niet welk model, welke poort of welke snelheid? De Pi probeert de bekende sets op alle USB-poorten
+(behalve de RNodes). Zet de set aan. Dit duurt tot anderhalve minuut; Direwolf is zolang even uit.</p>
+<button type="submit" class="licht">Zoek mijn set</button></section></form>
+<script>function toonCat(){{var c=document.getElementById('ptt_methode').value==='CAT';
+document.getElementById('cat_deel').style.display=c?'':'none';document.getElementById('rts_deel').style.display=c?'none':'';}}toonCat();</script>
 {html_testuitzending(verborgen, r)}"""
+
+
+def verwerk_zoek(rol, roepnaam, herstart, verborgen):
+    """Zoek mijn set: CAT-poorten vrijmaken, zoeken, uitslag tonen (nog niet opslaan). Geeft html."""
+    r = instellingen()
+    bezet = {r.get("rnode_433"), r.get("rnode_868")} - {""}
+    poorten = [(p, l) for p, l in seriele_poorten() if p not in bezet]
+    if not poorten:
+        return "<div class='melding fout'>Geen USB-poorten gevonden om te proberen (de RNodes worden overgeslagen).</div>"
+    # poorten vrijmaken: rigctld laten wachten en Direwolf zonder PTT starten
+    tijdelijk = dict(r, ptt_methode="RTS", ptt_poort="")
+    if os.path.exists(rig.ENV_FILE):
+        os.replace(rig.ENV_FILE, rig.ENV_FILE + ".zoek")
+    maak_direwolf(roepnaam, tijdelijk)
+    herstart("noodnet-rigctld")
+    herstart("direwolf")
+    time.sleep(2)
+    try:
+        gevonden, meld = rig.zoek(poorten)
+    finally:
+        if os.path.exists(rig.ENV_FILE + ".zoek"):
+            os.replace(rig.ENV_FILE + ".zoek", rig.ENV_FILE)
+        maak_direwolf(roepnaam, r)
+        herstart("noodnet-rigctld")
+        herstart("direwolf")
+    if not gevonden:
+        return ("<div class='melding fout'>Geen bekende set gevonden. Staat de set aan en is de USB-kabel aangesloten? "
+                "Bij een Icom: staat <i>CI-V USB Port</i> op 'Unlink from [REMOTE]' en CI-V-adres op standaard? "
+                "Staat je set niet in de lijst, gebruik dan RTS/DTR.</div>" + "".join(f"<div class='melding let'>{e(m)}</div>" for m in meld))
+    rijen = ""
+    for pad, model, baud, hz in gevonden:
+        rijen += (f"<tr><td><b>{e(rig.MODEL_NAAM.get(model, str(model)))}</b><br><small class='mono'>{e(os.path.basename(pad))}</small></td>"
+                  f"<td>{baud} baud<br>{rig.mhz(hz)}</td><td><form method='post' action='/set_kies' style='margin:0'>{verborgen}"
+                  f"<input type='hidden' name='cat_model' value='{model}'><input type='hidden' name='cat_poort' value='{e(pad)}'>"
+                  f"<input type='hidden' name='cat_baud' value='{baud}'><button type='submit'>Gebruiken</button></form></td></tr>")
+    return ("<section><h2>Gevonden</h2><p class='uitleg'>Tik op <b>Gebruiken</b>: CAT wordt ingesteld en de set gaat naar de "
+            "frequentie van de gemeente.</p><table>" + rijen + "</table></section>")
+
+
+def kies_set(rol, f, roepnaam, net=None):
+    """Knop 'Gebruiken' na Zoek mijn set: CAT met dit model/poort/snelheid opslaan. Geeft (fouten, herstart)."""
+    r = instellingen()
+    try:
+        model, baud = int(f.get("cat_model") or 0), int(f.get("cat_baud") or 0)
+    except ValueError:
+        return ["Ongeldige keuze."], []
+    poort = f.get("cat_poort", "")
+    if not model or poort not in [p for p, _ in seriele_poorten()]:
+        return ["Deze set/poort is niet (meer) gevonden; zoek opnieuw."], []
+    if poort in (r.get("rnode_433"), r.get("rnode_868")):
+        return ["Deze poort is een RNode."], []
+    r.update({"ptt_methode": "CAT", "cat_model": model, "cat_poort": poort, "cat_baud": baud, "ptt_poort": "", "_opgeslagen": True})
+    schrijf(RADIO_FILE, r)
+    rig.schrijf_env(r)
+    maak_direwolf(roepnaam, r)
+    return [], ["noodnet-rigctld", "direwolf"]
+
+
+def html_set_kort(r=None):
+    """Eén regel voor het tabblad Status."""
+    r = r or instellingen()
+    doel = rig.doelfrequentie()
+    if not rig.cat_actief(r):
+        return f"<tr><td>2 m-frequentie</td><td>Zet de set op <b>{rig.mhz(doel)}</b> FM (geen CAT)</td></tr>"
+    st = rig.status()
+    if "fout" in st:
+        return "<tr><td>Set (CAT)</td><td style='color:var(--rood)'>geen verbinding – tabblad Radio</td></tr>"
+    goed = abs(st["frequentie"] - doel) <= 100
+    return (f"<tr><td>Set (CAT)</td><td><b>{rig.mhz(st['frequentie'])}</b> {e(st.get('mode') or '')} "
+            f"{'✓' if goed else '<span style=color:var(--rood)>wordt teruggezet naar ' + rig.mhz(doel) + '</span>'}</td></tr>")
 
 
 def verwerk_radio(rol, f, roepnaam, net=None):
@@ -499,11 +622,27 @@ def verwerk_radio(rol, f, roepnaam, net=None):
     fouten = []
     r["geluidskaart"] = f.get("geluidskaart", "").strip()
     r["ptt_poort"] = f.get("ptt_poort", "").strip()
-    r["ptt_methode"] = f.get("ptt_methode", "RTS")
+    r["ptt_methode"] = f.get("ptt_methode", "RTS") if f.get("ptt_methode") in ("CAT", "RTS", "DTR") else "RTS"
     r["_opgeslagen"] = True
     if not r["geluidskaart"]:
         fouten.append("Kies de geluidskaart van de set.")
-    herstart = ["direwolf"]
+    if r["ptt_methode"] == "CAT":
+        try:
+            r["cat_model"] = int(f.get("cat_model") or 0)
+            r["cat_baud"] = int(f.get("cat_baud") or 0)
+            v = (f.get("cat_vermogen") or "").strip()
+            r["cat_vermogen"] = int(v) if v else None
+        except ValueError:
+            fouten.append("CAT: kies een set en vul het vermogen in als heel getal.")
+        r["cat_poort"] = f.get("cat_poort", "").strip()
+        if not r.get("cat_model") or not r["cat_poort"]:
+            fouten.append("CAT: kies je set en de CAT-poort (of gebruik Zoek mijn set).")
+        if r.get("cat_vermogen") is not None and not 1 <= r["cat_vermogen"] <= 100:
+            fouten.append("CAT: vermogen tussen 1 en 100%.")
+        if not r.get("cat_baud"):
+            r["cat_baud"] = next((b[0] for m, _, _, b in rig.MODELLEN if m == r.get("cat_model")), 19200)
+        r["ptt_poort"] = ""
+    herstart = ["noodnet-rigctld", "direwolf"]
     if rol == "steunpunt":
         r["rnode_433"] = f.get("rnode_433", "").strip()
         r["rnode_868"] = f.get("rnode_868", "").strip()
@@ -516,15 +655,17 @@ def verwerk_radio(rol, f, roepnaam, net=None):
             fouten.append("433 MHz: maximaal 10 dBm (10 mW e.r.p.).")
         if r["txpower_868"] > 27:
             fouten.append("868 MHz: maximaal 27 dBm (500 mW e.r.p.).")
-        gebruikt = [p for p in (r["rnode_433"], r["rnode_868"], r["ptt_poort"]) if p]
+        gebruikt = [p for p in (r["rnode_433"], r["rnode_868"], r["ptt_poort"],
+                                r["cat_poort"] if r["ptt_methode"] == "CAT" else "") if p]
         if len(gebruikt) != len(set(gebruikt)):
             fouten.append("Dezelfde poort is twee keer gekozen.")
         if not (r["rnode_433"] or r["rnode_868"]):
             fouten.append("Kies minstens één RNode-poort.")
-        herstart = ["direwolf", "rnsd", "noodnet-brug"]
+        herstart = ["noodnet-rigctld", "direwolf", "rnsd", "noodnet-brug"]
     if fouten:
         return fouten, [], r
     schrijf(RADIO_FILE, r)
+    rig.schrijf_env(r)
     maak_direwolf(roepnaam, r)
     if rol == "steunpunt":
         maak_reticulum(r, net)

@@ -40,7 +40,7 @@ SCRIPT_FILE = os.path.join(MAP, "ax25_to_mqtt.py")
 LOGBOEK_DIR = os.path.join(MAP, "logboek")
 WW_FILE = os.path.join(MAP, "web_wachtwoord.json")
 
-DIENSTEN = [("direwolf", "Direwolf (2 m)"), ("noodnet-eindpost", "Ontvanger (ax25_to_mqtt)"),
+DIENSTEN = [("noodnet-rigctld", "CAT-besturing set (rigctld)"), ("direwolf", "Direwolf (2 m)"), ("noodnet-eindpost", "Ontvanger (ax25_to_mqtt)"),
             ("mosquitto", "MQTT (Mosquitto)"), ("nodered", "Node-RED (scherm)"), ("noodnet-download", "Startpagina (poort 80)")]
 SYSTEMCTL = os.environ.get("NOODNET_SYSTEMCTL", "systemctl")
 SUDO = os.environ.get("NOODNET_SUDO", "sudo")
@@ -237,8 +237,9 @@ def pagina(actief, inhoud, inst, melding=""):
 <nav>{nav}</nav><main>{melding}{inhoud}</main>{beheer.TIJD_SCRIPT % CSRF}</body></html>"""
 
 
-def meldingen(ok=None, fouten=()):
+def meldingen(ok=None, fouten=(), let=()):
     uit = f'<div class="melding ok">{e(ok)}</div>' if ok else ""
+    uit += "".join(f'<div class="melding let">{e(x)}</div>' for x in let)
     return uit + "".join(f'<div class="melding fout">{e(f)}</div>' for f in fouten)
 
 
@@ -274,7 +275,7 @@ def html_status(inst):
     klok, klokbron = beheer.tijd_tekst()
     return f"""
 {beheer.html_operator(verborgen())}
-<section><h2>Diensten</h2><p class="uitleg">Alles moet groen zijn.</p><table>{rijen}</table></section>
+<section><h2>Diensten</h2><p class="uitleg">Alles moet groen zijn.</p><table>{rijen}{radio.html_set_kort()}</table></section>
 <section><h2>Vandaag</h2><div class="cijfers">
 <div class="cijfer"><b>{mth_mij}</b><span>M/ETHANE voor deze post</span></div>
 <div class="cijfer"><b>{mth - mth_mij}</b><span>M/ETHANE meegelezen</span></div>
@@ -310,7 +311,9 @@ def html_instellingen(inst, form=None):
 <section><h2>Deze eindpost</h2>
 <label>Naam <small>bijv. Brandweer Deventer, Gemeentehuis</small></label><input type="text" name="eindpost_naam" value="{w('eindpost_naam')}" required>
 <label>Roepnaam op 2 m <small>met SSID; zo bevestigt deze post (ACK). Moet ook in het Netwerk van de steunpunten staan.</small></label>
-<input type="text" name="roepnaam" value="{w('roepnaam')}" placeholder="PD3PAM-2" required></section>
+<input type="text" name="roepnaam" value="{w('roepnaam')}" placeholder="PD3PAM-2" required>
+<label>2 m-frequentie van de gemeente <small>MHz; dezelfde als op de steunpunten (tabblad Netwerk). Afspreken met de buurgemeenten.</small></label>
+<input type="text" name="frequentie_2m" value="{e(v.get('frequentie_2m', '') if form is not None else radio.rig.mhz(inst.get('frequentie_2m') or radio.rig.STANDAARD_FREQ).replace(' MHz', '').replace(',', '.'))}" inputmode="decimal" placeholder="144.925"></section>
 <section><h2>Welke meldingen</h2><p class="uitleg">Meldingen voor deze disciplines worden getoond én bevestigd.
 Zelfde namen als op het tabblad Netwerk van de steunpunten.</p>
 {disc_html}
@@ -324,7 +327,8 @@ Zelfde namen als op het tabblad Netwerk van de steunpunten.</p>
 <div><label>Poort</label><input type="number" name="mqtt_poort" value="{w('mqtt_poort')}"></div></div>
 <div class="rij"><div><label>Gebruiker</label><input type="text" name="mqtt_gebruiker" value="{w('mqtt_gebruiker')}" autocomplete="off"></div>
 <div><label>Wachtwoord</label><input type="text" name="mqtt_wachtwoord" value="{w('mqtt_wachtwoord')}" autocomplete="off"></div></div></details></section>
-<div class="balk"><button type="submit">Opslaan en ontvanger herstarten</button></div></form>"""
+<div class="balk"><button type="submit">Opslaan en ontvanger herstarten</button></div></form>
+{beheer.html_netwerk_delen(verborgen(), "eindpost") if form is None else ""}"""
 
 
 def schrijf_operator_in_logboek(vorige):
@@ -404,6 +408,10 @@ def controleer(f, oud):
         fouten.append("MQTT-poort moet een getal zijn.")
     inst["mqtt_gebruiker"] = f.get("mqtt_gebruiker", "").strip()
     inst["mqtt_wachtwoord"] = f.get("mqtt_wachtwoord", "").strip()
+    hz, ff, _ = radio.rig.controleer_frequentie(f.get("frequentie_2m", ""))
+    fouten += ff
+    if hz:
+        inst["frequentie_2m"] = hz
     return inst, fouten
 
 
@@ -465,7 +473,7 @@ class Handler(BaseHTTPRequestHandler):
         elif m == "herstart":
             meld = meldingen(ok="Dienst herstart.")
         elif m == "radio":
-            meld = meldingen(ok="Radio-instellingen opgeslagen; Direwolf is herstart.")
+            meld = meldingen(ok="Radio-instellingen opgeslagen; Direwolf (en bij CAT rigctld) is herstart.")
         elif m.startswith("fout:"):
             meld = meldingen(fouten=[m[5:]])
         elif m.startswith("ok:"):
@@ -520,10 +528,13 @@ class Handler(BaseHTTPRequestHandler):
             if not ok:
                 return self._terug("/backup", "fout:" + " ".join(meld))
             inst = instellingen()
+            radio.rig.schrijf_env(radio.instellingen())
             radio.maak_direwolf(inst.get("roepnaam"), radio.instellingen())
-            herstart("direwolf"); herstart("noodnet-eindpost")
+            herstart("noodnet-rigctld"); herstart("direwolf"); herstart("noodnet-eindpost")
             return self._stuur(pagina("backup", meldingen(ok=" ".join(meld) + " Diensten herstart.") +
                                       beheer.html_backup("eindpost", verborgen()), inst))
+        if urlparse(self.path).path.strip("/") == "netwerk_import":
+            return self._netwerk_import()
         f = self._formulier()
         if not hmac.compare_digest(f.get("csrf", ""), CSRF):
             return self._terug("/status", "fout:Formulier verlopen, probeer het opnieuw.")
@@ -540,6 +551,9 @@ class Handler(BaseHTTPRequestHandler):
                     radio.maak_direwolf(nieuw["roepnaam"], radio.instellingen())
                     herstart("direwolf")
             ok, fout = herstart("noodnet-eindpost")
+            if nieuw.get("frequentie_2m") != inst.get("frequentie_2m") and radio.rig.cat_actief(radio.instellingen()):
+                meld_set = radio.rig.zet_set(radio.instellingen(), nieuw["frequentie_2m"])
+                radio.rig.log(f"Nieuwe frequentie {radio.rig.mhz(nieuw['frequentie_2m'])} ingesteld" + (": " + "; ".join(meld_set) if meld_set else ""))
             return self._terug("/instellingen", "opgeslagen" if ok else "fout:Opgeslagen, maar herstart lukte niet: " + fout)
         if pad == "tijd":
             uit = beheer.tijd_van_telefoon(f.get("ms"))
@@ -549,12 +563,32 @@ class Handler(BaseHTTPRequestHandler):
         if pad == "radiotest":
             return self._stuur(pagina("radio", radio.verwerk_test(inst.get("roepnaam"), f) +
                                       radio.html_radio("eindpost", verborgen()), inst))
+        if pad == "set_nu":
+            meld = radio.rig.zet_set(radio.instellingen())
+            radio.rig.log("Set ingesteld via de beheerpagina" + (": " + "; ".join(meld) if meld else ""))
+            uit = meldingen(fouten=meld) if meld else meldingen(ok="Set ingesteld op " + radio.rig.mhz(radio.rig.doelfrequentie()) + ".")
+            return self._stuur(pagina("radio", uit + radio.html_radio("eindpost", verborgen()), inst))
+        if pad == "set_zoek":
+            uitslag = radio.verwerk_zoek("eindpost", inst.get("roepnaam"), herstart, verborgen())
+            return self._stuur(pagina("radio", radio.html_radio("eindpost", verborgen(), zoekuitslag=uitslag), inst))
+        if pad == "set_kies":
+            fouten, diensten = radio.kies_set("eindpost", f, inst.get("roepnaam"), None)
+            if fouten:
+                return self._stuur(pagina("radio", meldingen(fouten=fouten) + radio.html_radio("eindpost", verborgen()), inst))
+            for d in diensten:
+                herstart(d)
+            time.sleep(4)
+            return self._terug("/radio", "ok:CAT ingesteld; de set gaat naar de frequentie van de gemeente. Doe nu een Testuitzending.")
         if pad == "radio":
             fouten, diensten, r = radio.verwerk_radio("eindpost", f, inst.get("roepnaam"))
             if fouten:
                 return self._stuur(pagina("radio", radio.html_radio("eindpost", verborgen(), dict(r, **f), fouten), inst))
-            ok, fout = herstart("direwolf")
-            return self._terug("/radio", "radio" if ok else "fout:Opgeslagen, maar Direwolf herstarten lukte niet: " + fout)
+            mis = []
+            for d in diensten:
+                ok, fout = herstart(d)
+                if not ok:
+                    mis.append(f"{d}: {fout}")
+            return self._terug("/radio", "radio" if not mis else "fout:Opgeslagen, maar herstarten lukte niet: " + "; ".join(mis))
         if pad == "operator":
             ok, tekst, vorige = beheer.verwerk_operator(f)
             if not ok:
@@ -575,6 +609,52 @@ class Handler(BaseHTTPRequestHandler):
         self._stuur("Niet gevonden", 404, "text/plain; charset=utf-8")
 
 
+def _netwerk_import(self):
+    """Netwerkbestand van de gemeente: 2 m-frequentie en de disciplines waar deze post bij staat overnemen."""
+    net, csrf, fout = beheer.lees_netwerkbestand(self)
+    if not hmac.compare_digest(csrf, CSRF):
+        return self._terug("/instellingen", "fout:Formulier verlopen, probeer het opnieuw.")
+    if fout:
+        return self._terug("/instellingen", "fout:" + fout)
+    inst = instellingen()
+    nieuw, meld, let = dict(inst), [], []
+    if net.get("frequentie_2m"):
+        hz, ff, ww = radio.rig.controleer_frequentie(f"{int(net['frequentie_2m']) / 1e6:.4f}")
+        if ff:
+            return self._terug("/instellingen", "fout:" + " ".join(ff))
+        nieuw["frequentie_2m"] = hz
+        meld.append(f"2 m-frequentie {radio.rig.mhz(hz)}.")
+        let += ww
+    rn = (inst.get("roepnaam") or "").upper()
+    mijn = [k for k, d in net["disciplines"].items() if isinstance(d, dict) and rn and rn in [str(x).upper() for x in d.get("eindposten") or []]]
+    if mijn:
+        if "alle" not in (inst.get("disciplines") or []):
+            nieuw["disciplines"] = mijn
+        labels = ", ".join(str(net["disciplines"][k].get("label") or k) for k in mijn)
+        meld.append(f"Deze post ({rn}) staat in het netwerk bij: {labels}." +
+                    ("" if "alle" not in (inst.get("disciplines") or []) else " 'Alle meldingen' blijft aan."))
+    elif rn:
+        let.append(f"Roepnaam {rn} staat bij geen enkele discipline in het netwerkbestand: de steunpunten wachten dan niet "
+                   f"op een bevestiging van deze post. Laat de beheerder {rn} toevoegen (tabblad Netwerk), of controleer de roepnaam.")
+    else:
+        let.append("Vul eerst de roepnaam van deze post in; dan kunnen ook de disciplines worden overgenomen.")
+    if net.get("gemeente"):
+        meld.insert(0, f"Netwerk van {net['gemeente']} ingeladen.")
+    with SCHRIJF_LOCK:
+        schrijf_json(INST_FILE, nieuw)
+    herstart("noodnet-eindpost")
+    if nieuw.get("frequentie_2m") and radio.rig.cat_actief(radio.instellingen()):
+        uit = radio.rig.zet_set(radio.instellingen(), nieuw["frequentie_2m"])
+        radio.rig.log(f"Frequentie {radio.rig.mhz(nieuw['frequentie_2m'])} uit netwerkbestand" + (": " + "; ".join(uit) if uit else ""))
+        let += uit
+    elif nieuw.get("frequentie_2m"):
+        let.append(f"Zet de set op {radio.rig.mhz(nieuw['frequentie_2m'])}.")
+    return self._stuur(pagina("instellingen", meldingen(ok=" ".join(meld), let=let) + html_instellingen(nieuw), nieuw))
+
+
+Handler._netwerk_import = _netwerk_import
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--poort", type=int, default=8080)
@@ -584,6 +664,7 @@ def main():
         return stel_wachtwoord_in()
     if not lees_json(WW_FILE):
         sys.exit("Stel eerst een wachtwoord in:  python eindpost_web.py --wachtwoord")
+    radio.rig.start_bewaker(radio.instellingen, lambda t: print("Set: " + t, flush=True))
     server = ThreadingHTTPServer(("0.0.0.0", args.poort), Handler)
     print(f"Noodnet eindpost-beheer op http://0.0.0.0:{args.poort}  (gebruiker: beheer)", flush=True)
     try:
