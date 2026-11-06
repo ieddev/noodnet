@@ -2,6 +2,7 @@
 """Maakt de PDF-handleidingen in docs/ uit de MD-bestanden:
     PROCEDURE.md    -> Noodnet-procedure.pdf    (zendamateurs: steunpunt en eindpost)
     VRIJWILLIGER.md -> Noodnet-vrijwilliger.pdf (vrijwilligers: RNode en app)
+    BEHEERDER.md    -> Noodnet-beheerder.pdf    (beheerder van een steunpunt, kort)
 
 Nodig op de pc waarop je hem maakt (niet op de Pi):
     pip install markdown qrcode pypdf playwright && playwright install chromium
@@ -49,6 +50,15 @@ DOCUMENTEN = {
         schema={"stap-4-aanmelden-bij-het-steunpunt": ("noodnet-voorbeeldkaart.png",
                                                       "Zo ziet een aanmeldkaart eruit. Elk steunpunt heeft een eigen kaart.")},
         inhoud_eigen_pagina=False, achterblad="zakkaart"),
+    "beheerder": dict(
+        bron="BEHEERDER.md", uit="Noodnet-beheerder.pdf",
+        label="Noodnet &middot; voor de beheerder", titel="Een Noodsteunpunt<br>beheren",
+        voettitel="Beheer van een Noodsteunpunt (kort)",
+        pdftitel="Noodnet - beheer van een Noodsteunpunt",
+        sub="Vrijwilligers goedkeuren, in de gaten houden en afmelden, vanaf je telefoon via de RNode of op de beheerpagina.",
+        voorblad="noodnet-noodsteunpunt.svg", qr2="Nieuwste handleiding",
+        nieuwe_pagina=set(), schema={},
+        inhoud_eigen_pagina=False, achterblad="zakkaart_beheer"),
 }
 D = DOCUMENTEN["procedure"]   # het document dat nu gemaakt wordt
 
@@ -166,6 +176,41 @@ def zakkaart():
 </section>""" % (rijen, gegevens)
 
 
+def zakkaart_beheer():
+    opdrachten = [("WACHT", "open aanmeldingen"), ("JA &lt;nr&gt;", "aanmelding goedkeuren"),
+                  ("NEE &lt;nr&gt;", "aanmelding afwijzen"), ("LIJST", "wie, laatst gehoord, accu"),
+                  ("AF &lt;naam&gt;", "vrijwilliger afmelden"), ("CODE", "aanmeldcode tonen"),
+                  ("CODE &lt;nieuw&gt;", "nieuwe aanmeldcode"), ("HELP", "alle opdrachten")]
+    rijen = "".join('<tr><td class="opdr">%s</td><td>%s</td></tr>' % o for o in opdrachten)
+    gegevens = "".join("<tr><th>%s</th><td></td></tr>" % g for g in
+                       ["Steunpunt (roepnaam)", "Wifi", "Eindposten", "2 m-frequentie", "Andere beheerders"])
+    return """
+<section class="invulblad zakkaart">
+<h2 id="zakkaart">Zakkaart</h2>
+<p class="klein">Knip uit langs de stippellijn, vouw dubbel en bewaar bij je beheertelefoon.</p>
+<div class="knip">
+ <div class="kaartje">
+  <div class="kaartkop">OPDRACHTEN VIA DE APP</div>
+  <p class="kort">Gesprek met het steunpunt openen, opdracht typen, versturen.</p>
+  <table class="methane opdrachten">%s</table>
+  <div class="kaartkop klein-kop">BEHEERPAGINA</div>
+  <p class="kort">Wifi <b>Noodnet-…</b> &middot; <b>http://10.42.0.1:8080</b> &middot; gebruiker <b>beheer</b></p>
+ </div>
+ <div class="kaartje">
+  <div class="kaartkop">BEGIN VAN DE INZET</div>
+  <ol class="kort"><li>Antennes erop, alles aan, 2 min wachten</li><li>Beheerpagina openen (klok)</li>
+  <li><b>Status</b>: alles groen, zelfde netwerkversie</li><li><b>Dienst overnemen</b></li><li><b>LIJST</b> en <b>WACHT</b></li></ol>
+  <div class="kaartkop klein-kop">EINDE</div>
+  <ol class="kort"><li>Vrijwilligers laten weten</li><li><b>Status → Pi uitschakelen</b></li>
+  <li>Lampje uit (± 20 s), dan pas stroom eraf</li></ol>
+  <div class="kaartkop klein-kop">MIJN STEUNPUNT</div>
+  <table class="invul klein-invul">%s</table>
+  <p class="kort" style="margin-top:4pt">Geen wachtwoorden op deze kaart.</p>
+ </div>
+</div>
+</section>""" % (rijen, gegevens)
+
+
 def invulblad_station():
     regels = [("Roepnaam en SSID van dit station", ""), ("Dit station is", "&#9744; Noodsteunpunt &nbsp;&nbsp; &#9744; Eindpost"),
               ("Hostnaam (voor ssh)", ""), ("Wifi van de hotspot", "Noodnet-"), ("Gemeente", ""),
@@ -268,6 +313,9 @@ table.methane td { padding: 2.5pt 4pt; background: #fff !important; font-weight:
 table.methane td.letter { width: 16pt; text-align: center; font-weight: 800; font-size: 12pt; color: #c0392b;
                           vertical-align: middle; }
 table.methane span { color: #5b6573; }
+table.opdrachten td.opdr { font-family: 'DejaVu Sans Mono', Consolas, monospace; font-weight: 700; white-space: nowrap;
+                           width: 34%; color: #1d2530; }
+p.kort { margin: 0 0 5pt; }
 table.klein-invul { font-size: 8.2pt; margin: 0; }
 table.klein-invul th { width: 46%; }
 table.klein-invul td { height: 18pt; }
