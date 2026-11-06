@@ -4,6 +4,9 @@ Volg de scenario's in deze volgorde. Vink af wat werkt en noteer wat anders gaat
 verwacht (wat je zag, op welke telefoon, hoe laat). Telefoons: **B** = beheerder,
 **V1**, **V2** = vrijwilligers.
 
+**Afdrukken?** Dit testplan staat ook als afvinklijst (A4 liggend, met een kolom voor opmerkingen) in
+[Noodnet-testplan.pdf](Noodnet-testplan.pdf).
+
 Handig tijdens het testen: beheerpagina tabblad **Status** (log onderaan) open op een pc
 via de hotspot.
 

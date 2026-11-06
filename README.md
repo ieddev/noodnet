@@ -51,7 +51,8 @@ is er een korte handleiding: [docs/BEHEERDER.md](docs/BEHEERDER.md), ook als PDF
 
 ## Testen
 
-Zie [docs/TESTPLAN.md](docs/TESTPLAN.md): scenario's voor aanmelden, beheer en melden.
+Zie [docs/TESTPLAN.md](docs/TESTPLAN.md): scenario's voor aanmelden, beheer en melden. Om af te drukken
+en af te vinken: [docs/Noodnet-testplan.pdf](docs/Noodnet-testplan.pdf).
 
 ## Inhoud
 

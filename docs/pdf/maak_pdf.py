@@ -3,6 +3,7 @@
     PROCEDURE.md    -> Noodnet-procedure.pdf    (zendamateurs: steunpunt en eindpost)
     VRIJWILLIGER.md -> Noodnet-vrijwilliger.pdf (vrijwilligers: RNode en app)
     BEHEERDER.md    -> Noodnet-beheerder.pdf    (beheerder van een steunpunt, kort)
+    TESTPLAN.md     -> Noodnet-testplan.pdf     (afvinklijst om af te drukken, A4 liggend)
 
 Nodig op de pc waarop je hem maakt (niet op de Pi):
     pip install markdown qrcode pypdf playwright && playwright install chromium
@@ -59,6 +60,10 @@ DOCUMENTEN = {
         voorblad="noodnet-noodsteunpunt.svg", qr2="Nieuwste handleiding",
         nieuwe_pagina=set(), schema={},
         inhoud_eigen_pagina=False, achterblad="zakkaart_beheer"),
+    "testplan": dict(
+        bron="TESTPLAN.md", uit="Noodnet-testplan.pdf", soort="testplan",
+        voettitel="Testplan", pdftitel="Noodnet - testplan",
+        nieuwe_pagina=set(), schema={}),
 }
 D = DOCUMENTEN["procedure"]   # het document dat nu gemaakt wordt
 
@@ -369,17 +374,63 @@ def bouw_html(merktekens, paginas=None):
             kop + "%s<main>%s</main>%s</body></html>" % (inleiding, rest_html, achter), versietekst, hoofdstukken)
 
 
-def naar_pdf(html, versietekst, pad, voettekst=True):
+TEST_CSS = """
+@page { size: A4 landscape; margin: 12mm 12mm 16mm 12mm; }
+body { font-size: 9pt; }
+h1 { font-size: 18pt; margin: 0 0 2pt; }
+h2 { font-size: 13pt; margin: 12pt 0 4pt; }
+table { font-size: 8.4pt; margin: 4pt 0 6pt; }
+th, td { padding: 3pt 5pt; }
+td:first-child { width: 9mm; white-space: nowrap; }
+td.ok { width: 10mm; text-align: center; vertical-align: middle; }
+td.ok .vakje { width: 11pt; height: 11pt; margin: 0; }
+th.notitie { width: 58mm; }
+td.notitie { width: 58mm; background: #fff !important; }
+tbody tr:nth-child(even) td.notitie { background: #fff !important; }
+.testkop { display: flex; gap: 14pt; align-items: flex-start; margin-bottom: 6pt; }
+.testkop .links { flex: 1; }
+table.gegevens { width: 112mm; margin: 0; font-size: 8.6pt; }
+table.gegevens th { width: 36mm; background: #f4f6f8; font-weight: 600; }
+table.gegevens td { height: 15pt; background: #fff !important; }
+.notities { break-before: page; }
+.lijn { border-bottom: 0.6pt solid #c9d1db; height: 22pt; }
+"""
+
+
+def maak_testplan():
+    md_tekst = open(os.path.join(DOCS, D["bron"]), encoding="utf-8").read()
+    titel = re.match(r"# (.*)", md_tekst).group(1)
+    md_tekst = re.sub(r"\n## Notities.*", "", md_tekst, flags=re.S)   # komt als eigen pagina met lijnen
+    html, _ = inhoud(md_tekst, False)
+    # kolom OK: een vakje; en een lege kolom voor opmerkingen
+    html = html.replace("<td>☐</td>", '<td class="ok"><span class="vakje"></span></td><td class="notitie"></td>')
+    html = re.sub(r"(<th>OK</th>)", r'\1<th class="notitie">Opmerking</th>', html)
+    datum, kort = versie()
+    versietekst = "Versie %s%s" % (datum, (" &middot; %s" % kort) if kort else "")
+    gegevens = "".join("<tr><th>%s</th><td></td></tr>" % g for g in
+                       ["Datum en tijd", "Testers", "Steunpunt(en)", "Eindpost(en)", "Software (noodnet-bijwerken, datum)"])
+    kop = """<div class="testkop"><div class="links"><h1>%s</h1><p class="klein">%s &middot; nieuwste versie:
+<a href="%s">github.com/ieddev/noodnet</a></p></div><table class="gegevens">%s</table></div>""" % (
+        re.sub(r"^Noodnet - ", "Noodnet &middot; ", titel), versietekst, GITHUB + D["bron"], gegevens)
+    notities = '<section class="notities"><h2>Notities</h2>%s</section>' % ('<div class="lijn"></div>' * 17)
+    pagina = ("<!doctype html><html lang='nl'><head><meta charset='utf-8'><title>%s</title><style>%s%s</style></head>"
+              "<body>%s<main>%s</main>%s</body></html>" % (D["pdftitel"], CSS, TEST_CSS, kop, html, notities))
+    UIT = os.path.join(DOCS, D["uit"])
+    naar_pdf(pagina, versietekst, UIT, liggend=True)
+    print("klaar:", UIT, "-", len(PdfReader(UIT).pages), "pagina's")
+
+
+def naar_pdf(html, versietekst, pad, voettekst=True, liggend=False):
     voet = ("<div style='font-family:Helvetica,Arial,sans-serif;font-size:7.5pt;color:#5b6573;width:100%%;"
-            "padding:0 16mm;display:flex;justify-content:space-between'>"
+            "padding:0 %dmm;display:flex;justify-content:space-between'>"
             "<span>Noodnet &middot; %s &middot; %s</span>"
             "<span>pagina <span class='pageNumber'></span> van <span class='totalPages'></span></span></div>"
-            % (D["voettitel"], versietekst))
+            % (12 if liggend else 16, D["voettitel"], versietekst))
     with sync_playwright() as p:
         b = p.chromium.launch()
         pg = b.new_page()
         pg.set_content(html, wait_until="networkidle")
-        pg.pdf(path=pad, format="A4", print_background=True, prefer_css_page_size=True,
+        pg.pdf(path=pad, format="A4", landscape=liggend, print_background=True, prefer_css_page_size=True,
                display_header_footer=voettekst, header_template="<span></span>", footer_template=voet)
         b.close()
 
@@ -417,7 +468,7 @@ def main():
     global D
     for naam in (sys.argv[1:] or DOCUMENTEN):
         D = DOCUMENTEN[naam]
-        maak()
+        maak_testplan() if D.get("soort") == "testplan" else maak()
 
 
 if __name__ == "__main__":
