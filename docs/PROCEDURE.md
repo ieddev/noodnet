@@ -30,19 +30,41 @@ roepnaam.
 
 ## Volgorde bij een complete nieuwe opzet
 
-1. **Eindpost**: stap 1 t/m 4 (Eindpost). Noteer de roepnaam, bijv. `PD3PAM-5`.
-2. **Noodsteunpunt**: stap 1 t/m 4 (Noodsteunpunt). Zet op tabblad **Netwerk** de roepnaam
+1. **RNodes flashen**: alle RNodes, van het steunpunt én van de vrijwilligers (zie hieronder).
+2. **Eindpost**: stap 1 t/m 4 (Eindpost). Noteer de roepnaam, bijv. `PD3PAM-5`.
+3. **Noodsteunpunt**: stap 1 t/m 4 (Noodsteunpunt). Zet op tabblad **Netwerk** de roepnaam
    van de eindpost bij de juiste discipline. Maak de kaart.
-3. **Radio testen**: op beide Pi's tabblad Radio → *Testuitzending*. Kijk op de andere Pi bij
+4. **Radio testen**: op beide Pi's tabblad Radio → *Testuitzending*. Kijk op de andere Pi bij
    *Gehoorde stations* (niveau rond 50). Stel zo nodig de schuifbalken bij.
-4. **Beheerder**: jouw eigen telefoon aanmelden en goedkeuren als beheerder (stap 4).
-5. **Vrijwilligers**: de telefoons aanmelden (stap 6) en goedkeuren.
-6. **Testen**: stap 5.
+5. **Beheerder**: jouw eigen telefoon aanmelden en goedkeuren als beheerder (stap 4).
+6. **Vrijwilligers**: de telefoons aanmelden (stap 6) en goedkeuren.
+7. **Testen**: stap 5.
 
 Telefoons die eerder met een ander steunpunt werkten: app verwijderen (of *Instellingen →
 Apps → Noodnet → Opslag → Gegevens wissen*) en opnieuw installeren. Dan krijgen ze een nieuw ID.
 
 ---
+
+## Vooraf - RNodes flashen
+
+Een RNode is een klein LoRa-bordje (bijv. LilyGO T-Beam, T3S3 of Heltec) met de RNode-firmware
+erop. Een nieuw bordje flash je eenmalig. Dat geldt voor de RNodes van het steunpunt én voor die
+van de vrijwilligers.
+
+1. Open op een pc in **Chrome of Edge** de webflasher: **https://rmap.world/flasher/**
+   (Firefox werkt alleen met een extra instelling).
+2. Sluit het bordje aan met een USB-kabel die **data** doorgeeft (veel kabels kunnen alleen laden).
+3. Kies je bordje in de galerij en de **juiste band**: **433** of **868 MHz**, gelijk aan het bordje
+   en de antenne.
+4. Kies als firmware de officiële **RNode Firmware** (van Mark Qvist), de nieuwste versie.
+5. Nieuw bordje: eerst **Full erase**. Dan **Connect** → **Flash now**, en wacht tot het klaar is.
+
+Stel daarna **niets** in bij de LoRa-parameters of de TNC-modus: Noodnet stelt de RNode zelf in
+(steunpunt: tabblad Radio en Netwerk; telefoon: de aanmeldkaart). Een bordje dat al RNode-firmware
+heeft, hoef je niet opnieuw te flashen.
+
+De webflasher is een gemeenschapsproject (niet van Noodnet of Reticulum zelf). Liever zonder
+website: op de Pi, met internet, kan het ook met `rnodeconf --autoinstall`.
 
 ## Stap 1 - SD-kaart maken
 
@@ -296,6 +318,7 @@ dan een **UPS-HAT** op de Pi.
 | *Set (CAT): geen verbinding* | Set aan? USB-kabel? Juiste CAT-poort en snelheid? Tik *Zoek mijn set*. Icom: CI-V-adres op standaard, *CI-V USB Port* niet gekoppeld aan REMOTE. |
 | Set springt terug naar een andere frequentie | Dat is de bewaker: de Pi houdt de set op de frequentie van de gemeente (tabblad Netwerk/Instellingen). Andere frequentie nodig? Pas die daar aan. |
 | Rode melding *Kaart en radio komen niet overeen* | Tabblad Netwerk nog een keer opslaan (de RNodes worden dan gelijkgezet). Nieuwe kaart maken en opnieuw scannen. |
+| RNode niet gevonden (Radio: geen poort, Status rood) | Andere USB-kabel (één die data doorgeeft). Nog steeds niet: flash de RNode opnieuw (zie *Vooraf - RNodes flashen*), let op de juiste band. |
 | Vrijwilligers komen niet door | Status: staan ze bij *Onbekende telefoons*? Laten aanmelden met de kaart. `rnstatus`: IFAC-overtredingen? → IFAC op kaart en Pi gelijk. |
 | Steunpunt blijft herhalen | De roepnaam van de eindpost op het tabblad Netwerk klopt niet, of de eindpost staat uit. |
 | Packets komen slecht door | Tabblad Radio → *Gehoorde stations*: ideaal rond 50. Eén station afwijkend: dat station past zijn zendniveau aan. Te laag/hoog: schuifbalk Ontvangstniveau. Bij de ander niets: Zendniveau iets omhoog; vervormd: omlaag. |
