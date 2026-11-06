@@ -375,6 +375,59 @@ def ontvangen_niveaus(n=6):
     return uit[-n:]
 
 
+def gehoorde_stations(uren=24, log=None):
+    """Stations die Direwolf de laatste uren op 2 m hoorde, uit 'CALL audio level = N(...)'.
+    Geeft [{call, laatst (epoch), niveau, niveaus, aantal}], nieuwste eerst."""
+    if log is None:
+        log = _uit(["journalctl", "-u", "direwolf", "--no-pager", "-o", "short-iso", "--since", f"-{int(uren)}h"])
+    st = {}
+    for regel in log.splitlines():
+        kop, _, bericht = regel.partition(": ")
+        m = re.search(r"^(?:\[[^\]]*\]\s*)?([A-Za-z0-9]{1,6}(?:-\d{1,2})?)\s+audio level = (\d+)", bericht.strip())
+        if not m:
+            continue
+        try:
+            t = time.mktime(time.strptime(kop.split(" ", 1)[0][:19], "%Y-%m-%dT%H:%M:%S"))
+        except ValueError:
+            t = 0
+        call, niv = m.group(1).upper(), int(m.group(2))
+        x = st.setdefault(call, {"call": call, "laatst": 0, "niveau": niv, "niveaus": [], "aantal": 0})
+        x["aantal"] += 1
+        x["niveaus"] = (x["niveaus"] + [niv])[-5:]
+        if t >= x["laatst"]:
+            x["laatst"], x["niveau"] = t, niv
+    return sorted(st.values(), key=lambda x: -x["laatst"])
+
+
+def html_gehoord(uren=24):
+    lijst = gehoorde_stations(uren)
+    if not lijst:
+        return ("<p class='uitleg'>De laatste 24 uur nog niemand gehoord. Laat een ander station een Testuitzending doen "
+                "(tabblad Radio) op dezelfde frequentie.</p>")
+    vandaag = time.strftime("%Y-%m-%d")
+    rijen = ""
+    for x in lijst:
+        t = x["laatst"]
+        wanneer = (time.strftime("%H:%M:%S", time.localtime(t)) if time.strftime("%Y-%m-%d", time.localtime(t)) == vandaag
+                   else time.strftime("%d-%m %H:%M", time.localtime(t))) if t else "?"
+        reeks = " ".join(str(n) for n in x["niveaus"])
+        rijen += (f"<tr><td class='mono'><b>{e(x['call'])}</b></td><td class='mono'>{wanneer}</td>"
+                  f"<td><b>{x['niveau']}</b><br><small style='color:var(--zacht)'>{e(reeks)}</small></td>"
+                  f"<td>{e(advies_kort(x['niveau']))}</td><td>{x['aantal']}</td></tr>")
+    return ("<table><tr><th>Station</th><th>Laatst</th><th>Niveau</th><th>Advies</th><th>Aantal</th></tr>" + rijen +
+            "</table><p class='uitleg'>Niveau zoals Direwolf het meet; ideaal rond 50 (30-70). Te laag of te hoog bij een "
+            "ander station: dat station past zijn <b>zendniveau</b> aan. Bij alle stations te laag of te hoog: pas hier het "
+            "<b>ontvangstniveau</b> aan. Kleine regel: de laatste 5 metingen.</p>")
+
+
+def advies_kort(niveau):
+    if niveau < 15:
+        return "te zacht"
+    if niveau > 100:
+        return "te hard"
+    return "goed" if 30 <= niveau <= 70 else "bruikbaar"
+
+
 def advies_niveau(niveau):
     if niveau < 15:
         return "te zacht: ontvangstniveau omhoog (of volume/AF van de set)"
@@ -400,13 +453,7 @@ def html_testuitzending(verborgen, r=None):
                 f'value="{int(waarde)}" style="flex:1" oninput="this.nextElementSibling.textContent=this.value+\'%\'">'
                 f'<b style="min-width:3em">{int(waarde)}%</b></div>')
 
-    gehoord = ontvangen_niveaus()
-    if gehoord:
-        rijen = "".join(f"<tr><td class='mono'>{e(t)}</td><td><b>{n}</b></td><td>{e(advies_niveau(n))}</td></tr>"
-                        for t, n in gehoord)
-        ontv = f"<table><tr><th>Tijd</th><th>Niveau</th><th>Advies</th></tr>{rijen}</table>"
-    else:
-        ontv = "<p class='uitleg'>Nog geen packets ontvangen. Laat iemand een packet sturen (bijv. een testuitzending van een ander steunpunt of eindpost).</p>"
+    ontv = html_gehoord()
     return f"""<section id="test"><h2>Geluidsniveau en testuitzending</h2>
 <form method="post" action="/radiotest">{verborgen}
 {balk("zend", "Zendniveau", "Pi naar de set: bepaalt de zwaai")}
@@ -419,8 +466,8 @@ omhoog. Begin rond 50%. <b>Lang</b> houdt de zender ongeveer 6 seconden aan (ver
 <div class="balk"><button type="submit" name="duur" value="kort">Opslaan + testuitzending (1 s)</button>
 <button type="submit" name="duur" value="lang" class="licht">Lang (6 s)</button>
 <button type="submit" name="duur" value="opslaan" class="licht">Alleen opslaan</button></div></form>
-<h3 style="margin-top:16px">Ontvangen niveau (gemeten door Direwolf)</h3>{ontv}
-<p class="uitleg">Ideaal rond 50 (tussen 30 en 70). Ververs de pagina na een nieuw ontvangen packet.</p></section>"""
+<h3 style="margin-top:16px">Gehoorde stations op 2 m (laatste 24 uur)</h3>{ontv}
+<p class="uitleg">Ververs de pagina na een nieuw ontvangen packet.</p></section>"""
 
 
 def verwerk_test(roepnaam, f):
