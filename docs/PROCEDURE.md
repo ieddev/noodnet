@@ -315,7 +315,7 @@ dan een **UPS-HAT** op de Pi.
 | Telefoon ziet wifi *Noodnet-…* niet | Pi herstarten. Wacht 2 minuten na het aanzetten. |
 | Telefoon ziet de wifi wel, maar verbinden mislukt | Wachtwoord goed? Staat in `~/noodnet/hotspot.json`. Controle: `~/noodnet/hotspot.sh status` en `journalctl -u noodnet-ap -n 30`. |
 | ssh: *REMOTE HOST IDENTIFICATION HAS CHANGED* | Normaal na een nieuwe SD-kaart of bij een andere Pi op hetzelfde adres (via de hotspot is dat altijd 10.42.0.1). Op je pc: `ssh-keygen -R 10.42.0.1` (of het adres/de hostnaam die je gebruikt), dan opnieuw inloggen en **yes** typen. |
-| Beheerpagina opent niet | Op de hotspot? Adres **http://10.42.0.1:8080**. Mobiele data even uit. |
+| Beheerpagina opent niet | Op de hotspot? Adres **http://10.42.0.1:8080** (een naam werkt niet, alleen het adres). Mobiele data even uit. Net opgestart: wacht 2 minuten; de Pi controleert de hotspot elke minuut en zet hem zo nodig zelf opnieuw goed. Lukt het daarna nog niet: stroom eraf en erop, en bekijk na het inloggen wat er misging met `journalctl -b -1 -t noodnet -u noodnet-ap -u noodnet-dhcp`. |
 | Direwolf rood | Tabblad Radio: juiste geluidskaart? Set aan en via USB aangesloten? |
 | Direwolf rood nadat een USB-stekker (bijv. RNode) eruit of erin ging | Vooral op een Pi 3: de USB loopt vast en de geluidskaart van de set geeft fouten. USB-kabel van de set even uit en in, of de Pi herstarten. Liever een Pi 4/5; RNodes niet in- of uitpluggen terwijl het steunpunt in gebruik is. |
 | Set zendt niet | Tabblad Radio → *Testuitzending*. Met CAT: staat *Set (CAT)* op Radio/Status groen? Zonder CAT: PTT-poort en RTS (IC-9700: menu *USB SEND* op RTS; SCU-17: poort B). |

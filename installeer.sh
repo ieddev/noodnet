@@ -93,6 +93,15 @@ PAKKETTEN="git python3-venv direwolf alsa-utils iw curl hostapd dnsmasq-base rfk
 sudo -E apt-get install "${APT_OPT[@]}" $PAKKETTEN
 sudo usermod -aG dialout,audio,plugdev,systemd-journal "$GEBRUIKER" || true
 
+# Logboek bewaren tussen herstarts (max. 64 MB), zodat een probleem na een herstart terug te zien is
+# met: journalctl -b -1
+if [ ! -f /etc/systemd/journald.conf.d/noodnet.conf ]; then
+  sudo install -d -m 0755 /etc/systemd/journald.conf.d
+  printf '[Journal]\nStorage=persistent\nSystemMaxUse=64M\n' | sudo tee /etc/systemd/journald.conf.d/noodnet.conf >/dev/null
+  sudo install -d -m 2755 -g systemd-journal /var/log/journal
+  sudo systemctl restart systemd-journald || true
+fi
+
 stap "Python-omgeving"
 [ -x "$VENV/bin/python" ] || python3 -m venv "$VENV"
 "$VENV/bin/pip" install -q --upgrade pip
