@@ -390,11 +390,13 @@ de nieuwste groot en rood, de 10 daarvoor in het blauw. Alleen meldingen waarbij
 <section><h2>Kaart downloaden</h2>
 <p class="uitleg">De kaart werkt zonder internet, maar je downloadt hem <b>eenmalig met internet</b> (netwerkkabel, of
 tijdelijk de thuis-wifi). Kaart: BRT-Achtergrondkaart van het Kadaster via PDOK (open data, CC BY 4.0).
-Ter indicatie: 10 km tot zoom 16 is ongeveer 4.000 tegels en 60 MB, een paar minuten downloaden.</p>
+De straal geldt in elke richting: 10 km geeft een gebied van 20 bij 20 km, genoeg voor een gemeente als
+Deventer. Ter indicatie: 10 km tot zoom 16 is ongeveer 4.000 tegels en 60 MB, een paar minuten downloaden.
+Daaromheen komt een grof overzicht van de regio, voor het uitzoomen.</p>
 <form method="post" action="/kaart">{verborgen()}
 <label>Gemeente of woonplaats <small>het midden van de kaart</small></label>
 <input type="text" name="plaats" value="{e(plaats)}" maxlength="60" placeholder="Deventer" required>
-<div class="rij"><div><label>Gebied</label><select name="straal">{opties_straal}</select></div>
+<div class="rij"><div><label>Straal rondom het midden</label><select name="straal">{opties_straal}</select></div>
 <div><label>Detail</label><select name="zoom">{opties_zoom}</select></div></div>
 <div class="balk" style="margin-top:10px">{knop}</div></form>
 <p class="uitleg">De vorige kaart blijft werken tot de nieuwe helemaal binnen is.</p></section>"""

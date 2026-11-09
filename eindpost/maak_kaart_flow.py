@@ -127,7 +127,7 @@ function basiskaart() {
     const c = {};
     if (k) {
         c.map = {name: KAARTNAAM, url: "/noodnet-tegels/{z}/{x}/{y}.png",
-                 opt: {maxNativeZoom: k.max_zoom || 16, maxZoom: 19, minZoom: 6, attribution: k.bron || ""}};
+                 opt: {maxNativeZoom: k.max_zoom || 16, maxZoom: 19, minZoom: 8, attribution: k.bron || ""}};
         c.layer = KAARTNAAM;
         c.lat = k.lat; c.lon = k.lon; c.zoom = k.zoom_start || 13;
     } else {

@@ -37,9 +37,10 @@ ZOEK_URL = ("https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?rows=1&fl=we
 AGENT = "Noodnet-eindpost/1.0 (+http://noodnet.ied.nl)"
 BRON = "Kaart: Kadaster / PDOK, BRT-Achtergrondkaart (CC BY 4.0)"
 
-# Heel Nederland grof (voor het overzicht bij uitzoomen)
-NL = (50.70, 3.30, 53.60, 7.25)        # zuid, west, noord, oost
-NL_ZOOM = (6, 9)
+# Grof overzicht van de regio rond het gebied (voor het uitzoomen): 3x de straal, min. 30 km
+REGIO_FACTOR = 3
+REGIO_MIN_KM = 30
+REGIO_ZOOM = (8, 9)
 MIN_ZOOM_GEBIED = 10
 STRALEN = (5, 10, 15, 20, 25)          # km
 ZOOMS = {15: "straten", 16: "straten en gebouwen (aanbevolen)", 17: "zeer gedetailleerd (veel tegels)"}
@@ -79,7 +80,8 @@ def tegels_in(bbox, zmin, zmax):
 
 def alle_tegels(lat, lon, straal_km, max_zoom):
     gezien = set()
-    for t in tegels_in(NL, *NL_ZOOM):
+    regio = max(straal_km * REGIO_FACTOR, REGIO_MIN_KM)
+    for t in tegels_in(gebied(lat, lon, regio), *REGIO_ZOOM):
         gezien.add(t)
     for t in tegels_in(gebied(lat, lon, straal_km), MIN_ZOOM_GEBIED, max_zoom):
         gezien.add(t)

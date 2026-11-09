@@ -191,13 +191,19 @@ try:
 except (OSError, ValueError):
     print("   Let op: flows.json van Node-RED niet leesbaar; kaartflow niet toegevoegd."); sys.exit(0)
 kaart = json.load(open(nieuw, encoding="utf-8"))
-ids = {n.get("id") for n in flows}
-if "nn_kaart_tab" in ids:
-    sys.exit(0)
+TAB = "nn_kaart_tab"
+had_tab = any(n.get("id") == TAB for n in flows)
+# Het tabblad 'Noodnet kaart' altijd vervangen door de nieuwste versie (andere flows blijven ongemoeid)
+oud = [n for n in flows if n.get("id") == TAB or n.get("z") == TAB]
+if had_tab and sorted(json.dumps(n, sort_keys=True) for n in oud) == \
+        sorted(json.dumps(n, sort_keys=True) for n in kaart if n.get("id") == TAB or n.get("z") == TAB):
+    sys.exit(0)                                  # al de nieuwste
 shutil.copyfile(pad, pad + ".voor-kaart")
+flows = [n for n in flows if not (n.get("id") == TAB or n.get("z") == TAB)]
+ids = {n.get("id") for n in flows}
 flows += [n for n in kaart if n.get("id") not in ids]
 json.dump(flows, open(pad, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
-print("   Kaart met meldingen in Node-RED gezet (tabblad 'Noodnet kaart').")
+print("   Kaart met meldingen in Node-RED " + ("bijgewerkt." if had_tab else "gezet (tabblad 'Noodnet kaart')."))
 PY3
     # Meldingenlijst van het M/ETHANE-scherm bewaren over een herstart (flow-context op de SD-kaart)
     NR_SET="$HOME/.node-red/settings.js"
