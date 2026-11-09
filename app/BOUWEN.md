@@ -115,3 +115,6 @@ Of via de website: *Releases → Draft a new release*, bestanden `noodnet.apk` e
 - **2026-11-09**: *Ik ben ter plaatse: stuur mijn positie mee* staat standaard uit, ook elke keer
   dat je het meldscherm opent, en gaat na elke melding weer uit. App heet op de telefoon
   *Noodnet*. Versienummer (android.numeric_version) 20261109.
+- **2026-11-09 (2)**: geen woordsuggesties/autocorrectie in de M/ETHANE-velden en de naamvelden. Op
+  Android zette het toetsenbord na een correctie het laatst getypte stukje ook in het volgende veld.
+  Versienummer 20261110.
