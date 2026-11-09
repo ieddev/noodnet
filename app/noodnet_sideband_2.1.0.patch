@@ -100,7 +100,7 @@ index c5097d2..3dce398 100644
  	# patchelf --replace-needed libcodec2.so.1.2 libcodec2.so .buildozer/android/platform/build-arm64-v8a/dists/sideband/_python_bundle__armeabi-v7a/_python_bundle/site-packages/pycodec2/pycodec2.so
  
 diff --git a/sbapp/buildozer.spec b/sbapp/buildozer.spec
-index 83e9631..42f8f5e 100644
+index 83e9631..a44a7f9 100644
 --- a/sbapp/buildozer.spec
 +++ b/sbapp/buildozer.spec
 @@ -1,5 +1,5 @@
@@ -115,7 +115,7 @@ index 83e9631..42f8f5e 100644
  version.regex = __version__ = ['"](.*)['"]
  version.filename = %(source.dir)s/main.py
 -android.numeric_version = 20251128
-+android.numeric_version = 20261112
++android.numeric_version = 20261113
  
 -requirements = kivy==2.3.0,libbz2,sqlite3,pillow==10.2.0,qrcode==7.3.1,usb4a,usbserial4a,able_recipe,libwebp,libogg,libopus,opusfile,numpy,cryptography,codec2,pycodec2,sh,pynacl,typing-extensions,mistune>=3.0.2,beautifulsoup4,lxst
 +requirements = kivy==2.3.0,libbz2,sqlite3,pillow==10.2.0,qrcode==7.3.1,usb4a,usbserial4a,able_recipe,libwebp,libogg,libopus,opusfile,numpy,codec2,pycodec2,sh,pynacl,typing-extensions,mistune>=3.0.2,beautifulsoup4,lxst
@@ -264,8 +264,26 @@ index 37c4df6..7c150b4 100644
  <!-- This intent filter allows opening scanned LXM URLs directly in Sideband -->
  <intent-filter>
     <action android:name="android.intent.action.WEB_SEARCH" />
+diff --git a/sbapp/services/sidebandservice.py b/sbapp/services/sidebandservice.py
+index e5a4b43..6810848 100644
+--- a/sbapp/services/sidebandservice.py
++++ b/sbapp/services/sidebandservice.py
+@@ -224,8 +224,11 @@ class SidebandService():
+         self.should_run = False
+         self.gps = None
+         self._gps_started = False
+-        self._gps_stale_time = 300-1
+-        self._gps_min_distance = 3
++        # Noodnet: Android verwacht minTime in milliseconden; 299 ms hield de GPS continu aan.
++        # Eén positie per 30 s (en pas na 10 m verplaatsing) is genoeg voor 'Ik ben ter plaatse'
++        # en het baken, en spaart de accu.
++        self._gps_stale_time = 30000
++        self._gps_min_distance = 10
+         self._raw_gps = None
+ 
+         self.android_service = None
 diff --git a/sbapp/sideband/core.py b/sbapp/sideband/core.py
-index baef83b..940188c 100644
+index baef83b..ec3858e 100644
 --- a/sbapp/sideband/core.py
 +++ b/sbapp/sideband/core.py
 @@ -382,6 +382,13 @@ class SidebandCore():
@@ -282,6 +300,26 @@ index baef83b..940188c 100644
  
              threading.Thread(target=load_job, daemon=True).start()
  
+@@ -479,7 +486,7 @@ class SidebandCore():
+         self.config["last_lxmf_propagation_node"] = None
+         self.config["nn_home_node"] = None
+         self.config["print_command"] = "lp"
+-        self.config["eink_mode"] = True
++        self.config["eink_mode"] = False   # Noodnet: gewone kleuren
+         self.config["lxm_limit_1mb"] = True
+         self.config["trusted_markup_only"] = False
+         self.config["compose_in_markdown"] = False
+@@ -636,8 +643,8 @@ class SidebandCore():
+         if not "lxmf_inbound_stamp_cost" in self.config:               self.config["lxmf_inbound_stamp_cost"] = None
+         if not "notifications_on" in self.config:                      self.config["notifications_on"] = True
+         if not "print_command" in self.config:                         self.config["print_command"] = "lp"
+-        if not "eink_mode" in self.config:                             self.config["eink_mode"] = True
+-        if not "classic_message_colors" in self.config:                self.config["classic_message_colors"] = False
++        if not "eink_mode" in self.config:                             self.config["eink_mode"] = False  # Noodnet
++        if not "classic_message_colors" in self.config:                self.config["classic_message_colors"] = True  # Noodnet
+         if not "display_style_in_contact_list" in self.config:         self.config["display_style_in_contact_list"] = True
+         if not "lxm_limit_1mb" in self.config:                         self.config["lxm_limit_1mb"] = True
+         if not "hq_ptt" in self.config:                                self.config["hq_ptt"] = True
 diff --git a/sbapp/sideband/noodnet_baken.py b/sbapp/sideband/noodnet_baken.py
 new file mode 100644
 index 0000000..937a7ee
@@ -474,6 +512,20 @@ index 0000000..937a7ee
 +            except Exception as e:
 +                RNS.log("Noodnet-baken: fout: " + str(e), RNS.LOG_ERROR)
 +            time.sleep(CONTROLE + random.uniform(0, 5))
+diff --git a/sbapp/sideband/sense.py b/sbapp/sideband/sense.py
+index 0a22767..3c979a1 100644
+--- a/sbapp/sideband/sense.py
++++ b/sbapp/sideband/sense.py
+@@ -783,7 +783,8 @@ class Location(Sensor):
+       else:
+         if self.check_permission("ACCESS_COARSE_LOCATION") and self.check_permission("ACCESS_FINE_LOCATION"):
+           self.gps.configure(on_location=self.android_location_callback)
+-          self.gps.start(minTime=self._stale_time, minDistance=self._min_distance)
++          # Noodnet: minTime is in milliseconden; één positie per 30 s spaart de accu
++          self.gps.start(minTime=30000, minDistance=max(self._min_distance, 10))
+           self._location_provider = self
+ 
+     self.update_data()
 diff --git a/sbapp/ui/conversations.py b/sbapp/ui/conversations.py
 index 54694a2..5a7355b 100644
 --- a/sbapp/ui/conversations.py
@@ -518,10 +570,10 @@ index 7faf7a4..4b01d0d 100644
                              on_release: root.ids.screen_manager.app.keys_action(self)
 diff --git a/sbapp/ui/methane.py b/sbapp/ui/methane.py
 new file mode 100644
-index 0000000..446dc7a
+index 0000000..c0a58c7
 --- /dev/null
 +++ b/sbapp/ui/methane.py
-@@ -0,0 +1,798 @@
+@@ -0,0 +1,806 @@
 +import os
 +import json
 +import time
@@ -991,6 +1043,14 @@ index 0000000..446dc7a
 +        if not cfg.get("telemetry_s_location") and not cfg.get("telemetry_s_fixed_location"):
 +            cfg["telemetry_s_location"] = True
 +            veranderd = True
++        # Noodnet-voorkeuren: gewone kleuren en zuinig met de accu. Uiterlijk na een herstart van de app.
++        for sleutel, waarde in (("eink_mode", False),                  # E-ink mode uit
++                                ("classic_message_colors", True),      # Classic message colors aan
++                                ("advanced_stats", False),             # geen extra statistieken bijhouden
++                                ("lxmf_periodic_sync", False),         # geen periodieke sync met een propagation node
++                                ("telemetry_collector_enabled", False),
++                                ("telemetry_send_to_collector", False)):
++            cfg[sleutel] = waarde
 +        try:
 +            self.app.request_location_permissions()
 +        except Exception:

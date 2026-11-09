@@ -124,6 +124,9 @@ bent afgemeld. Kies een andere weg om je melding te doen, en meld het bij de beh
   en de accustand van je RNode en telefoon. Zo weet de beheerder wie er actief is.
 - Laad je telefoon en RNode op tijd op en neem een powerbank mee. Raakt een accu bijna leeg, dan krijgt
   de beheerder een waarschuwing.
+- Accu sparen: zet het scherm uit als je niet typt (de app blijft gewoon ontvangen), zet de
+  helderheid laag en sluit apps die je niet nodig hebt. De app staat al op een donker scherm en
+  vraagt de GPS maar eens per halve minuut om een positie.
 - Slecht bereik? Ga hoger staan of naar buiten, en houd de antenne rechtop. Het bereik is enkele
   kilometers, minder tussen hoge gebouwen.
 - Stop je ermee, of ga je naar huis? Laat het de beheerder weten.

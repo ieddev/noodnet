@@ -129,3 +129,8 @@ Of via de website: *Releases → Draft a new release*, bestanden `noodnet.apk` e
   Versienummer 20261111.
 - **2026-11-09 (4)**: 'beheerder' in plaats van 'zendamateur' bij het goedkeuren van een aanmelding
   (de zendamateur kan iemand anders beheerder laten zijn). Versienummer 20261112.
+- **2026-11-09 (5)**: zuiniger met de accu. De GPS vroeg bijna continu om een positie (Sideband geeft
+  `minTime` als 15/299 mee, maar Android rekent in milliseconden); nu één positie per 30 s en pas na
+  10 m verplaatsing. Bij het aanmelden met de kaart: *E-ink mode* uit, *Classic message colors* aan,
+  geen extra statistieken, geen periodieke sync, geen telemetrie-collector. Nieuwe installaties
+  beginnen ook met E-ink uit en Classic colors aan. Versienummer 20261113.
