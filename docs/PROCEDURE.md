@@ -257,6 +257,11 @@ noodnet-bijwerken
 Instellingen, aanmeldingen en het logboek blijven bewaard. De nieuwste app
 wordt meteen op de downloadpagina gezet.
 
+Welke versie er op de Pi staat, zie je **rechtsboven op de beheerpagina**, bijv.
+*versie f7dab0b 2026-11-09*: de code en datum van de laatste wijziging op GitHub. Vergelijk die
+met de nieuwste op [github.com/ieddev/noodnet](https://github.com/ieddev/noodnet) (bovenaan de
+lijst met bestanden), of met de versie uit het bericht van de beheerder.
+
 ## 2 m-frequentie en CAT
 
 **Frequentie per gemeente.** Elke gemeente kiest een eigen 2 m-frequentie, in overleg met de

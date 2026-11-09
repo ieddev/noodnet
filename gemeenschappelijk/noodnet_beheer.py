@@ -54,6 +54,24 @@ BESTANDEN = {
 }
 
 
+
+def noodnet_versie():
+    """Versie van de geïnstalleerde Noodnet-code ('45eebb9 2026-11-09'), uit versie.txt van de installatie."""
+    try:
+        with open(os.path.join(MAP, "versie.txt"), encoding="utf-8") as f:
+            return f.read().strip()[:40]
+    except OSError:
+        return ""
+
+
+def html_versie():
+    """Versie rechts in de kopbalk van de beheerpagina."""
+    v = noodnet_versie()
+    if not v:
+        return ""
+    import html as _h
+    return f'<span class="versie" title="Geïnstalleerde versie van Noodnet (noodnet-bijwerken)">versie {_h.escape(v)}</span>'
+
 def maak_backup(rol, roepnaam=""):
     """Geeft (bytes van de zip, bestandsnaam)."""
     buf = io.BytesIO()
