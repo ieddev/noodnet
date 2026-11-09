@@ -82,7 +82,7 @@ Dit doe je één keer per steunpunt, in de buurt van het steunpunt.
    de app: *Welke RNode heeft u gekregen?* Kies **433** of **868 MHz**, gelijk aan je RNode.
 4. Vul **je naam** in en tik op **AANMELDEN**. De app stelt de RNode in en zoekt het steunpunt.
 5. Je ziet *Aanmelding verstuurd*, en bovenaan het meldscherm *Wacht op goedkeuring door de
-   zendamateur*. De beheerder van het steunpunt keurt je aanmelding goed.
+   beheerder*. De beheerder van het steunpunt keurt je aanmelding goed.
 6. Is dat gebeurd, dan staat er bovenaan het meldscherm **Aangemeld bij …**. Je kunt nu melden.
 
 Na het aanmelden mag je van de wifi af: melden gaat via de RNode.

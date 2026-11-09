@@ -100,7 +100,7 @@ index c5097d2..3dce398 100644
  	# patchelf --replace-needed libcodec2.so.1.2 libcodec2.so .buildozer/android/platform/build-arm64-v8a/dists/sideband/_python_bundle__armeabi-v7a/_python_bundle/site-packages/pycodec2/pycodec2.so
  
 diff --git a/sbapp/buildozer.spec b/sbapp/buildozer.spec
-index 83e9631..44eaa34 100644
+index 83e9631..42f8f5e 100644
 --- a/sbapp/buildozer.spec
 +++ b/sbapp/buildozer.spec
 @@ -1,5 +1,5 @@
@@ -115,7 +115,7 @@ index 83e9631..44eaa34 100644
  version.regex = __version__ = ['"](.*)['"]
  version.filename = %(source.dir)s/main.py
 -android.numeric_version = 20251128
-+android.numeric_version = 20261111
++android.numeric_version = 20261112
  
 -requirements = kivy==2.3.0,libbz2,sqlite3,pillow==10.2.0,qrcode==7.3.1,usb4a,usbserial4a,able_recipe,libwebp,libogg,libopus,opusfile,numpy,cryptography,codec2,pycodec2,sh,pynacl,typing-extensions,mistune>=3.0.2,beautifulsoup4,lxst
 +requirements = kivy==2.3.0,libbz2,sqlite3,pillow==10.2.0,qrcode==7.3.1,usb4a,usbserial4a,able_recipe,libwebp,libogg,libopus,opusfile,numpy,codec2,pycodec2,sh,pynacl,typing-extensions,mistune>=3.0.2,beautifulsoup4,lxst
@@ -518,7 +518,7 @@ index 7faf7a4..4b01d0d 100644
                              on_release: root.ids.screen_manager.app.keys_action(self)
 diff --git a/sbapp/ui/methane.py b/sbapp/ui/methane.py
 new file mode 100644
-index 0000000..16fad85
+index 0000000..446dc7a
 --- /dev/null
 +++ b/sbapp/ui/methane.py
 @@ -0,0 +1,798 @@
@@ -1071,7 +1071,7 @@ index 0000000..16fad85
 +                self.ververs_status()
 +                self.melding("Aanmelding verstuurd",
 +                             "Uw aanmelding is verstuurd naar "+kaart["sp"]+".\n\n"
-+                             "De zendamateur keurt deze goed. U ziet de bevestiging bovenaan dit "
++                             "De beheerder van het steunpunt keurt deze goed. U ziet de bevestiging bovenaan dit "
 +                             "scherm en in het gesprek met het steunpunt.")
 +            Clock.schedule_once(verder, 0)
 +        threading.Thread(target=job, daemon=True).start()
@@ -1322,7 +1322,7 @@ index 0000000..16fad85
 +"""
 diff --git a/sbapp/ui/noodnet_kaart.py b/sbapp/ui/noodnet_kaart.py
 new file mode 100644
-index 0000000..f29e34a
+index 0000000..7878069
 --- /dev/null
 +++ b/sbapp/ui/noodnet_kaart.py
 @@ -0,0 +1,295 @@
@@ -1572,7 +1572,7 @@ index 0000000..f29e34a
 +    sp = kaart.get("sp", "het steunpunt")
 +    return {
 +        STATUS_AANGEMELD: f"Aangemeld bij {sp}",
-+        STATUS_WACHT: f"Wacht op goedkeuring door de zendamateur ({sp})",
++        STATUS_WACHT: f"Wacht op goedkeuring door de beheerder ({sp})",
 +        STATUS_AFGEWEZEN: f"Aanmelding bij {sp} is afgewezen",
 +    }.get(s, f"Nog niet aangemeld bij {sp}")
 +

@@ -1163,7 +1163,7 @@ def handle_aanmelden(src, telefoonnaam, tekst):
         naar_beheerders(f"Aanmelding #{nr}: {naam} (telefoon {telefoonnaam or '-'}, adres {h[:8]}). "
                         f"Antwoord JA {nr} of NEE {nr}")
     stuur_lxmf(src, f"Aanmelding ontvangen door {STEUNPUNT_NAAM}. "
-                    f"De zendamateur keurt deze zo goed (nr {nr}).")
+                    f"De beheerder van het steunpunt keurt deze zo goed (nr {nr}).")
 
 
 def maak_beheerder(adr_hex, naam):

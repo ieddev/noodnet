@@ -127,3 +127,5 @@ Of via de website: *Releases → Draft a new release*, bestanden `noodnet.apk` e
   nog in het volgende (bijv. '12' uit E in T en H). Nu krijgt het toetsenbord bij elk veld een
   schone lei (Android `restartInput`). Gewoon toetsenbord terug, nog zonder woordsuggesties.
   Versienummer 20261111.
+- **2026-11-09 (4)**: 'beheerder' in plaats van 'zendamateur' bij het goedkeuren van een aanmelding
+  (de zendamateur kan iemand anders beheerder laten zijn). Versienummer 20261112.
