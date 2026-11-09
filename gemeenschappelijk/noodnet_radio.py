@@ -528,11 +528,6 @@ def html_set(rol, verborgen, r):
                 f"<tr><td>S-meter</td><td>{rig.s_meter(st.get('s'))}</td></tr>"
                 f"<tr><td>Vermogen</td><td>{rig.watt_tekst(st)}</td></tr>"
                 f"<tr><td>Zenden</td><td>{'ja' if st.get('ptt') else 'nee'}</td></tr></table>")
-        if not (freq_goed and mode_goed) and not st.get("ptt"):
-            wat = " en ".join(([f"de frequentie ({rig.mhz(st['frequentie'])} in plaats van {rig.mhz(doel)})"] if not freq_goed else []) +
-                              ([f"de mode ({e(st.get('mode') or '?')} in plaats van {verwacht})"] if not mode_goed else []))
-            live += (f"<p class='uitleg'>Wijkt af: {wat}. De Pi zet dit binnen een minuut goed, of klik "
-                     f"<i>Set nu instellen</i>.</p>")
     log = "".join(f"<tr><td class='mono'>{e(t)}</td><td>{e(x)}</td></tr>" for t, x in rig.logregels())
     return f"""<section><h2>Set (CAT)</h2><p class="uitleg">{e(rig.MODEL_NAAM.get(int(r.get('cat_model') or 0), 'model ' + str(r.get('cat_model'))))}
 · frequentie van de gemeente: <b>{rig.mhz(doel)}</b> ({waar}). Draait iemand aan de set, dan zet de Pi hem terug.</p>{live}
