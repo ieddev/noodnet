@@ -68,9 +68,22 @@ def _lees(pad):
         return None
 
 
+def rol():
+    """'steunpunt' of 'eindpost' (geschreven door de installatie), of '' als onbekend."""
+    try:
+        with open(os.path.join(MAP, "rol"), encoding="utf-8") as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
 def doelfrequentie():
-    """2 m-frequentie van de gemeente in Hz (Netwerk op een steunpunt, Instellingen op een eindpost)."""
-    for pad in (NET_FILE, EINDPOST_FILE):
+    """2 m-frequentie van de gemeente in Hz: Netwerk op een steunpunt, Instellingen op een eindpost.
+    Op basis van de rol van deze Pi, zodat een achtergebleven bestand van de andere rol niet meetelt
+    (bijv. een oud noodnet_netwerk.json op een Pi die nu eindpost is)."""
+    r = rol()
+    paden = (EINDPOST_FILE,) if r == "eindpost" else (NET_FILE,) if r == "steunpunt" else (NET_FILE, EINDPOST_FILE)
+    for pad in paden:
         d = _lees(pad)
         if isinstance(d, dict) and d.get("frequentie_2m"):
             try:
