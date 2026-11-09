@@ -58,6 +58,8 @@ via de hotspot.
 | C8 | Melding met *Ik ben ter plaatse: stuur mijn positie mee* aangevinkt | Bij *E - Exacte locatie* staat onder de tekst **Positie melder (ter plaatse): 52.xxxxx, 6.xxxxx (± .. m)**; in de lijst *Melder ter plaatse* | ☐ |
 | C8a | Na C8 het meldscherm opnieuw openen; en een melding zonder het vinkje | Vinkje staat weer **uit**. Melding zonder vinkje: geen positie op het scherm | ☐ |
 | C9 | (Met 2 steunpunten) V van SP1 en V van SP2 melden tegelijk aan dezelfde eindpost | Beide komen aan, eventueel één tot 1 min later; geen dubbele regels op het scherm | ☐ |
+| C10 | Typen in de app: bij **E** "Holterweg thv 12", een paar letters weghalen en verbeteren, dan **T** en **H** aantikken en invullen | T en H bevatten alleen wat je daar zelf typt (niets uit E). Ook bij *Uw naam* bij het aanmelden | ☐ |
+| C11 | App-naam en versie | Op de telefoon heet de app **Noodnet**; nieuwe APK installeert over de oude heen, aanmelding blijft | ☐ |
 
 ## D. Gehoord en uit beeld
 
