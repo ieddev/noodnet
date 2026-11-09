@@ -162,7 +162,7 @@ lamineren). Ter plekke zonder printer: **QR-code groot tonen** en van je telefoo
 |---|---|
 | **Instellingen** | Naam van de post, roepnaam (= die van de installatie), **2 m-frequentie**, disciplines (of *Alle meldingen*), eventueel meelezen. Opslaan. Heb je het netwerkbestand van de gemeente: onderaan **Inladen** (neemt frequentie en disciplines over). |
 | **Radio** | Geluidskaart van de set. *Besturing*: **CAT** als je set in de lijst staat (of *Zoek mijn set*), anders RTS/DTR met de PTT-poort. Opslaan. Dan **Testuitzending**: gaat de set op zenden? Zendniveau met de schuifbalk zo dat het packet-geluid schoon klinkt (begin bij 50%). |
-| **Kaart** | Eenmalig, **met internet**: vul de gemeente in, kies gebied (bijv. 10 km) en detail (16), en klik **Kaart downloaden** (een paar minuten). Zie *Meldingen op de kaart* hieronder. |
+| **Kaart** | Eenmalig, **met internet**: vul de gemeente in, kies de straal (10 km is genoeg voor een gemeente als Deventer) en detail (16), en klik **Kaart downloaden** (een paar minuten). Zie *Meldingen op de kaart* hieronder. |
 | **Status** | Alles groen? Vul *Dienstdoende operator* in. |
 
 Laat daarna de beheerder van elk steunpunt in de gemeente jouw roepnaam
@@ -182,7 +182,8 @@ blauw**. Tik of klik op een marker voor de hele M/ETHANE. Bij een nieuwe melding
 er vanzelf naartoe. Meldingen zonder positie staan alleen op het M/ETHANE-scherm.
 
 1. **Offline kaart downloaden** (eenmalig, met internet): beheerpagina → tabblad **Kaart** →
-   gemeente, gebied en detail → **Kaart downloaden**. De kaart is de BRT-Achtergrondkaart van het
+   gemeente, straal en detail → **Kaart downloaden**. De straal geldt in elke richting: 10 km geeft
+   20 bij 20 km, met daaromheen een grof overzicht van de regio. De kaart is de BRT-Achtergrondkaart van het
    Kadaster (PDOK, open data, CC BY 4.0). Daarna werkt hij zonder internet. Opnieuw downloaden
    (ander gebied) mag; de oude kaart blijft werken tot de nieuwe binnen is.
 2. **Kaart openen**: **http://localhost:1880/worldmap/** op de Pi zelf, of
