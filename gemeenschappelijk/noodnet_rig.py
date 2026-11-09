@@ -93,11 +93,20 @@ def controleer_frequentie(tekst):
     if not 144000000 <= hz <= 146000000:
         return None, [f"2 m-frequentie: {mhz(hz)} ligt buiten de 2 m-band (144-146 MHz)."], []
     let = []
+    if hz % 12500:
+        let.append(f"{mhz(hz)} ligt niet op het raster van 12,5 kHz (bijv. 144,925 of 144,9375). "
+                   "Kies een kanaal op het raster; buurgemeenten bij voorkeur 25 kHz uit elkaar.")
     if abs(hz - 144800000) < 12500:
         let.append("144,800 MHz is de APRS-frequentie: kies een andere.")
     elif not 144794000 <= hz <= 144990000:
         let.append(f"{mhz(hz)} ligt buiten het segment voor digitale modes (144,794-144,990 MHz) van het IARU-bandplan.")
     return hz, [], let
+
+
+def mode_goed(r, mode):
+    """Staat de set in de juiste mode? Datamode, of FM als dat zo is ingesteld (set zonder datamode)."""
+    mode = (mode or "").upper()
+    return mode in PAKKET_MODES or (r.get("cat_mode") == "FM" and mode == "FM")
 
 
 def cat_actief(r):
@@ -264,8 +273,7 @@ def bewaak(r):
     if st.get("ptt"):
         return None
     doel = doelfrequentie()
-    mode_goed = (st.get("mode") or "").upper() in PAKKET_MODES or (r.get("cat_mode") == "FM" and st.get("mode") == "FM")
-    if abs(st["frequentie"] - doel) <= 100 and mode_goed:
+    if abs(st["frequentie"] - doel) <= 100 and mode_goed(r, st.get("mode")):
         return None
     was = f"{mhz(st['frequentie'])} {st.get('mode') or '?'}"
     meld = zet_set(r, doel)

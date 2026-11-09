@@ -517,15 +517,22 @@ def html_set(rol, verborgen, r):
     if "fout" in st:
         live = f"<div class='melding fout'>Geen verbinding met de set via CAT: {e(st['fout'])}. Staat de set aan en klopt de CAT-poort?</div>"
     else:
-        goed = abs(st["frequentie"] - doel) <= 100 and (st.get("mode") or "").upper() in rig.PAKKET_MODES | {"FM"}
+        freq_goed = abs(st["frequentie"] - doel) <= 100
+        mode = (st.get("mode") or "?").upper()
+        mode_goed = rig.mode_goed(r, mode)
+        verwacht = "FM" if r.get("cat_mode") == "FM" else "datamode (PKTFM)"
         live = (f"<table><tr><td>Frequentie</td><td><b>{rig.mhz(st['frequentie'])}</b> "
-                f"{'✓' if abs(st['frequentie'] - doel) <= 100 else '<span style=color:var(--rood)>≠ ' + rig.mhz(doel) + '</span>'}</td></tr>"
-                f"<tr><td>Mode</td><td>{e(st.get('mode') or '?')}</td></tr>"
+                f"{'✓' if freq_goed else '<span style=color:var(--rood)>≠ gemeente ' + rig.mhz(doel) + '</span>'}</td></tr>"
+                f"<tr><td>Mode</td><td>{e(st.get('mode') or '?')} "
+                f"{'✓' if mode_goed else '<span style=color:var(--rood)>verwacht: ' + verwacht + '</span>'}</td></tr>"
                 f"<tr><td>S-meter</td><td>{rig.s_meter(st.get('s'))}</td></tr>"
                 f"<tr><td>Vermogen</td><td>{rig.watt_tekst(st)}</td></tr>"
                 f"<tr><td>Zenden</td><td>{'ja' if st.get('ptt') else 'nee'}</td></tr></table>")
-        if not goed:
-            live += "<div class='melding let'>De set staat niet op de frequentie/mode van de gemeente; de Pi zet hem binnen een minuut terug.</div>"
+        if not (freq_goed and mode_goed) and not st.get("ptt"):
+            wat = " en ".join(([f"de frequentie ({rig.mhz(st['frequentie'])} in plaats van {rig.mhz(doel)})"] if not freq_goed else []) +
+                              ([f"de mode ({e(st.get('mode') or '?')} in plaats van {verwacht})"] if not mode_goed else []))
+            live += (f"<p class='uitleg'>Wijkt af: {wat}. De Pi zet dit binnen een minuut goed, of klik "
+                     f"<i>Set nu instellen</i>.</p>")
     log = "".join(f"<tr><td class='mono'>{e(t)}</td><td>{e(x)}</td></tr>" for t, x in rig.logregels())
     return f"""<section><h2>Set (CAT)</h2><p class="uitleg">{e(rig.MODEL_NAAM.get(int(r.get('cat_model') or 0), 'model ' + str(r.get('cat_model'))))}
 · frequentie van de gemeente: <b>{rig.mhz(doel)}</b> ({waar}). Draait iemand aan de set, dan zet de Pi hem terug.</p>{live}

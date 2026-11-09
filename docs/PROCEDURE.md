@@ -270,6 +270,16 @@ buurgemeenten, zodat jullie elkaar niet storen (binnen het segment voor digitale
 bandplan; niet 144,800, dat is APRS). Die staat op het tabblad **Netwerk** van elk steunpunt en
 op **Instellingen** van elke eindpost.
 
+| Afstand tussen twee gemeenten | In de praktijk |
+|---|---|
+| 5 kHz (bijv. 144,925 en 144,930) | Feitelijk hetzelfde kanaal: jullie storen elkaar. Niet doen. |
+| 12,5 kHz (één kanaal) | Minimum; bij sterke signalen vlak bij de grens kan er nog wat doorlekken. |
+| **25 kHz** (twee kanalen) | **Aanbevolen voor buurgemeenten**, bijv. 144,925 en 144,950. |
+
+Kies een frequentie op het raster van 12,5 kHz (144,9125 / 144,925 / 144,9375 / 144,950 …); de
+beheerpagina waarschuwt als dat niet zo is. Stem af met de buurgemeenten en de plaatselijke
+afdeling: er zijn ook andere digitale gebruikers in het segment.
+
 **Netwerkbestand (supervisor).** Eén persoon, de supervisor, stelt in overleg met de gemeente het
 tabblad Netwerk in (frequentie, disciplines en eindposten, LoRa) en tikt **Exporteren**. Dat bestand
 gaat naar iedereen die meedoet:
