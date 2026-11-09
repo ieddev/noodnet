@@ -1,0 +1,451 @@
+[
+ {
+  "id": "nn_kaart_tab",
+  "type": "tab",
+  "label": "Noodnet kaart",
+  "disabled": false,
+  "info": "Meldingen op een offline kaart (tweede scherm): http://<pi>:1880/worldmap\n\nDe kaart download je op de beheerpagina van de eindpost (tabblad Kaart). Alleen meldingen met 'Ik ben ter plaatse' hebben een positie."
+ },
+ {
+  "id": "nn_kaart_uitleg",
+  "type": "comment",
+  "z": "nn_kaart_tab",
+  "x": 230,
+  "y": 40,
+  "name": "Meldingen op de kaart: http://<pi>:1880/worldmap",
+  "info": "Nieuwste melding: groot, rood, met cirkel. De 10 daarvoor: blauw.\nKaart: tabblad Kaart op de beheerpagina (poort 8080)."
+ },
+ {
+  "id": "nn_kaart_mqtt",
+  "type": "mqtt in",
+  "z": "nn_kaart_tab",
+  "x": 170,
+  "y": 120,
+  "name": "M/ETHANE van gateway",
+  "topic": "reticulum/tbeam/methane/laatste",
+  "qos": "1",
+  "datatype": "json",
+  "broker": "49a287c308869fb8",
+  "nl": false,
+  "rap": false,
+  "rh": 0,
+  "inputs": 0,
+  "wires": [
+   [
+    "nn_kaart_func"
+   ]
+  ]
+ },
+ {
+  "id": "nn_kaart_in",
+  "type": "worldmap in",
+  "z": "nn_kaart_tab",
+  "x": 150,
+  "y": 180,
+  "name": "kaart geopend",
+  "path": "/worldmap",
+  "events": "connect",
+  "wires": [
+   [
+    "nn_kaart_connected"
+   ]
+  ]
+ },
+ {
+  "id": "nn_kaart_connected",
+  "type": "switch",
+  "z": "nn_kaart_tab",
+  "x": 330,
+  "y": 180,
+  "name": "connected?",
+  "property": "payload.action",
+  "propertyType": "msg",
+  "rules": [
+   {
+    "t": "eq",
+    "v": "connected",
+    "vt": "str"
+   }
+  ],
+  "checkall": "true",
+  "repair": false,
+  "outputs": 1,
+  "wires": [
+   [
+    "nn_kaart_func"
+   ]
+  ]
+ },
+ {
+  "id": "nn_kaart_wis",
+  "type": "inject",
+  "z": "nn_kaart_tab",
+  "x": 150,
+  "y": 240,
+  "name": "Wis kaart",
+  "props": [
+   {
+    "p": "topic",
+    "vt": "str"
+   }
+  ],
+  "repeat": "",
+  "crontab": "",
+  "once": false,
+  "onceDelay": 0.1,
+  "topic": "wis",
+  "wires": [
+   [
+    "nn_kaart_func"
+   ]
+  ]
+ },
+ {
+  "id": "nn_kaart_func",
+  "type": "function",
+  "z": "nn_kaart_tab",
+  "x": 560,
+  "y": 160,
+  "name": "Meldingen op de kaart",
+  "func": "// Meldingen op de kaart.\n//  - M/ETHANE-melding met positie (MQTT): op de kaart. De nieuwste is groot en rood, met een\n//    rode cirkel; de 10 meldingen daarvoor zijn kleinere blauwe markers.\n//  - {action:\"connected\"} van de kaart (een scherm opent de kaart): alles opnieuw sturen.\n//  - topic \"wis\": kaart leegmaken.\n// Alleen meldingen waarbij de vrijwilliger 'Ik ben ter plaatse' aanvinkte, hebben een positie.\nconst MAX = 11;\nconst LAAG = \"Meldingen\";\nconst KAARTNAAM = \"Offline kaart\";\n\nlet lijst = flow.get(\"kaart_meldingen\") || [];\nconst k = flow.get(\"kaart_info\") || null;\n\nfunction esc(s) {\n    return String(s == null ? \"\" : s).replace(/[&<>\"']/g,\n        c => ({\"&\": \"&amp;\", \"<\": \"&lt;\", \">\": \"&gt;\", '\"': \"&quot;\", \"'\": \"&#39;\"}[c]));\n}\n// Naam van de marker: uniek, en staat bovenaan de popup\nfunction sleutel(m) { return \"Melding \" + m.meldcode + \" \\u00b7 \" + (m.afzender_naam || String(m.afzender || \"\").slice(0, 8)); }\nfunction moment(m) { return m.eerst_ontvangen || m.timestamp || 0; }\nfunction tijd(m) { return String(m.melding_tijd || \"\").slice(11, 16); }\nfunction kort(m) {\n    const s = (m.soort_incident && m.soort_incident !== \"onbekend\") ? String(m.soort_incident) : \"\";\n    return s.length > 32 ? s.slice(0, 32) + \"…\" : s;\n}\nfunction popup(m, nieuwste) {\n    let h = '<div style=\"font-size:15px;max-width:360px\">';\n    if (nieuwste) h += '<div style=\"color:#c00000;font-weight:bold\">NIEUWSTE MELDING</div>';\n    h += '<b>' + esc(m.melding_tijd) + '</b> &middot; ' + esc(m.meldcode);\n    if (m.groot_incident === \"ja\") {\n        h += '<div style=\"background:#c00000;color:#fff;font-weight:bold;padding:2px 6px;margin:4px 0\">GROOT INCIDENT</div>';\n    }\n    h += '<table style=\"border-collapse:collapse;margin-top:4px\">';\n    for (const r of (m.regels || [])) {\n        const kleur = r.onbekend ? \"#888\" : \"#000\";\n        h += '<tr><td style=\"padding:2px 6px;font-weight:bold;vertical-align:top\">' + esc(r.letter) +\n             '</td><td style=\"padding:2px 6px;color:' + kleur + '\">' + esc(r.waarde) + '</td></tr>';\n    }\n    h += '</table><div style=\"color:#555;margin-top:6px;font-size:13px\">Positie van de melder (ter plaatse)';\n    if (m.accuracy_m) h += ', &plusmn;' + Math.round(m.accuracy_m) + ' m';\n    h += '<br>Gemeld door ' + esc(m.afzender_naam || m.afzender) + ' via ' + esc(m.steunpunt_naam || m.ontvanger || \"?\");\n    h += '<br>Voor: ' + esc(m.gemeld_aan) + (m.voor_mij === false ? ' (meegelezen)' : '') + '</div></div>';\n    return h;\n}\nfunction marker(m, i) {\n    const nieuw = (i === 0);\n    const tekst = tijd(m) + (kort(m) ? \" · \" + kort(m) : \"\");\n    const p = {\n        name: sleutel(m), lat: m.latitude, lon: m.longitude, layer: LAAG,\n        icon: nieuw ? \"exclamation-triangle\" : \"exclamation\",\n        iconColor: nieuw ? \"#d00000\" : \"#1f5fa8\",\n        popup: popup(m, nieuw), ttl: 0, draggable: false, contextmenu: \"\"\n    };\n    if (nieuw) p.label = \"NIEUW \" + tekst; else p.tooltip = tekst;\n    return p;\n}\nfunction cirkel(m) {\n    if (!m) return {name: \"nieuwste-cirkel\", deleted: true};\n    return {name: \"nieuwste-cirkel\", lat: m.latitude, lon: m.longitude, layer: LAAG,\n            radius: Math.max(Number(m.accuracy_m) || 0, 60), color: \"#d00000\", fillColor: \"#ff0000\",\n            fillOpacity: 0.18, weight: 3, clickable: false, ttl: 0};\n}\nfunction basiskaart() {\n    const c = {};\n    if (k) {\n        c.map = {name: KAARTNAAM, url: \"/noodnet-tegels/{z}/{x}/{y}.png\",\n                 opt: {maxNativeZoom: k.max_zoom || 16, maxZoom: 19, minZoom: 6, attribution: k.bron || \"\"}};\n        c.layer = KAARTNAAM;\n        c.lat = k.lat; c.lon = k.lon; c.zoom = k.zoom_start || 13;\n    } else {\n        c.showdialog = \"<h2>Nog geen offline kaart</h2><p>Download de kaart eenmalig op de beheerpagina \" +\n                       \"van de eindpost (tabblad <b>Kaart</b>, met internet). De meldingen staan wel al op de kaart.</p>\";\n    }\n    // Recente melding (laatste 3 uur): daar beginnen\n    const n = lijst[0];\n    if (n && Date.now() / 1000 - moment(n) < 3 * 3600) { c.lat = n.latitude; c.lon = n.longitude; c.zoom = 15; }\n    return {payload: {command: c}};\n}\n\n// --- Kaart leegmaken -------------------------------------------------------\nif (msg.topic === \"wis\") {\n    const uit = lijst.map(m => ({payload: {name: sleutel(m), deleted: true}}));\n    uit.push({payload: cirkel(null)});\n    flow.set(\"kaart_meldingen\", []);\n    node.status({});\n    return [uit];\n}\n\n// --- Een scherm opent de kaart: alles naar dat scherm ----------------------\nif (msg.payload && msg.payload.action === \"connected\") {\n    const sid = msg._sessionid;\n    const uit = [basiskaart()];\n    lijst.forEach((m, i) => uit.push({payload: marker(m, i)}));\n    if (lijst.length) uit.push({payload: cirkel(lijst[0])});\n    uit.forEach(u => { if (sid) u._sessionid = sid; });\n    return [uit];\n}\n\n// --- Nieuwe of herhaalde M/ETHANE-melding ----------------------------------\nconst m = msg.payload;\nif (!m || m.type !== \"METHANE\") return null;\nif (typeof m.latitude !== \"number\" || typeof m.longitude !== \"number\") {\n    node.status({fill: \"grey\", shape: \"ring\", text: m.meldcode + \": zonder positie, niet op de kaart\"});\n    return null;\n}\nconst idx = lijst.findIndex(x => sleutel(x) === sleutel(m));\nif (idx >= 0) lijst[idx] = m; else lijst.push(m);\nlijst.sort((a, b) => moment(b) - moment(a));\nconst weg = lijst.slice(MAX);\nlijst = lijst.slice(0, MAX);\nflow.set(\"kaart_meldingen\", lijst);\n\nconst uit = weg.map(x => ({payload: {name: sleutel(x), deleted: true}}));\nlijst.forEach((x, i) => uit.push({payload: marker(x, i)}));\nuit.push({payload: cirkel(lijst[0])});\n// Naar de nieuwe melding schuiven (niet bij een herhaling of het bewaarde bericht na een herstart)\nif (idx < 0 && !msg.retain && sleutel(lijst[0]) === sleutel(m)) {\n    uit.push({payload: {command: {lat: m.latitude, lon: m.longitude, zoom: 15}}});\n}\nnode.status({fill: \"red\", shape: \"dot\", text: \"nieuwste: \" + m.meldcode + \" \" + tijd(m) + \" (\" + lijst.length + \" op de kaart)\"});\nreturn [uit];\n",
+  "outputs": 1,
+  "timeout": 0,
+  "noerr": 0,
+  "initialize": "",
+  "finalize": "",
+  "libs": [],
+  "wires": [
+   [
+    "nn_kaart_map"
+   ]
+  ]
+ },
+ {
+  "id": "nn_kaart_map",
+  "type": "worldmap",
+  "z": "nn_kaart_tab",
+  "x": 810,
+  "y": 160,
+  "name": "Noodnet - meldingen",
+  "lat": "52.255",
+  "lon": "6.163",
+  "zoom": "13",
+  "layer": "",
+  "cluster": "",
+  "maxage": "",
+  "usermenu": "hide",
+  "layers": "hide",
+  "panit": "false",
+  "panlock": "false",
+  "zoomlock": "false",
+  "hiderightclick": "true",
+  "coords": "none",
+  "showgrid": "false",
+  "showruler": "false",
+  "allowFileDrop": "false",
+  "path": "/worldmap",
+  "overlist": "",
+  "maplist": "",
+  "mapname": "",
+  "mapurl": "",
+  "mapopt": "",
+  "mapwms": false,
+  "wires": []
+ },
+ {
+  "id": "nn_kaart_info_tik",
+  "type": "inject",
+  "z": "nn_kaart_tab",
+  "x": 160,
+  "y": 320,
+  "name": "elke 30 s",
+  "props": [
+   {
+    "p": "payload"
+   }
+  ],
+  "repeat": "30",
+  "crontab": "",
+  "once": true,
+  "onceDelay": "2",
+  "topic": "",
+  "payload": "",
+  "payloadType": "date",
+  "wires": [
+   [
+    "nn_kaart_info_pad"
+   ]
+  ]
+ },
+ {
+  "id": "nn_kaart_info_pad",
+  "type": "function",
+  "z": "nn_kaart_tab",
+  "x": 350,
+  "y": 320,
+  "name": "pad kaart.json",
+  "func": "msg.filename = env.get(\"HOME\") + \"/noodnet/kaart/kaart.json\";\nreturn msg;\n",
+  "outputs": 1,
+  "timeout": 0,
+  "noerr": 0,
+  "initialize": "",
+  "finalize": "",
+  "libs": [],
+  "wires": [
+   [
+    "nn_kaart_info_lees"
+   ]
+  ]
+ },
+ {
+  "id": "nn_kaart_info_lees",
+  "type": "file in",
+  "z": "nn_kaart_tab",
+  "x": 540,
+  "y": 320,
+  "name": "lees kaart.json",
+  "filename": "filename",
+  "filenameType": "msg",
+  "format": "utf8",
+  "chunk": false,
+  "sendError": false,
+  "encoding": "utf8",
+  "allProps": false,
+  "wires": [
+   [
+    "nn_kaart_info_json"
+   ]
+  ]
+ },
+ {
+  "id": "nn_kaart_info_json",
+  "type": "json",
+  "z": "nn_kaart_tab",
+  "x": 710,
+  "y": 320,
+  "name": "",
+  "property": "payload",
+  "action": "obj",
+  "pretty": false,
+  "wires": [
+   [
+    "nn_kaart_info_func"
+   ]
+  ]
+ },
+ {
+  "id": "nn_kaart_info_func",
+  "type": "function",
+  "z": "nn_kaart_tab",
+  "x": 880,
+  "y": 320,
+  "name": "kaart bijgewerkt?",
+  "func": "// kaart.json (van de beheerpagina: tabblad Kaart) inlezen.\n// Is er een nieuwe kaart gedownload, dan de open kaarten naar het nieuwe midden sturen.\nlet k = msg.payload;\nif (typeof k !== \"object\" || k === null || typeof k.lat !== \"number\") k = null;\nconst oud = flow.get(\"kaart_info\") || null;\nflow.set(\"kaart_info\", k);\nif (!k) { node.status({fill: \"yellow\", shape: \"ring\", text: \"nog geen offline kaart\"}); return null; }\nnode.status({fill: \"green\", shape: \"dot\", text: k.plaats + \", \" + k.straal_km + \" km, \" + k.aantal + \" tegels\"});\nif (oud && oud.datum !== k.datum) {\n    return {payload: {command: {lat: k.lat, lon: k.lon, zoom: k.zoom_start || 13}}};\n}\nreturn null;\n",
+  "outputs": 1,
+  "timeout": 0,
+  "noerr": 0,
+  "initialize": "",
+  "finalize": "",
+  "libs": [],
+  "wires": [
+   [
+    "nn_kaart_map"
+   ]
+  ]
+ },
+ {
+  "id": "nn_kaart_info_catch",
+  "type": "catch",
+  "z": "nn_kaart_tab",
+  "x": 540,
+  "y": 380,
+  "name": "geen kaart.json",
+  "scope": [
+   "nn_kaart_info_lees",
+   "nn_kaart_info_json"
+  ],
+  "uncaught": false,
+  "wires": [
+   [
+    "nn_kaart_info_geen"
+   ]
+  ]
+ },
+ {
+  "id": "nn_kaart_info_geen",
+  "type": "function",
+  "z": "nn_kaart_tab",
+  "x": 730,
+  "y": 380,
+  "name": "nog geen kaart",
+  "func": "flow.set(\"kaart_info\", null);\nnode.status({fill: \"yellow\", shape: \"ring\", text: \"nog geen offline kaart\"});\nreturn null;\n",
+  "outputs": 1,
+  "timeout": 0,
+  "noerr": 0,
+  "initialize": "",
+  "finalize": "",
+  "libs": [],
+  "wires": [
+   []
+  ]
+ },
+ {
+  "id": "nn_kaart_http",
+  "type": "http in",
+  "z": "nn_kaart_tab",
+  "x": 170,
+  "y": 460,
+  "name": "",
+  "url": "/noodnet-tegels/:z/:x/:y",
+  "method": "get",
+  "upload": false,
+  "swaggerDoc": "",
+  "wires": [
+   [
+    "nn_kaart_tegel"
+   ]
+  ]
+ },
+ {
+  "id": "nn_kaart_tegel",
+  "type": "function",
+  "z": "nn_kaart_tab",
+  "x": 370,
+  "y": 460,
+  "name": "tegelpad",
+  "func": "// Kaarttegel van de offline kaart: /noodnet-tegels/{z}/{x}/{y}.png\nconst p = msg.req.params || {};\nconst z = Number(p.z), x = Number(p.x), y = Number(String(p.y || \"\").replace(/\\.png$/, \"\"));\nif (![z, x, y].every(Number.isInteger) || z < 0 || z > 20 || x < 0 || y < 0) {\n    msg.statusCode = 400; msg.payload = \"\";\n    return [null, msg];\n}\nmsg.filename = env.get(\"HOME\") + \"/noodnet/kaart/tegels/\" + z + \"/\" + x + \"/\" + y + \".png\";\nreturn [msg, null];\n",
+  "outputs": 2,
+  "timeout": 0,
+  "noerr": 0,
+  "initialize": "",
+  "finalize": "",
+  "libs": [],
+  "wires": [
+   [
+    "nn_kaart_tegel_lees"
+   ],
+   [
+    "nn_kaart_antw"
+   ]
+  ]
+ },
+ {
+  "id": "nn_kaart_tegel_lees",
+  "type": "file in",
+  "z": "nn_kaart_tab",
+  "x": 560,
+  "y": 440,
+  "name": "lees tegel",
+  "filename": "filename",
+  "filenameType": "msg",
+  "format": "",
+  "chunk": false,
+  "sendError": false,
+  "encoding": "none",
+  "allProps": false,
+  "wires": [
+   [
+    "nn_kaart_tegel_ok"
+   ]
+  ]
+ },
+ {
+  "id": "nn_kaart_tegel_ok",
+  "type": "function",
+  "z": "nn_kaart_tab",
+  "x": 740,
+  "y": 440,
+  "name": "png",
+  "func": "msg.headers = {\"Content-Type\": \"image/png\", \"Cache-Control\": \"max-age=3600\"};\ndelete msg.filename;\nreturn msg;\n",
+  "outputs": 1,
+  "timeout": 0,
+  "noerr": 0,
+  "initialize": "",
+  "finalize": "",
+  "libs": [],
+  "wires": [
+   [
+    "nn_kaart_antw"
+   ]
+  ]
+ },
+ {
+  "id": "nn_kaart_tegel_catch",
+  "type": "catch",
+  "z": "nn_kaart_tab",
+  "x": 560,
+  "y": 520,
+  "name": "tegel ontbreekt",
+  "scope": [
+   "nn_kaart_tegel_lees"
+  ],
+  "uncaught": false,
+  "wires": [
+   [
+    "nn_kaart_tegel_404"
+   ]
+  ]
+ },
+ {
+  "id": "nn_kaart_tegel_404",
+  "type": "function",
+  "z": "nn_kaart_tab",
+  "x": 740,
+  "y": 520,
+  "name": "404",
+  "func": "// Tegel bestaat niet (buiten het gedownloade gebied): leeg antwoord\nmsg.statusCode = 404;\nmsg.payload = \"\";\nmsg.headers = {\"Content-Type\": \"text/plain\"};\nreturn msg;\n",
+  "outputs": 1,
+  "timeout": 0,
+  "noerr": 0,
+  "initialize": "",
+  "finalize": "",
+  "libs": [],
+  "wires": [
+   [
+    "nn_kaart_antw"
+   ]
+  ]
+ },
+ {
+  "id": "nn_kaart_antw",
+  "type": "http response",
+  "z": "nn_kaart_tab",
+  "x": 910,
+  "y": 480,
+  "name": "",
+  "statusCode": "",
+  "headers": {},
+  "wires": []
+ },
+ {
+  "id": "49a287c308869fb8",
+  "type": "mqtt-broker",
+  "name": "Lokaal (deze Pi)",
+  "broker": "127.0.0.1",
+  "port": "1883",
+  "clientid": "",
+  "autoConnect": true,
+  "usetls": false,
+  "protocolVersion": "4",
+  "keepalive": "60",
+  "cleansession": true,
+  "autoUnsubscribe": true,
+  "birthTopic": "",
+  "birthQos": "0",
+  "birthRetain": "False",
+  "birthPayload": "",
+  "birthMsg": {},
+  "closeTopic": "",
+  "closeQos": "0",
+  "closeRetain": "False",
+  "closePayload": "",
+  "closeMsg": {},
+  "willTopic": "",
+  "willQos": "0",
+  "willRetain": "False",
+  "willPayload": "",
+  "willMsg": {},
+  "userProps": "",
+  "sessionExpiry": ""
+ }
+]

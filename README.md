@@ -61,7 +61,7 @@ en af te vinken: [docs/Noodnet-testplan.pdf](docs/Noodnet-testplan.pdf).
 | `installeer.sh` | Installeert en werkt bij (beide soorten Pi) |
 | `gemeenschappelijk/` | 2 m-protocol, radio/hotspot-module, startpagina met app-download, diensten |
 | `steunpunt/` | Brug LoRa → 2 m, beheerpagina, aanmeldkaart |
-| `eindpost/` | Ontvanger 2 m → MQTT + logboek, beheerpagina, Node-RED M/ETHANE-scherm |
+| `eindpost/` | Ontvanger 2 m → MQTT + logboek, beheerpagina, Node-RED M/ETHANE-scherm en meldingen op een offline kaart |
 | `app/` | Patch op Sideband 2.1.0 (M/ETHANE, kaart, QR-scanner, baken) en bouwinstructie |
 | `docs/` | Procedure, handleidingen voor vrijwilliger en beheerder (ook als PDF), testplan; `docs/pdf/maak_pdf.py` maakt de PDF's opnieuw |
 
@@ -102,6 +102,11 @@ officiële pakketten, ongewijzigd, zoals de makers ze verspreiden:
 - [Direwolf](https://github.com/wb2osz/direwolf) (GPL-2.0),
   [Hamlib](https://hamlib.github.io) (LGPL/GPL), Mosquitto (EPL/EDL) en Node-RED
   (Apache-2.0). Die worden bij de installatie uit de gewone pakketbronnen gehaald.
+- [node-red-contrib-web-worldmap](https://github.com/dceejay/RedMap) (Apache-2.0) voor de kaart met
+  meldingen op de eindpost.
+- De offline kaart is de **BRT-Achtergrondkaart** van het Kadaster, via [PDOK](https://www.pdok.nl)
+  (open data, CC BY 4.0). De eindpost downloadt die eenmalig voor de eigen gemeente; de naamsvermelding
+  staat op de kaart.
 
 ### Hoe Noodnet gemaakt is
 

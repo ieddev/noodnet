@@ -175,10 +175,30 @@ if [ "$ROL" = "eindpost" ]; then
   if command -v node-red >/dev/null 2>&1; then
     mkdir -p "$HOME/.node-red"
     (cd "$HOME/.node-red" && npm install --no-fund --no-audit --silent node-red-dashboard >/dev/null 2>&1) || true
+    # Meldingen op de kaart (tweede scherm): Worldmap
+    (cd "$HOME/.node-red" && npm install --no-fund --no-audit --silent node-red-contrib-web-worldmap >/dev/null 2>&1) \
+      || rood "   Worldmap (kaart) kon niet geïnstalleerd worden; draai noodnet-bijwerken later opnieuw."
     if [ ! -s "$HOME/.node-red/flows.json" ]; then
       cp "$BRON/eindpost/methane_scherm_flow.json" "$HOME/.node-red/flows.json"
       echo "   M/ETHANE-scherm in Node-RED gezet."
     fi
+    # Kaartflow erbij zetten als hij er nog niet in staat (bestaande flows blijven ongemoeid)
+    python3 - "$HOME/.node-red/flows.json" "$BRON/eindpost/kaart_flow.json" <<'PY3'
+import json, shutil, sys
+pad, nieuw = sys.argv[1], sys.argv[2]
+try:
+    flows = json.load(open(pad, encoding="utf-8"))
+except (OSError, ValueError):
+    print("   Let op: flows.json van Node-RED niet leesbaar; kaartflow niet toegevoegd."); sys.exit(0)
+kaart = json.load(open(nieuw, encoding="utf-8"))
+ids = {n.get("id") for n in flows}
+if "nn_kaart_tab" in ids:
+    sys.exit(0)
+shutil.copyfile(pad, pad + ".voor-kaart")
+flows += [n for n in kaart if n.get("id") not in ids]
+json.dump(flows, open(pad, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+print("   Kaart met meldingen in Node-RED gezet (tabblad 'Noodnet kaart').")
+PY3
     # Meldingenlijst van het M/ETHANE-scherm bewaren over een herstart (flow-context op de SD-kaart)
     NR_SET="$HOME/.node-red/settings.js"
     if [ ! -f "$NR_SET" ]; then          # settings.js ontstaat bij de eerste start

@@ -33,6 +33,7 @@ from urllib.parse import parse_qs, urlparse, quote
 
 import noodnet_radio as radio
 import noodnet_beheer as beheer
+import noodnet_kaart as kaart
 
 MAP = os.path.dirname(os.path.abspath(__file__))
 INST_FILE = os.path.join(MAP, "eindpost_instellingen.json")
@@ -223,7 +224,8 @@ def stel_wachtwoord_in():
 # HTML
 # ---------------------------------------------------------------------------
 
-PAGINAS = [("status", "Status"), ("instellingen", "Instellingen"), ("radio", "Radio"), ("logboek", "Logboek"), ("backup", "Back-up")]
+PAGINAS = [("status", "Status"), ("instellingen", "Instellingen"), ("radio", "Radio"), ("logboek", "Logboek"),
+           ("kaart", "Kaart"), ("backup", "Back-up")]
 
 
 def pagina(actief, inhoud, inst, melding=""):
@@ -330,6 +332,72 @@ Zelfde namen als op het tabblad Netwerk van de steunpunten.</p>
 <div><label>Wachtwoord</label><input type="text" name="mqtt_wachtwoord" value="{w('mqtt_wachtwoord')}" autocomplete="off"></div></div></details></section>
 <div class="balk"><button type="submit">Opslaan en ontvanger herstarten</button></div></form>
 {beheer.html_netwerk_delen(verborgen(), "eindpost") if form is None else ""}"""
+
+
+def map_mb(pad):
+    totaal = 0
+    for wortel, _, bestanden in os.walk(pad):
+        for b in bestanden:
+            try:
+                totaal += os.path.getsize(os.path.join(wortel, b))
+            except OSError:
+                pass
+    return round(totaal / 1024 / 1024)
+
+
+def html_kaart(inst, host):
+    """Tabblad Kaart: offline kaart (PDOK) downloaden voor 'meldingen op de kaart' in Node-RED."""
+    k = kaart.info()
+    v = kaart.voortgang()
+    bezig = bool(v and v.get("bezig"))
+    kaart_url = f"http://{host}:1880/worldmap/"
+    if k:
+        huidig = f"""<table><tr><td>Gebied</td><td>{e(k.get('plaats', ''))}, {e(str(k.get('straal_km', '')))} km rondom</td></tr>
+<tr><td>Detail</td><td>tot zoom {e(str(k.get('max_zoom', '')))} ({e(kaart.ZOOMS.get(k.get('max_zoom'), ''))})</td></tr>
+<tr><td>Tegels</td><td>{k.get('aantal', 0)} ({map_mb(kaart.TEGELS)} MB)</td></tr>
+<tr><td>Gedownload</td><td>{e(k.get('datum', ''))}</td></tr></table>"""
+    else:
+        huidig = "<p><b>Nog geen offline kaart.</b> De meldingen staan wel op de kaart, maar zonder ondergrond.</p>"
+    voortgang = ""
+    if v and (bezig or v.get("fout") or time.time() - v.get("bijgewerkt", 0) < 600):
+        totaal = v.get("totaal") or 0
+        klaar = (v.get("klaar") or 0) + (v.get("mislukt") or 0)
+        pct = int(100 * klaar / totaal) if totaal else 0
+        if bezig:
+            voortgang = (f"<div class='melding let'>Bezig met downloaden voor {e(v.get('plaats', ''))}: "
+                         f"{klaar} van {totaal or '?'} tegels ({pct}%). Deze pagina ververst vanzelf.</div>"
+                         "<meta http-equiv='refresh' content='5'>")
+        elif v.get("fout"):
+            voortgang = f"<div class='melding fout'>{e(v['fout'])}</div>"
+        else:
+            voortgang = f"<div class='melding ok'>Kaart gedownload: {v.get('klaar', 0)} tegels.</div>"
+    plaats = (k or {}).get("plaats", "").split(",")[0] or inst.get("gemeente", "")
+    straal = (k or {}).get("straal_km", 10)
+    zoom = (k or {}).get("max_zoom", 16)
+    opties_straal = "".join(f'<option value="{s}" {"selected" if s == straal else ""}>{s} km</option>' for s in kaart.STRALEN)
+    opties_zoom = "".join(f'<option value="{z}" {"selected" if z == zoom else ""}>{z} - {e(t)}</option>'
+                          for z, t in kaart.ZOOMS.items())
+    knop = ("<button type='submit' disabled>Bezig...</button>" if bezig else
+            "<button type='submit'>Kaart downloaden</button>")
+    return f"""{voortgang}
+<section><h2>Meldingen op de kaart</h2>
+<p class="uitleg">Op een tweede scherm (of een laptop op de wifi van de eindpost) staan de meldingen op een kaart:
+de nieuwste groot en rood, de 10 daarvoor in het blauw. Alleen meldingen waarbij de vrijwilliger
+<i>Ik ben ter plaatse</i> aanvinkte, hebben een positie.</p>
+<div class="balk"><a class="knop" href="{e(kaart_url)}" target="_blank">Kaart openen &#8599;</a></div>
+<p class="uitleg">Adres van de kaart: <span class="mono">{e(kaart_url)}</span></p></section>
+<section><h2>Offline kaart</h2>{huidig}</section>
+<section><h2>Kaart downloaden</h2>
+<p class="uitleg">De kaart werkt zonder internet, maar je downloadt hem <b>eenmalig met internet</b> (netwerkkabel, of
+tijdelijk de thuis-wifi). Kaart: BRT-Achtergrondkaart van het Kadaster via PDOK (open data, CC BY 4.0).
+Ter indicatie: 10 km tot zoom 16 is ongeveer 4.000 tegels en 60 MB, een paar minuten downloaden.</p>
+<form method="post" action="/kaart">{verborgen()}
+<label>Gemeente of woonplaats <small>het midden van de kaart</small></label>
+<input type="text" name="plaats" value="{e(plaats)}" maxlength="60" placeholder="Deventer" required>
+<div class="rij"><div><label>Gebied</label><select name="straal">{opties_straal}</select></div>
+<div><label>Detail</label><select name="zoom">{opties_zoom}</select></div></div>
+<div class="balk" style="margin-top:10px">{knop}</div></form>
+<p class="uitleg">De vorige kaart blijft werken tot de nieuwe helemaal binnen is.</p></section>"""
 
 
 def schrijf_operator_in_logboek(vorige):
@@ -508,6 +576,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._stuur(pagina("logboek", html_logboek(q.get("dag", [None])[0]), inst, meld))
         if pad == "radio":
             return self._stuur(pagina("radio", radio.html_radio("eindpost", verborgen()), inst, meld))
+        if pad == "kaart":
+            host = (self.headers.get("Host") or "localhost").split(":")[0]
+            return self._stuur(pagina("kaart", html_kaart(inst, host), inst, meld))
         self._stuur("Niet gevonden", 404, "text/plain; charset=utf-8")
 
     def _formulier(self):
@@ -541,6 +612,25 @@ class Handler(BaseHTTPRequestHandler):
             return self._terug("/status", "fout:Formulier verlopen, probeer het opnieuw.")
         pad = urlparse(self.path).path.strip("/")
         inst = instellingen()
+        if pad == "kaart":
+            plaats = " ".join(f.get("plaats", "").split())[:60]
+            try:
+                straal, zoom = int(f.get("straal", "")), int(f.get("zoom", ""))
+            except ValueError:
+                straal = zoom = 0
+            if not plaats or straal not in kaart.STRALEN or zoom not in kaart.ZOOMS:
+                return self._terug("/kaart", "fout:Vul een plaats in en kies gebied en detail.")
+            v = kaart.voortgang()
+            if v and v.get("bezig"):
+                return self._terug("/kaart", "fout:Er loopt al een download.")
+            os.makedirs(kaart.KAART_DIR, exist_ok=True)
+            kaart._schrijf(kaart.VOORTGANG_FILE, {"bezig": True, "plaats": plaats, "klaar": 0, "mislukt": 0,
+                                                  "totaal": 0, "bijgewerkt": time.time(), "fout": ""})
+            with open(os.path.join(kaart.KAART_DIR, "download.log"), "w") as logf:
+                subprocess.Popen([sys.executable, os.path.join(MAP, "noodnet_kaart.py"), "--plaats", plaats,
+                                  "--straal", str(straal), "--zoom", str(zoom)],
+                                 stdout=logf, stderr=subprocess.STDOUT, start_new_session=True, cwd=MAP)
+            return self._terug("/kaart")
         if pad == "netwerk_ophalen":
             net, fout = beheer.haal_netwerk(f.get("url", ""))
             if fout:
