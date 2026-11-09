@@ -276,8 +276,9 @@ op **Instellingen** van elke eindpost.
 | 12,5 kHz (één kanaal) | Minimum; bij sterke signalen vlak bij de grens kan er nog wat doorlekken. |
 | **25 kHz** (twee kanalen) | **Aanbevolen voor buurgemeenten**, bijv. 144,925 en 144,950. |
 
-Kies een frequentie op het raster van 12,5 kHz (144,9125 / 144,925 / 144,9375 / 144,950 …); de
-beheerpagina waarschuwt als dat niet zo is. Stem af met de buurgemeenten en de plaatselijke
+Kies een frequentie op het raster van 12,5 kHz (144,9125 / 144,925 / 144,9375 / 144,950 …): veel
+sets kunnen zonder CAT alleen in die stappen afstemmen. De beheerpagina accepteert alleen
+frequenties op het raster. Stem af met de buurgemeenten en de plaatselijke
 afdeling: er zijn ook andere digitale gebruikers in het segment.
 
 **Netwerkbestand (supervisor).** Eén persoon, de supervisor, stelt in overleg met de gemeente het

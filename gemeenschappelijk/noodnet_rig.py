@@ -94,7 +94,11 @@ def doelfrequentie():
 
 
 def mhz(hz):
-    return f"{hz / 1e6:.3f}".replace(".", ",") + " MHz"
+    """144925000 -> '144,925 MHz'; 144937500 -> '144,9375 MHz' (12,5 kHz-raster)."""
+    t = f"{hz / 1e6:.4f}"
+    if t.endswith("0"):
+        t = t[:-1]
+    return t.replace(".", ",") + " MHz"
 
 
 def controleer_frequentie(tekst):
@@ -105,10 +109,12 @@ def controleer_frequentie(tekst):
         return None, ["2 m-frequentie: vul een getal in MHz in, bijvoorbeeld 144.925."], []
     if not 144000000 <= hz <= 146000000:
         return None, [f"2 m-frequentie: {mhz(hz)} ligt buiten de 2 m-band (144-146 MHz)."], []
-    let = []
     if hz % 12500:
-        let.append(f"{mhz(hz)} ligt niet op het raster van 12,5 kHz (bijv. 144,925 of 144,9375). "
-                   "Kies een kanaal op het raster; buurgemeenten bij voorkeur 25 kHz uit elkaar.")
+        onder = hz - hz % 12500
+        return None, [f"2 m-frequentie: {mhz(hz)} ligt niet op het raster van 12,5 kHz; veel sets kunnen die niet "
+                      f"instellen. Kies bijv. {mhz(onder)} of {mhz(onder + 12500)}. Buurgemeenten bij voorkeur "
+                      "25 kHz uit elkaar."], []
+    let = []
     if abs(hz - 144800000) < 12500:
         let.append("144,800 MHz is de APRS-frequentie: kies een andere.")
     elif not 144794000 <= hz <= 144990000:
