@@ -92,11 +92,16 @@ niet over de geïnstalleerde app heen.
 Zet de APK als release op GitHub, met de vaste naam `noodnet.apk`:
 
 ```bash
-cp ~/Sideband/sbapp/bin/sideband-*-arm64-v8a-debug.apk ~/noodnet.apk
-echo "$(date +%Y-%m-%d)" > ~/versie.txt
-gh release create app-$(date +%Y%m%d) ~/noodnet.apk ~/versie.txt \
-   --repo ieddev/noodnet --title "Noodnet-app $(date +%Y-%m-%d)" --notes "Nieuwe versie van de app"
+APK=$(ls -t ~/Sideband/sbapp/bin/sideband-*-arm64-v8a-debug.apk | head -1)   # de nieuwste
+cp "$APK" ~/noodnet.apk
+echo "$(date '+%Y-%m-%d %H:%M')" > ~/versie.txt
+gh release create app-$(date +%Y%m%d-%H%M) ~/noodnet.apk ~/versie.txt \
+   --repo ieddev/noodnet --title "Noodnet-app $(date '+%Y-%m-%d %H:%M')" --notes "Wat er nieuw is"
+gh release list --repo ieddev/noodnet --limit 3      # de nieuwe staat bovenaan, met 'Latest'
 ```
+
+De tijd in de naam maakt hem uniek (twee releases op één dag kan dus). Eerst eenmalig inloggen:
+`gh auth login` → GitHub.com → HTTPS → Login with a web browser.
 
 Of via de website: *Releases → Draft a new release*, bestanden `noodnet.apk` en
 `versie.txt` toevoegen. Elke Pi haalt bij `noodnet-bijwerken` de nieuwste op.
