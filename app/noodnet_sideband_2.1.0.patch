@@ -100,7 +100,7 @@ index c5097d2..3dce398 100644
  	# patchelf --replace-needed libcodec2.so.1.2 libcodec2.so .buildozer/android/platform/build-arm64-v8a/dists/sideband/_python_bundle__armeabi-v7a/_python_bundle/site-packages/pycodec2/pycodec2.so
  
 diff --git a/sbapp/buildozer.spec b/sbapp/buildozer.spec
-index 83e9631..8902072 100644
+index 83e9631..44eaa34 100644
 --- a/sbapp/buildozer.spec
 +++ b/sbapp/buildozer.spec
 @@ -1,5 +1,5 @@
@@ -115,7 +115,7 @@ index 83e9631..8902072 100644
  version.regex = __version__ = ['"](.*)['"]
  version.filename = %(source.dir)s/main.py
 -android.numeric_version = 20251128
-+android.numeric_version = 20261110
++android.numeric_version = 20261111
  
 -requirements = kivy==2.3.0,libbz2,sqlite3,pillow==10.2.0,qrcode==7.3.1,usb4a,usbserial4a,able_recipe,libwebp,libogg,libopus,opusfile,numpy,cryptography,codec2,pycodec2,sh,pynacl,typing-extensions,mistune>=3.0.2,beautifulsoup4,lxst
 +requirements = kivy==2.3.0,libbz2,sqlite3,pillow==10.2.0,qrcode==7.3.1,usb4a,usbserial4a,able_recipe,libwebp,libogg,libopus,opusfile,numpy,codec2,pycodec2,sh,pynacl,typing-extensions,mistune>=3.0.2,beautifulsoup4,lxst
@@ -518,10 +518,10 @@ index 7faf7a4..4b01d0d 100644
                              on_release: root.ids.screen_manager.app.keys_action(self)
 diff --git a/sbapp/ui/methane.py b/sbapp/ui/methane.py
 new file mode 100644
-index 0000000..fd2326e
+index 0000000..16fad85
 --- /dev/null
 +++ b/sbapp/ui/methane.py
-@@ -0,0 +1,758 @@
+@@ -0,0 +1,798 @@
 +import os
 +import json
 +import time
@@ -567,6 +567,43 @@ index 0000000..fd2326e
 +ORANJE = (0.85, 0.45, 0.05, 1)
 +
 +
++
++def herstart_toetsenbord(*args):
++    """Android: het toetsenbord opnieuw laten beginnen als je een ander veld aantikt.
++    Anders 'speelt' het de laatste invoer van het vorige veld nog eens af in het nieuwe veld
++    (bijv. '12' uit E kwam terug in T en H). restartInput geeft het toetsenbord een schone lei."""
++    try:
++        if not RNS.vendor.platformutils.is_android():
++            return
++        from jnius import autoclass, cast
++        from android.runnable import run_on_ui_thread
++
++        @run_on_ui_thread
++        def _doe():
++            try:
++                PythonActivity = autoclass("org.kivy.android.PythonActivity")
++                Context = autoclass("android.content.Context")
++                act = PythonActivity.mActivity
++                imm = cast("android.view.inputmethod.InputMethodManager",
++                           act.getSystemService(Context.INPUT_METHOD_SERVICE))
++                view = act.getCurrentFocus()
++                if view is not None:
++                    imm.restartInput(view)
++            except Exception as e:
++                RNS.log("Noodnet: toetsenbord herstarten mislukt: "+str(e), RNS.LOG_DEBUG)
++        _doe()
++    except Exception as e:
++        RNS.log("Noodnet: toetsenbord herstarten mislukt: "+str(e), RNS.LOG_DEBUG)
++
++
++def bij_focus_toetsenbord(veld):
++    """Koppel het herstarten van het toetsenbord aan het aantikken van dit tekstveld."""
++    def _focus(inst, val):
++        if val:
++            Clock.schedule_once(herstart_toetsenbord, 0.15)
++    veld.bind(focus=_focus)
++    return veld
++
 +class Methane():
 +    def __init__(self, app):
 +        self.app = app
@@ -583,6 +620,8 @@ index 0000000..fd2326e
 +            sm.add_widget(self.screen)
 +            self.screen.ids.methane_scrollview.effect_cls = ScrollEffect
 +            self.screen.bind(on_enter=lambda *a: self.on_enter(), on_leave=lambda *a: self.on_leave())
++            for fid, label, hint in FIELDS:
++                bij_focus_toetsenbord(self.screen.ids["mf_"+fid])
 +            self.load_services()
 +
 +    # ------------------------------------------------------------------
@@ -710,11 +749,12 @@ index 0000000..fd2326e
 +            content.add_widget(row); rows += 1
 +
 +        name_f = MDTextField(hint_text="Naam (bijv. Meldkamer)", font_size=dp(18),
-+                             text=(edit or ""), input_type="null", keyboard_suggestions=False)
++                             text=(edit or ""), input_type="text", keyboard_suggestions=False)
 +        addr_f = MDTextField(hint_text="LXMF-adres (plak hier)", font_size=dp(16),
 +                             helper_text="32 hexadecimale tekens", helper_text_mode="on_focus",
 +                             text=(self.json_services[edit] if edit else ""),
-+                             input_type="null", keyboard_suggestions=False)
++                             input_type="text", keyboard_suggestions=False)
++        bij_focus_toetsenbord(name_f); bij_focus_toetsenbord(addr_f)
 +        content.add_widget(name_f); content.add_widget(addr_f)
 +        content.height = rows*dp(56) + dp(150)
 +
@@ -920,7 +960,8 @@ index 0000000..fd2326e
 +            if dn and dn != "Anonymous Peer": vorige = dn
 +        content = MDBoxLayout(orientation="vertical", spacing=dp(8), size_hint_y=None, height=dp(90))
 +        naam_f = MDTextField(hint_text="Uw naam", font_size=dp(18), text=vorige,
-+                             input_type="null", keyboard_suggestions=False)
++                             input_type="text", keyboard_suggestions=False)
++        bij_focus_toetsenbord(naam_f)
 +        content.add_widget(naam_f)
 +        annuleer = MDFlatButton(text="Annuleren", font_size=dp(16))
 +        annuleer.bind(on_release=self.sluit_dialog)
@@ -1160,10 +1201,9 @@ index 0000000..fd2326e
 +                    helper_text_mode: "persistent"
 +                    multiline: True
 +                    font_size: dp(20)
-+                    # Geen woordsuggesties: anders zet het Android-toetsenbord na een correctie
-+                    # het laatst getypte stukje ook in het volgende veld (zoals Sideband's
-+                    # 'block_predictive_text'). Ook geen autocorrectie van straatnamen.
-+                    input_type: "null"
++                    # Geen woordsuggesties en geen autocorrectie van straatnamen.
++                    # (Toetsenbord opnieuw beginnen bij elk veld: zie herstart_toetsenbord.)
++                    input_type: "text"
 +                    keyboard_suggestions: False
 +'''
 +    return out

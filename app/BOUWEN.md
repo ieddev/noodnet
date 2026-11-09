@@ -123,3 +123,7 @@ Of via de website: *Releases → Draft a new release*, bestanden `noodnet.apk` e
 - **2026-11-09 (2)**: geen woordsuggesties/autocorrectie in de M/ETHANE-velden en de naamvelden. Op
   Android zette het toetsenbord na een correctie het laatst getypte stukje ook in het volgende veld.
   Versienummer 20261110.
+- **2026-11-09 (3)**: dat hielp niet: het toetsenbord zette de laatste invoer van het vorige veld
+  nog in het volgende (bijv. '12' uit E in T en H). Nu krijgt het toetsenbord bij elk veld een
+  schone lei (Android `restartInput`). Gewoon toetsenbord terug, nog zonder woordsuggesties.
+  Versienummer 20261111.
