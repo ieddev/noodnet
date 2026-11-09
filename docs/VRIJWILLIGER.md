@@ -49,7 +49,7 @@ De app installeer je bij het steunpunt, via de wifi van het steunpunt:
    beheerder. Meldt de telefoon "geen internet": kies **Verbonden blijven**.
 2. Open in de browser **http://10.42.0.1** en tik op **Noodnet-app downloaden**.
 3. Android vraagt of je apps uit deze bron mag installeren: **toestaan**, dan **installeren**.
-4. Op je telefoon heet de app **Sideband**: het is de Noodnet-versie van Sideband.
+4. Op je telefoon heet de app **Noodnet**. (Een eerdere versie heette nog *Sideband*; dat is dezelfde app.)
 5. Open de app. Vraagt hij om toestemming voor Bluetooth, locatie of meldingen: **toestaan**.
 
 Vooraf thuis installeren kan ook: download de nieuwste APK van
@@ -106,7 +106,10 @@ van om door te sturen.
 | **N** - Aantal slachtoffers | Aantal en hoe ernstig |
 | **E** - Hulpdiensten | Wie is er al, wie is er nog nodig |
 
-4. Zet **Mijn locatie meesturen** aan als dat kan: dan ziet de hulpdienst precies waar je bent.
+4. **Ben je zelf bij het incident?** Vink dan **Ik ben ter plaatse: stuur mijn positie mee** aan. De
+   hulpdienst ziet dan precies waar je bent. Meld je iets wat je van een afstand ziet of hoort, laat het
+   vinkje dan uit: anders gaat de hulpdienst naar de verkeerde plek. Het vinkje staat altijd uit als je
+   het meldscherm opent, en gaat na elke melding weer uit.
 5. Tik op **VERSTUUR MELDING** en bevestig.
 6. In het gesprek met het steunpunt zie je de status. Staat hij op **afgeleverd** (*Delivered*), dan
    heeft het steunpunt je melding. Het steunpunt geeft hem door aan de hulpdienst en herhaalt hem tot

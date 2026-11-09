@@ -100,12 +100,22 @@ index c5097d2..3dce398 100644
  	# patchelf --replace-needed libcodec2.so.1.2 libcodec2.so .buildozer/android/platform/build-arm64-v8a/dists/sideband/_python_bundle__armeabi-v7a/_python_bundle/site-packages/pycodec2/pycodec2.so
  
 diff --git a/sbapp/buildozer.spec b/sbapp/buildozer.spec
-index 83e9631..fe7351e 100644
+index 83e9631..8ea9069 100644
 --- a/sbapp/buildozer.spec
 +++ b/sbapp/buildozer.spec
-@@ -12,9 +12,11 @@ version.regex = __version__ = ['"](.*)['"]
+@@ -1,5 +1,5 @@
+ [app]
+-title = Sideband
++title = Noodnet
+ package.name = sideband
+ package.domain = io.unsigned
+ 
+@@ -10,11 +10,13 @@ source.exclude_patterns = app_storage/*,venv/*,Makefile,./Makefil*,requirements,
+ 
+ version.regex = __version__ = ['"](.*)['"]
  version.filename = %(source.dir)s/main.py
- android.numeric_version = 20251128
+-android.numeric_version = 20251128
++android.numeric_version = 20261109
  
 -requirements = kivy==2.3.0,libbz2,sqlite3,pillow==10.2.0,qrcode==7.3.1,usb4a,usbserial4a,able_recipe,libwebp,libogg,libopus,opusfile,numpy,cryptography,codec2,pycodec2,sh,pynacl,typing-extensions,mistune>=3.0.2,beautifulsoup4,lxst
 +requirements = kivy==2.3.0,libbz2,sqlite3,pillow==10.2.0,qrcode==7.3.1,usb4a,usbserial4a,able_recipe,libwebp,libogg,libopus,opusfile,numpy,codec2,pycodec2,sh,pynacl,typing-extensions,mistune>=3.0.2,beautifulsoup4,lxst
@@ -508,10 +518,10 @@ index 7faf7a4..4b01d0d 100644
                              on_release: root.ids.screen_manager.app.keys_action(self)
 diff --git a/sbapp/ui/methane.py b/sbapp/ui/methane.py
 new file mode 100644
-index 0000000..c33aa61
+index 0000000..80dac1b
 --- /dev/null
 +++ b/sbapp/ui/methane.py
-@@ -0,0 +1,738 @@
+@@ -0,0 +1,751 @@
 +import os
 +import json
 +import time
@@ -606,6 +616,8 @@ index 0000000..c33aa61
 +        self.dialog.open()
 +
 +    def on_enter(self):
++        # Positie meesturen staat bij het openen altijd uit: alleen aanzetten als je zelf ter plaatse bent
++        self.screen.ids.methane_loc.active = False
 +        self.ververs_status()
 +        if self.status_event is None:
 +            self.status_event = Clock.schedule_interval(lambda dt: self.ververs_status(), 10)
@@ -1068,9 +1080,9 @@ index 0000000..c33aa61
 +        if self.screen.ids.methane_loc.active:
 +            locatie = self.eigen_locatie()
 +            r = nk.locatie_regel(locatie)
-+            loc_tekst = ("Locatie wordt meegestuurd.\n" if r else
-+                         "Locatie nog onbekend (GPS zoekt, of zet in Sideband Telemetry > Location aan). "
-+                         "De melding gaat zonder locatie.\n")
++            loc_tekst = ("Uw positie wordt meegestuurd (u bent ter plaatse).\n" if r else
++                         "Uw positie is nog onbekend (GPS zoekt, of zet in Telemetry > Location aan). "
++                         "De melding gaat zonder positie.\n")
 +
 +        # Bij een herhaalpoging na een deels mislukte verzending blijft meldcode en ontvangerlijst gelijk
 +        if self.pending: code, recipients = self.pending["code"], self.pending["recipients"]
@@ -1132,6 +1144,8 @@ index 0000000..c33aa61
 +    def clear_fields(self):
 +        for fid, label, hint in FIELDS:
 +            self.screen.ids["mf_"+fid].text = ""
++        # Na elke melding weer uit
++        self.screen.ids.methane_loc.active = False
 +
 +def _fields_kv():
 +    out = ""
@@ -1224,18 +1238,27 @@ index 0000000..c33aa61
 +                MDBoxLayout:
 +                    orientation: "horizontal"
 +                    size_hint_y: None
-+                    height: dp(48)
++                    height: dp(56)
 +                    spacing: "8dp"
 +
 +                    MDCheckbox:
 +                        id: methane_loc
-+                        active: True
++                        active: False
 +                        size_hint: None, None
 +                        size: dp(48), dp(48)
++                        pos_hint: {"center_y": .5}
 +
 +                    MDLabel:
-+                        text: "Mijn locatie meesturen"
++                        text: "Ik ben ter plaatse: stuur mijn positie mee"
 +                        font_size: dp(18)
++                        bold: methane_loc.active
++
++                MDLabel:
++                    text: "Alleen aanzetten als u zelf bij het incident bent. Gaat na elke melding weer uit."
++                    font_size: dp(14)
++                    theme_text_color: "Secondary"
++                    size_hint_y: None
++                    height: self.texture_size[1]
 +
 +                MDLabel:
 +                    text: "2. Vul in wat je weet. Leeg laten mag."

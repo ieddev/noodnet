@@ -164,7 +164,7 @@ def zakkaart():
  <div class="kaartje">
   <div class="kaartkop">NOODMELDING M/ETHANE</div>
   <ol class="kort"><li>Rode knop <b>NOODMELDING M/ETHANE</b></li><li>Kies de hulpdienst(en)</li>
-  <li>Vul in wat je weet</li><li><b>Mijn locatie meesturen</b> aan</li><li><b>VERSTUUR MELDING</b></li>
+  <li>Vul in wat je weet</li><li>Zelf ter plaatse? Vink <b>Ik ben ter plaatse</b> aan</li><li><b>VERSTUUR MELDING</b></li>
   <li>Wacht op <b>afgeleverd</b></li></ol>
   <table class="methane">%s</table>
  </div>

@@ -55,7 +55,8 @@ via de hotspot.
 | C5 | Eindpost weer aan | Melding komt alsnog aan, ACK, waarschuwing weg | ☐ |
 | C6 | Twee posten bij één discipline. Tabblad **Netwerk**: zet bij *Gemeentehuis* `PD3PAM-5, PD3PAM-9` (PD3PAM-9 bestaat niet) en sla op. V1 meldt aan *Gemeentehuis* | PD3PAM-5 bevestigt; steunpunt blijft herhalen voor PD3PAM-9. Na 5 min op Status: *Nog niet bevestigd* door PD3PAM-9, met knop **Niet meer wachten op PD3PAM-9** → melding uit de wachtrij. Daarna PD3PAM-9 weer weghalen op tabblad Netwerk | ☐ |
 | C7 | Melding met lange tekst (veel slachtoffers/locatie) | Komt compleet aan (meerdere delen samengevoegd) | ☐ |
-| C8 | Melding met locatie aan (vinkje in de app) | Bij *E - Exacte locatie* staat onder de tekst **GPS 52.xxxxx, 6.xxxxx (± .. m)**; ook in de lijst | ☐ |
+| C8 | Melding met *Ik ben ter plaatse: stuur mijn positie mee* aangevinkt | Bij *E - Exacte locatie* staat onder de tekst **Positie melder (ter plaatse): 52.xxxxx, 6.xxxxx (± .. m)**; in de lijst *Melder ter plaatse* | ☐ |
+| C8a | Na C8 het meldscherm opnieuw openen; en een melding zonder het vinkje | Vinkje staat weer **uit**. Melding zonder vinkje: geen positie op het scherm | ☐ |
 | C9 | (Met 2 steunpunten) V van SP1 en V van SP2 melden tegelijk aan dezelfde eindpost | Beide komen aan, eventueel één tot 1 min later; geen dubbele regels op het scherm | ☐ |
 
 ## D. Gehoord en uit beeld

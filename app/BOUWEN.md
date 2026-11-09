@@ -53,6 +53,20 @@ Sideband-maker:
 - `recipes/lxst`: bron uit `~/LXST`; `recipes/python3`: `pybuilddir.txt` wijst
   naar de host-modules; `recipes/numpy`: ontbrekende `#include <unordered_map>`.
 
+## 2b. Een nieuwe versie van de patch (bij een bestaande bouwmap)
+
+Heb je al eens gebouwd en is de patch op GitHub bijgewerkt:
+
+```bash
+cd ~/noodnet && git pull
+cd ~/Sideband && git reset --hard 2.1.0
+git apply ~/noodnet/app/noodnet_sideband_2.1.0.patch
+git add -A && git commit -m "Noodnet"
+```
+
+Daarna gewoon stap 3. Gebruik dezelfde sleutel (stap 4), anders kan de update niet over
+de geïnstalleerde app heen.
+
 ## 3. Bouwen
 
 ```bash
@@ -92,3 +106,12 @@ Of via de website: *Releases → Draft a new release*, bestanden `noodnet.apk` e
 - Gewone Sideband eerst weg (na een backup via *Backup & Keys*): de handtekening
   verschilt.
 - Plugin `send_Telemetry.py` is niet meer nodig (het baken zit in de app).
+- Sinds november 2026 heet de app op de telefoon **Noodnet** (daarvoor *Sideband*). Het is
+  dezelfde app: een nieuwe versie installeer je gewoon over de oude heen, aanmelding en
+  berichten blijven bewaard.
+
+## Wijzigingen
+
+- **2026-11-09**: *Ik ben ter plaatse: stuur mijn positie mee* staat standaard uit, ook elke keer
+  dat je het meldscherm opent, en gaat na elke melding weer uit. App heet op de telefoon
+  *Noodnet*. Versienummer (android.numeric_version) 20261109.

@@ -393,7 +393,7 @@ def handle_mth(src, d):
     record["accuracy_m"] = num(d, "nauwk")
     publish("methane", record)
     publish("methane/laatste", record, retain=True)
-    plek = f"  positie melder: {record['latitude']}, {record['longitude']}" if record["latitude"] is not None else ""
+    plek = f"  positie melder (ter plaatse): {record['latitude']}, {record['longitude']}" if record["latitude"] is not None else ""
     logboek("M/ETHANE", src, d, record["voor_mij"], meldcode=record.get("meldcode", ""),
             regels=kop("M/ETHANE", src, d, record["voor_mij"], "  " + str(record.get("meldcode", "")))
             + [d.get("tekst", "")] + ([plek] if plek else []))
