@@ -137,7 +137,7 @@ ook zonder stroomnet en zonder internet. Je thuis-wifi gebruikt de Pi niet meer.
 | **Radio** | Geluidskaart van de set. *Besturing*: **CAT** als je set in de lijst staat (of tik *Zoek mijn set*), anders RTS/DTR met de PTT-poort. RNode-poort voor 433 en/of 868 (heb je er maar één: de andere op *Niet aangesloten*), zendvermogen. Opslaan. Dan **Testuitzending**: gaat de set op zenden? Zendniveau met de schuifbalk zo dat het packet-geluid schoon klinkt (begin bij 50%). |
 | **Netwerk** | Gemeente, **2 m-frequentie**, disciplines met de roepnaam van hun eindpost, LoRa-instellingen. Gelijk houden op alle steunpunten van de gemeente: één persoon vult dit in en deelt het met **Exporteren**; de anderen **Inladen**. Opslaan. |
 | **Kaart** | *Nieuwe kaart maken* (de aanmeldkaart met QR-code). |
-| **Posities** | Eenmalig, **met internet**: offline kaart downloaden (gemeente, straal 10 km, detail 16). Daarna zie je hier zonder internet waar de vrijwilligers het laatst gehoord zijn. |
+| **Posities** | Eenmalig, **met internet**: offline kaart downloaden (gemeente, straal 10 km, detail 16). Daarna zie je hier zonder internet waar de vrijwilligers het laatst gehoord zijn, met het steunpunt als blauw vierkant (de positie van tabblad **Steunpunt**; nog niet ingevuld: *Steunpunt op de kaart aanwijzen* en op de plek tikken). |
 | **Status** | Alles groen? Geen rode melding? Vul *Dienstdoende operator* in. |
 
 **Jezelf beheerder maken** (zonder iets over te typen):

@@ -71,6 +71,7 @@ via de hotspot.
 | D4 | Met internet: steunpunt → tabblad **Posities** → gemeente, 10 km, detail 16 → **Kaart downloaden** | *Kaart gedownload* met aantal tegels | ☐ |
 | D5 | Zonder internet: tabblad **Posities** | Kaart van de gemeente; elke vrijwilliger met positie als stip met naam: groen actief, oranje accu laag, rood uit beeld. Tik: laatst gehoord, accu, coördinaten | ☐ |
 | D6 | Tabblad **Vrijwilligers** → *op de kaart* bij V1 | Posities opent ingezoomd op V1 met zijn gegevens | ☐ |
+| D7 | Posities → *Steunpunt op de kaart aanwijzen* → op een plek tikken → bevestigen | *Steunpunt geplaatst op …*; blauw vierkant met naam en roepnaam; dezelfde coördinaten staan op tabblad **Steunpunt** | ☐ |
 
 ## E. Storingen
 

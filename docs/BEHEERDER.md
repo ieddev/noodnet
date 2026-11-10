@@ -86,7 +86,7 @@ Verbind met de wifi **Noodnet-…** van het steunpunt en open **http://10.42.0.1
 | Dienst overnemen of aflossen | **Status** → *Dienstdoende operator* → kies jezelf → **Dienst overnemen** |
 | Aanmelding goedkeuren of afwijzen | **Status** → *Wachten op goedkeuring* |
 | Wie is actief, accu's, afmelden | Tabblad **Vrijwilligers** (ook *Onbekende telefoons*) |
-| Waar is een vrijwilliger? | Tabblad **Posities**: alle vrijwilligers op de offline kaart (groen actief, oranje accu laag, rood uit beeld; tik voor details). Of **Vrijwilligers** → *op de kaart* bij één persoon. De kaart downloadt de zendamateur eenmalig met internet op hetzelfde tabblad. |
+| Waar is een vrijwilliger? | Tabblad **Posities**: alle vrijwilligers op de offline kaart (groen actief, oranje accu laag, rood uit beeld, blauw vierkant = het steunpunt; tik voor details). Of **Vrijwilligers** → *op de kaart* bij één persoon. De kaart downloadt de zendamateur eenmalig met internet op hetzelfde tabblad. |
 | Bericht aan alle vrijwilligers | **Vrijwilligers** → *Bericht aan alle vrijwilligers*; daaronder zie je wie het heeft ontvangen |
 | Vrijwilliger laten aanmelden zonder printer | **Kaart** → **QR-code groot tonen** en laat scannen van je scherm |
 | Melding blijft *Nog niet bevestigd* | **Status**: die eindpost staat uit of is buiten bereik. Bestaat hij niet: **Niet meer wachten op …** |

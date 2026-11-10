@@ -1038,17 +1038,27 @@ def posities(inst, net):
 def html_posities(inst, net):
     """Tabblad Posities: vrijwilligers op de offline kaart + kaart downloaden."""
     k = offline_kaart.info() or {}
-    instel = {"midden": [k.get("lat", 52.255), k.get("lon", 6.163)], "zoom": k.get("zoom_start", 13),
-              "max_zoom": k.get("max_zoom", 16), "bron": k.get("bron", ""), "kaart": bool(k),
-              "posities": posities(inst, net)}
+    sp = None
+    if inst.get("latitude") is not None and inst.get("longitude") is not None:
+        sp = {"lat": inst["latitude"], "lon": inst["longitude"],
+              "naam": inst.get("steunpunt_naam") or "Steunpunt", "roepnaam": inst.get("roepnaam") or ""}
+    instel = {"midden": [sp["lat"], sp["lon"]] if sp else [k.get("lat", 52.255), k.get("lon", 6.163)],
+              "zoom": k.get("zoom_start", 13), "max_zoom": k.get("max_zoom", 16), "bron": k.get("bron", ""),
+              "kaart": bool(k), "posities": posities(inst, net), "steunpunt": sp}
     data = json.dumps(instel, ensure_ascii=False).replace("</", "<\\/")
     return f"""<section><h2>Posities van vrijwilligers</h2>
 <p class="uitleg">Laatst bekende positie van elke aangemelde vrijwilliger (van zijn baken of melding).
 <span style="color:#2e7d32">&#9679;</span> actief &nbsp;<span style="color:#e67e00">&#9679;</span> accu bijna leeg
-&nbsp;<span style="color:#c00000">&#9679;</span> uit beeld (laatst gezien hier). Ververst elke 30 seconden.</p>
+&nbsp;<span style="color:#c00000">&#9679;</span> uit beeld (laatst gezien hier)
+&nbsp;<span style="color:#1f5fa8">&#9632;</span> dit steunpunt. Ververst elke 30 seconden.</p>
 {'' if k else "<div class='melding let'>Nog geen offline kaart: download hem hieronder (eenmalig, met internet). De posities staan er wel al op.</div>"}
 <link rel="stylesheet" href="/leaflet/leaflet.css">
 <div id="posities_kaart" style="height:65vh;min-height:320px;border-radius:8px;border:1px solid #ccd;background:#e8ecef"></div>
+<div class="balk" style="margin-top:8px"><button type="button" class="licht" id="sp_plaats">Steunpunt op de kaart aanwijzen</button>
+<span id="sp_uitleg" class="uitleg" style="display:none">Tik nu op de plek van het steunpunt.
+<a href="#" id="sp_annuleer">Annuleren</a></span></div>
+<form method="post" action="/steunpunt_positie" id="sp_form" style="display:none">{verborgen()}
+<input type="hidden" name="latitude" id="sp_lat"><input type="hidden" name="longitude" id="sp_lon"></form>
 <script src="/leaflet/leaflet.js"></script>
 <script>
 (function () {{
@@ -1075,10 +1085,39 @@ def html_posities(inst, net):
     if (eerste) {{
       var toon = new URLSearchParams(location.search).get("toon");
       if (toon && markers[toon]) {{ map.setView(markers[toon].getLatLng(), 16); markers[toon].openPopup(); }}
-      else if (lijst.length) map.fitBounds(L.latLngBounds(lijst.map(function (p) {{ return [p.lat, p.lon]; }})),
-          {{maxZoom: 15, padding: [40, 40]}});
+      else {{
+        var punten = lijst.map(function (p) {{ return [p.lat, p.lon]; }});
+        if (D.steunpunt) punten.push([D.steunpunt.lat, D.steunpunt.lon]);
+        if (punten.length > 1) map.fitBounds(L.latLngBounds(punten), {{maxZoom: 15, padding: [40, 40]}});
+        else if (punten.length) map.setView(punten[0], 15);
+      }}
     }}
   }}
+  // Dit steunpunt: blauw vierkant met roepnaam (vast, niet in de verversing)
+  var spIcoon = L.divIcon({{className: "", iconSize: [22, 22], iconAnchor: [11, 11],
+      html: '<div style="width:18px;height:18px;background:#1f5fa8;border:2px solid #fff;border-radius:3px;' +
+            'box-shadow:0 0 0 2px #1f5fa8"></div>'}});
+  map.createPane("steunpuntlabel"); map.getPane("steunpuntlabel").style.zIndex = 660;   // boven de andere labels
+  if (D.steunpunt) {{
+    L.marker([D.steunpunt.lat, D.steunpunt.lon], {{icon: spIcoon, zIndexOffset: 1000}}).addTo(map)
+      .bindTooltip("<b>" + esc(D.steunpunt.naam) + "</b> " + esc(D.steunpunt.roepnaam),
+                   {{permanent: true, direction: "top", offset: [0, -12], pane: "steunpuntlabel"}})
+      .bindPopup("<b>" + esc(D.steunpunt.naam) + "</b><br>" + esc(D.steunpunt.roepnaam) +
+                 "<br><span style='font-family:monospace'>" + Number(D.steunpunt.lat).toFixed(5) + ", " +
+                 Number(D.steunpunt.lon).toFixed(5) + "</span>");
+  }}
+  var aanwijzen = false, knop = document.getElementById("sp_plaats"), uitleg = document.getElementById("sp_uitleg");
+  knop.onclick = function () {{ aanwijzen = true; knop.style.display = "none"; uitleg.style.display = "inline";
+                               document.getElementById("posities_kaart").style.cursor = "crosshair"; }};
+  document.getElementById("sp_annuleer").onclick = function (ev) {{ ev.preventDefault(); aanwijzen = false;
+      knop.style.display = ""; uitleg.style.display = "none"; document.getElementById("posities_kaart").style.cursor = ""; }};
+  map.on("click", function (ev) {{
+    if (!aanwijzen) return;
+    var lat = ev.latlng.lat.toFixed(6), lon = ev.latlng.lng.toFixed(6);
+    if (!confirm("Steunpunt hier plaatsen? " + lat + ", " + lon)) return;
+    document.getElementById("sp_lat").value = lat; document.getElementById("sp_lon").value = lon;
+    document.getElementById("sp_form").submit();
+  }});
   teken(D.posities, true);
   setInterval(function () {{
     fetch("/posities.json", {{credentials: "same-origin"}}).then(function (r) {{ return r.json(); }})
@@ -1511,6 +1550,16 @@ class Handler(BaseHTTPRequestHandler):
                 wis_onbekend(adr)
             return self._terug("/vrijwilligers", "gewist")
 
+        if pad == "steunpunt_positie":
+            lat, lon = getal(f.get("latitude")), getal(f.get("longitude"))
+            if lat is None or lon is None or not (-90 <= lat <= 90 and -180 <= lon <= 180):
+                return self._terug("/posities", "fout:Positie klopt niet.")
+            nieuw = dict(inst, latitude=round(lat, 6), longitude=round(lon, 6))
+            with SCHRIJF_LOCK:
+                schrijf_json(INST_FILE, nieuw)
+            ok, fout = herstart("noodnet-brug")
+            return self._terug("/posities", f"ok:Steunpunt geplaatst op {lat:.5f}, {lon:.5f}." if ok else
+                               "fout:Opgeslagen, maar herstart van de brug lukte niet: " + fout)
         if pad == "posities":
             fout = offline_kaart.start_download(f.get("plaats", ""), f.get("straal", ""), f.get("zoom", ""))
             return self._terug("/posities", ("fout:" + fout) if fout else "")
