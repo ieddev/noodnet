@@ -62,6 +62,8 @@ en af te vinken: [docs/Noodnet-testplan.pdf](docs/Noodnet-testplan.pdf).
 | `gemeenschappelijk/` | 2 m-protocol, radio/hotspot-module, startpagina met app-download, diensten |
 | `steunpunt/` | Brug LoRa → 2 m, beheerpagina, aanmeldkaart |
 | `eindpost/` | Ontvanger 2 m → MQTT + logboek, beheerpagina, Node-RED M/ETHANE-scherm en meldingen op een offline kaart |
+| `gemeenschappelijk/noodnet_kaart.py` | Offline kaart (PDOK) downloaden; steunpunt: posities van vrijwilligers, eindpost: meldingen op de kaart |
+| `gemeenschappelijk/leaflet/` | Leaflet 1.9.4 (BSD-2), voor de kaart op de beheerpagina van het steunpunt |
 | `app/` | Patch op Sideband 2.1.0 (M/ETHANE, kaart, QR-scanner, baken) en bouwinstructie |
 | `docs/` | Procedure, handleidingen voor vrijwilliger en beheerder (ook als PDF), testplan; `docs/pdf/maak_pdf.py` maakt de PDF's opnieuw |
 
@@ -104,6 +106,8 @@ officiële pakketten, ongewijzigd, zoals de makers ze verspreiden:
   (Apache-2.0). Die worden bij de installatie uit de gewone pakketbronnen gehaald.
 - [node-red-contrib-web-worldmap](https://github.com/dceejay/RedMap) (Apache-2.0) voor de kaart met
   meldingen op de eindpost.
+- [Leaflet](https://leafletjs.com) (BSD-2-Clause) voor de kaart met posities op het steunpunt
+  (meegeleverd in `gemeenschappelijk/leaflet/`, met de licentietekst).
 - De offline kaart is de **BRT-Achtergrondkaart** van het Kadaster, via [PDOK](https://www.pdok.nl)
   (open data, CC BY 4.0). De eindpost downloadt die eenmalig voor de eigen gemeente; de naamsvermelding
   staat op de kaart.

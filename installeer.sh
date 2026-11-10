@@ -116,6 +116,7 @@ fi
 # ---------------------------------------------------------------------------
 stap "Noodnet-programma's naar $DOEL"
 cp "$BRON"/gemeenschappelijk/*.py "$BRON"/gemeenschappelijk/*.sh "$DOEL"/
+mkdir -p "$DOEL/leaflet" && cp "$BRON"/gemeenschappelijk/leaflet/* "$DOEL/leaflet/"   # kaart (tabblad Posities)
 cp "$BRON/$ROL"/*.py "$DOEL"/
 cp "$BRON/$ROL"/*.sh "$DOEL"/ 2>/dev/null || true
 chmod +x "$DOEL/hotspot.sh" "$DOEL/hotspot_bewaker.sh"

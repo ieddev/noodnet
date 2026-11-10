@@ -136,7 +136,8 @@ ook zonder stroomnet en zonder internet. Je thuis-wifi gebruikt de Pi niet meer.
 | **Steunpunt** | Naam van het steunpunt, aanmeldcode (min. 4 tekens), *Wie mag melden* = **Aan**. Opslaan. |
 | **Radio** | Geluidskaart van de set. *Besturing*: **CAT** als je set in de lijst staat (of tik *Zoek mijn set*), anders RTS/DTR met de PTT-poort. RNode-poort voor 433 en/of 868 (heb je er maar één: de andere op *Niet aangesloten*), zendvermogen. Opslaan. Dan **Testuitzending**: gaat de set op zenden? Zendniveau met de schuifbalk zo dat het packet-geluid schoon klinkt (begin bij 50%). |
 | **Netwerk** | Gemeente, **2 m-frequentie**, disciplines met de roepnaam van hun eindpost, LoRa-instellingen. Gelijk houden op alle steunpunten van de gemeente: één persoon vult dit in en deelt het met **Exporteren**; de anderen **Inladen**. Opslaan. |
-| **Kaart** | *Nieuwe kaart maken*. |
+| **Kaart** | *Nieuwe kaart maken* (de aanmeldkaart met QR-code). |
+| **Posities** | Eenmalig, **met internet**: offline kaart downloaden (gemeente, straal 10 km, detail 16). Daarna zie je hier zonder internet waar de vrijwilligers het laatst gehoord zijn. |
 | **Status** | Alles groen? Geen rode melding? Vul *Dienstdoende operator* in. |
 
 **Jezelf beheerder maken** (zonder iets over te typen):
@@ -162,7 +163,7 @@ lamineren). Ter plekke zonder printer: **QR-code groot tonen** en van je telefoo
 |---|---|
 | **Instellingen** | Naam van de post, roepnaam (= die van de installatie), **2 m-frequentie**, disciplines (of *Alle meldingen*), eventueel meelezen. Opslaan. Heb je het netwerkbestand van de gemeente: onderaan **Inladen** (neemt frequentie en disciplines over). |
 | **Radio** | Geluidskaart van de set. *Besturing*: **CAT** als je set in de lijst staat (of *Zoek mijn set*), anders RTS/DTR met de PTT-poort. Opslaan. Dan **Testuitzending**: gaat de set op zenden? Zendniveau met de schuifbalk zo dat het packet-geluid schoon klinkt (begin bij 50%). |
-| **Kaart** | Eenmalig, **met internet**: vul de gemeente in, kies de straal (10 km is genoeg voor een gemeente als Deventer) en detail (16), en klik **Kaart downloaden** (een paar minuten). Zie *Meldingen op de kaart* hieronder. |
+| **Posities** | Eenmalig, **met internet**: vul de gemeente in, kies de straal (10 km is genoeg voor een gemeente als Deventer) en detail (16), en klik **Kaart downloaden** (een paar minuten). Zie *Meldingen op de kaart* hieronder. |
 | **Status** | Alles groen? Vul *Dienstdoende operator* in. |
 
 Laat daarna de beheerder van elk steunpunt in de gemeente jouw roepnaam
@@ -181,7 +182,7 @@ Meldingen waarbij de vrijwilliger *Ik ben ter plaatse* aanvinkte, komen ook op e
 blauw**. Tik of klik op een marker voor de hele M/ETHANE. Bij een nieuwe melding schuift de kaart
 er vanzelf naartoe. Meldingen zonder positie staan alleen op het M/ETHANE-scherm.
 
-1. **Offline kaart downloaden** (eenmalig, met internet): beheerpagina → tabblad **Kaart** →
+1. **Offline kaart downloaden** (eenmalig, met internet): beheerpagina → tabblad **Posities** →
    gemeente, straal en detail → **Kaart downloaden**. De straal geldt in elke richting: 10 km geeft
    20 bij 20 km, met daaromheen een grof overzicht van de regio. De kaart is de BRT-Achtergrondkaart van het
    Kadaster (PDOK, open data, CC BY 4.0). Daarna werkt hij zonder internet. Opnieuw downloaden
@@ -351,7 +352,7 @@ dan een **UPS-HAT** op de Pi.
 | Telefoon ziet wifi *Noodnet-…* niet | Pi herstarten. Wacht 2 minuten na het aanzetten. |
 | Telefoon ziet de wifi wel, maar verbinden mislukt | Wachtwoord goed? Staat in `~/noodnet/hotspot.json`. Controle: `~/noodnet/hotspot.sh status` en `journalctl -u noodnet-ap -n 30`. |
 | ssh: *REMOTE HOST IDENTIFICATION HAS CHANGED* | Normaal na een nieuwe SD-kaart of bij een andere Pi op hetzelfde adres (via de hotspot is dat altijd 10.42.0.1). Op je pc: `ssh-keygen -R 10.42.0.1` (of het adres/de hostnaam die je gebruikt), dan opnieuw inloggen en **yes** typen. |
-| Kaart is grijs of leeg | Is de offline kaart gedownload (tabblad **Kaart**)? Buiten het gedownloade gebied is de kaart grijs: download een groter gebied. Geen markers: alleen meldingen met *Ik ben ter plaatse* hebben een positie. |
+| Kaart is grijs of leeg | Is de offline kaart gedownload (tabblad **Posities**)? Buiten het gedownloade gebied is de kaart grijs: download een groter gebied. Geen markers: alleen meldingen met *Ik ben ter plaatse* hebben een positie. |
 | Beheerpagina opent niet | Op de hotspot? Adres **http://10.42.0.1:8080** (een naam werkt niet, alleen het adres). Mobiele data even uit. Net opgestart: wacht 2 minuten; de Pi controleert de hotspot elke minuut en zet hem zo nodig zelf opnieuw goed. Lukt het daarna nog niet: stroom eraf en erop, en bekijk na het inloggen wat er misging met `journalctl -b -1 -t noodnet -u noodnet-ap -u noodnet-dhcp`. |
 | Direwolf rood | Tabblad Radio: juiste geluidskaart? Set aan en via USB aangesloten? |
 | Direwolf rood nadat een USB-stekker (bijv. RNode) eruit of erin ging | Vooral op een Pi 3: de USB loopt vast en de geluidskaart van de set geeft fouten. USB-kabel van de set even uit en in, of de Pi herstarten. Liever een Pi 4/5; RNodes niet in- of uitpluggen terwijl het steunpunt in gebruik is. |

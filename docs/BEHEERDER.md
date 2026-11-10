@@ -32,10 +32,6 @@ Je telefoon wordt beheerder door hem aan te melden en op de beheerpagina als beh
    (gebruiker **beheer**).
 4. Tabblad **Status** → *Wachten op goedkeuring* → **Goedkeuren als beheerder**.
 
-**Tip:** download vooraf in de kaart-app van je beheertelefoon een **offline kaart** van de
-gemeente (Google Maps: profielfoto → *Offline kaarten*; of een app als Organic Maps of OsmAnd).
-Dan kun je de positie van vrijwilligers ook zonder internet op de kaart zien.
-
 Er kunnen meer beheerders zijn, bijvoorbeeld voor een aflossing. Elke beheerder krijgt dezelfde
 berichten.
 
@@ -90,7 +86,7 @@ Verbind met de wifi **Noodnet-…** van het steunpunt en open **http://10.42.0.1
 | Dienst overnemen of aflossen | **Status** → *Dienstdoende operator* → kies jezelf → **Dienst overnemen** |
 | Aanmelding goedkeuren of afwijzen | **Status** → *Wachten op goedkeuring* |
 | Wie is actief, accu's, afmelden | Tabblad **Vrijwilligers** (ook *Onbekende telefoons*) |
-| Waar is een vrijwilliger? | **Vrijwilligers** → kolom *Positie*: coördinaten, **kaart-app** (opent de kaart-app van je telefoon; werkt zonder internet als je daarin een offline kaart van de gemeente hebt) en *online* (OpenStreetMap, alleen met internet) |
+| Waar is een vrijwilliger? | Tabblad **Posities**: alle vrijwilligers op de offline kaart (groen actief, oranje accu laag, rood uit beeld; tik voor details). Of **Vrijwilligers** → *op de kaart* bij één persoon. De kaart downloadt de zendamateur eenmalig met internet op hetzelfde tabblad. |
 | Bericht aan alle vrijwilligers | **Vrijwilligers** → *Bericht aan alle vrijwilligers*; daaronder zie je wie het heeft ontvangen |
 | Vrijwilliger laten aanmelden zonder printer | **Kaart** → **QR-code groot tonen** en laat scannen van je scherm |
 | Melding blijft *Nog niet bevestigd* | **Status**: die eindpost staat uit of is buiten bereik. Bestaat hij niet: **Niet meer wachten op …** |

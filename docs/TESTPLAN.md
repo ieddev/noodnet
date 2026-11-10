@@ -68,6 +68,9 @@ via de hotspot.
 | D1 | V1 uitzetten of RNode loskoppelen | Na de ingestelde tijd (*uit beeld na*, tabblad Steunpunt): B krijgt "niet meer gehoord sinds …"; `LIJST` toont het | ☐ |
 | D2 | V1 weer aan | B krijgt "weer gehoord (na … stilte)" | ☐ |
 | D3 | Accu van een RNode laag (als je dat kunt nabootsen) | Waarschuwing aan B | ☐ |
+| D4 | Met internet: steunpunt → tabblad **Posities** → gemeente, 10 km, detail 16 → **Kaart downloaden** | *Kaart gedownload* met aantal tegels | ☐ |
+| D5 | Zonder internet: tabblad **Posities** | Kaart van de gemeente; elke vrijwilliger met positie als stip met naam: groen actief, oranje accu laag, rood uit beeld. Tik: laatst gehoord, accu, coördinaten | ☐ |
+| D6 | Tabblad **Vrijwilligers** → *op de kaart* bij V1 | Posities opent ingezoomd op V1 met zijn gegevens | ☐ |
 
 ## E. Storingen
 
@@ -95,7 +98,7 @@ via de hotspot.
 | F8 | Knop *Wis scherm en lijst* in Node-RED (editor) | Scherm en lijst leeg; logboek blijft compleet | ☐ |
 | F9 | Back-up downloaden (tabblad Back-up), daarna terugzetten | Instellingen en logboek terug | ☐ |
 | F10 | Radio → Testuitzending en niveaus | Set zendt; steunpunt toont de eindpost bij *Gehoorde stations*, niveau rond 50 (en andersom) | ☐ |
-| F11 | Met internet: tabblad **Kaart** → gemeente, 10 km, detail 16 → **Kaart downloaden** | Voortgang loopt op; daarna *Kaart gedownload* met het aantal tegels en de datum | ☐ |
+| F11 | Met internet: tabblad **Posities** → gemeente, 10 km, detail 16 → **Kaart downloaden** | Voortgang loopt op; daarna *Kaart gedownload* met het aantal tegels en de datum | ☐ |
 | F12 | Zonder internet: **http://10.42.0.1:1880/worldmap/** (laptop/telefoon op de hotspot) | Kaart van de gemeente zichtbaar, ook ingezoomd tot straatniveau | ☐ |
 | F13 | V1 stuurt een M/ETHANE **met** *Ik ben ter plaatse* | Op de kaart: rode marker *NIEUW hh:mm · soort* met rode cirkel; kaart schuift ernaartoe; klik toont de hele M/ETHANE | ☐ |
 | F14 | Daarna een tweede melding met positie, en een derde **zonder** | Tweede wordt de rode; de eerste wordt blauw. De derde staat niet op de kaart (wel op het M/ETHANE-scherm) | ☐ |

@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """
-noodnet_kaart.py - offline kaart voor de eindpost (meldingen op de kaart in Node-RED).
+noodnet_kaart.py - offline kaart voor de eindpost (meldingen op de kaart in Node-RED) en het
+steunpunt (posities van vrijwilligers, tabblad Posities).
 
 Downloadt eenmalig (met internet) de kaarttegels van de BRT-Achtergrondkaart van PDOK
 (Kadaster, open data, CC BY 4.0) rond een plaats, zodat de kaart daarna zonder internet werkt.
-Node-RED serveert de tegels op  http://<pi>:1880/noodnet-tegels/{z}/{x}/{y}.png
-en de kaart zelf staat op       http://<pi>:1880/worldmap
+Eindpost:  Node-RED serveert de tegels op http://<pi>:1880/noodnet-tegels/{z}/{x}/{y}.png,
+           de kaart staat op http://<pi>:1880/worldmap
+Steunpunt: de beheerpagina serveert ze op http://<pi>:8080/tegels/{z}/{x}/{y}.png (tabblad Posities)
 
     python3 noodnet_kaart.py --plaats Deventer --straal 10 --zoom 16
     python3 noodnet_kaart.py --midden 52.255,6.163 --straal 10
@@ -223,6 +225,107 @@ def download(plaats, lat, lon, straal_km, max_zoom):
                          "bron": BRON, "gebied": gebied(lat, lon, straal_km)})
     _schrijf(VOORTGANG_FILE, staat)
     return True
+
+
+# ---------------------------------------------------------------------------
+# Voor de beheerpagina's (steunpunt: tabblad Posities, eindpost: tabblad Kaart)
+# ---------------------------------------------------------------------------
+
+def _e(t):
+    import html as _h
+    return _h.escape(str(t), quote=True)
+
+
+def map_mb(pad=TEGELS):
+    totaal = 0
+    for wortel, _, bestanden in os.walk(pad):
+        for b in bestanden:
+            try:
+                totaal += os.path.getsize(os.path.join(wortel, b))
+            except OSError:
+                pass
+    return round(totaal / 1024 / 1024)
+
+
+def tegel_pad(z, x, y):
+    """Pad van een kaarttegel, of None als de waarden niet kloppen of de tegel er niet is."""
+    try:
+        z, x, y = int(z), int(x), int(str(y).removesuffix(".png"))
+    except (TypeError, ValueError):
+        return None
+    if not (0 <= z <= 20 and 0 <= x < 2 ** z and 0 <= y < 2 ** z):
+        return None
+    pad = os.path.join(TEGELS, str(z), str(x), f"{y}.png")
+    return pad if os.path.isfile(pad) else None
+
+
+def start_download(plaats, straal, zoom):
+    """Download op de achtergrond starten. Geeft een foutmelding, of '' als hij loopt."""
+    import subprocess
+    plaats = " ".join(str(plaats or "").split())[:60]
+    try:
+        straal, zoom = int(straal), int(zoom)
+    except (TypeError, ValueError):
+        straal = zoom = 0
+    if not plaats or straal not in STRALEN or zoom not in ZOOMS:
+        return "Vul een plaats in en kies straal en detail."
+    v = voortgang()
+    if v and v.get("bezig"):
+        return "Er loopt al een download."
+    os.makedirs(KAART_DIR, exist_ok=True)
+    _schrijf(VOORTGANG_FILE, {"bezig": True, "plaats": plaats, "klaar": 0, "mislukt": 0, "totaal": 0,
+                              "bijgewerkt": time.time(), "fout": ""})
+    with open(os.path.join(KAART_DIR, "download.log"), "w") as logf:
+        subprocess.Popen([sys.executable, os.path.abspath(__file__), "--plaats", plaats, "--straal", str(straal),
+                          "--zoom", str(zoom)], stdout=logf, stderr=subprocess.STDOUT, start_new_session=True, cwd=MAP)
+    return ""
+
+
+def html_beheer(plaats_standaard, verborgen, actie):
+    """Voortgang, huidige offline kaart en het formulier om (opnieuw) te downloaden."""
+    k = info()
+    v = voortgang()
+    bezig = bool(v and v.get("bezig"))
+    if k:
+        huidig = f"""<table><tr><td>Gebied</td><td>{_e(k.get('plaats', ''))}, straal {_e(k.get('straal_km', ''))} km</td></tr>
+<tr><td>Detail</td><td>tot zoom {_e(k.get('max_zoom', ''))} ({_e(ZOOMS.get(k.get('max_zoom'), ''))})</td></tr>
+<tr><td>Tegels</td><td>{k.get('aantal', 0)} ({map_mb()} MB)</td></tr>
+<tr><td>Gedownload</td><td>{_e(k.get('datum', ''))}</td></tr></table>"""
+    else:
+        huidig = "<p><b>Nog geen offline kaart.</b> Posities staan wel op de kaart, maar zonder ondergrond.</p>"
+    melding = ""
+    if v and (bezig or v.get("fout") or time.time() - v.get("bijgewerkt", 0) < 600):
+        totaal = v.get("totaal") or 0
+        klaar = (v.get("klaar") or 0) + (v.get("mislukt") or 0)
+        pct = int(100 * klaar / totaal) if totaal else 0
+        if bezig:
+            melding = (f"<div class='melding let'>Bezig met downloaden voor {_e(v.get('plaats', ''))}: "
+                       f"{klaar} van {totaal or '?'} tegels ({pct}%). Deze pagina ververst vanzelf.</div>"
+                       "<meta http-equiv='refresh' content='5'>")
+        elif v.get("fout"):
+            melding = f"<div class='melding fout'>{_e(v['fout'])}</div>"
+        else:
+            melding = f"<div class='melding ok'>Kaart gedownload: {v.get('klaar', 0)} tegels.</div>"
+    plaats = (k or {}).get("plaats", "").split(",")[0].removeprefix("Gemeente ").strip() or plaats_standaard or ""
+    straal = (k or {}).get("straal_km", 10)
+    zoom = (k or {}).get("max_zoom", 16)
+    o_straal = "".join(f'<option value="{s}" {"selected" if s == straal else ""}>{s} km</option>' for s in STRALEN)
+    o_zoom = "".join(f'<option value="{z}" {"selected" if z == zoom else ""}>{z} - {_e(t)}</option>' for z, t in ZOOMS.items())
+    knop = "<button type='submit' disabled>Bezig...</button>" if bezig else "<button type='submit'>Kaart downloaden</button>"
+    return f"""{melding}
+<section><h2>Offline kaart</h2>{huidig}</section>
+<section><h2>Kaart downloaden</h2>
+<p class="uitleg">De kaart werkt zonder internet, maar je downloadt hem <b>eenmalig met internet</b> (netwerkkabel, of
+tijdelijk de thuis-wifi). Kaart: BRT-Achtergrondkaart van het Kadaster via PDOK (open data, CC BY 4.0).
+De straal geldt in elke richting: 10 km geeft een gebied van 20 bij 20 km, genoeg voor een gemeente als Deventer
+(ongeveer 4.000 tegels en 60 MB, een paar minuten). Daaromheen komt een grof overzicht van de regio.</p>
+<form method="post" action="{_e(actie)}">{verborgen}
+<label>Gemeente of woonplaats <small>het midden van de kaart</small></label>
+<input type="text" name="plaats" value="{_e(plaats)}" maxlength="60" placeholder="Deventer" required>
+<div class="rij"><div><label>Straal rondom het midden</label><select name="straal">{o_straal}</select></div>
+<div><label>Detail</label><select name="zoom">{o_zoom}</select></div></div>
+<div class="balk" style="margin-top:10px">{knop}</div></form>
+<p class="uitleg">De vorige kaart blijft werken tot de nieuwe helemaal binnen is.</p></section>"""
 
 
 def main():

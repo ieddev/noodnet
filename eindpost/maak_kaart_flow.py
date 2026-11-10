@@ -42,7 +42,7 @@ JS_INFO_PAD = r"""msg.filename = env.get("HOME") + "/noodnet/kaart/kaart.json";
 return msg;
 """
 
-JS_INFO = r"""// kaart.json (van de beheerpagina: tabblad Kaart) inlezen.
+JS_INFO = r"""// kaart.json (van de beheerpagina: tabblad Posities) inlezen.
 // Is er een nieuwe kaart gedownload, dan de open kaarten naar het nieuwe midden sturen.
 let k = msg.payload;
 if (typeof k !== "object" || k === null || typeof k.lat !== "number") k = null;
@@ -132,7 +132,7 @@ function basiskaart() {
         c.lat = k.lat; c.lon = k.lon; c.zoom = k.zoom_start || 13;
     } else {
         c.showdialog = "<h2>Nog geen offline kaart</h2><p>Download de kaart eenmalig op de beheerpagina " +
-                       "van de eindpost (tabblad <b>Kaart</b>, met internet). De meldingen staan wel al op de kaart.</p>";
+                       "van de eindpost (tabblad <b>Posities</b>, met internet). De meldingen staan wel al op de kaart.</p>";
     }
     // Recente melding (laatste 3 uur): daar beginnen
     const n = lijst[0];
@@ -204,11 +204,11 @@ def func(id_, name, code, x, y, wires, outputs=1):
 flow = [
     {"id": TAB, "type": "tab", "label": "Noodnet kaart", "disabled": False,
      "info": "Meldingen op een offline kaart (tweede scherm): http://<pi>:1880/worldmap\n\n"
-             "De kaart download je op de beheerpagina van de eindpost (tabblad Kaart). "
+             "De kaart download je op de beheerpagina van de eindpost (tabblad Posities). "
              "Alleen meldingen met 'Ik ben ter plaatse' hebben een positie."},
     node("nn_kaart_uitleg", "comment", 230, 40, name="Meldingen op de kaart: http://<pi>:1880/worldmap",
          info="Nieuwste melding: groot, rood, met cirkel. De 10 daarvoor: blauw.\n"
-              "Kaart: tabblad Kaart op de beheerpagina (poort 8080)."),
+              "Kaart: tabblad Posities op de beheerpagina (poort 8080)."),
 
     # Meldingen
     node("nn_kaart_mqtt", "mqtt in", 170, 120, [["nn_kaart_func"]], name="M/ETHANE van gateway",

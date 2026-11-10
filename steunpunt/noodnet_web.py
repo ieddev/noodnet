@@ -42,6 +42,7 @@ from urllib.parse import parse_qs, urlparse, quote
 
 import noodnet_radio as radio
 import noodnet_beheer as beheer
+import noodnet_kaart as offline_kaart
 
 MAP = os.path.dirname(os.path.abspath(__file__))
 INST_FILE = os.path.join(MAP, "steunpunt_instellingen.json")
@@ -722,7 +723,7 @@ details summary{cursor:pointer;color:var(--blauw);font-weight:600;margin-top:8px
 """
 
 PAGINAS = [("status", "Status"), ("steunpunt", "Steunpunt"), ("radio", "Radio"), ("netwerk", "Netwerk"),
-           ("vrijwilligers", "Vrijwilligers"), ("kaart", "Kaart"), ("backup", "Back-up")]
+           ("vrijwilligers", "Vrijwilligers"), ("posities", "Posities"), ("kaart", "Kaart"), ("backup", "Back-up")]
 
 
 def pagina(actief, inhoud, inst, melding=""):
@@ -1004,20 +1005,87 @@ steunpunt, één voor één (een paar seconden per telefoon). Vanaf je telefoon 
 <div class="balk" style="margin-top:8px"><button type="submit">Versturen aan allen</button></div></form>{laatste}</section>"""
 
 
-def html_positie(g, naam):
-    """Laatst bekende positie: coördinaten als tekst, een geo:-link (kaart-app van de telefoon, werkt
-    zonder internet als die app een offline kaart heeft) en OpenStreetMap (alleen met internet)."""
+def html_positie(g, adr):
+    """Laatst bekende positie: coördinaten als tekst en een link naar het tabblad Posities (offline kaart)."""
     if "lat" not in g or "lon" not in g:
         return "–"
     try:
         lat, lon = float(g["lat"]), float(g["lon"])
     except (TypeError, ValueError):
         return "–"
-    label = urllib.parse.quote(str(naam or "Vrijwilliger"))
-    geo = f"geo:{lat:.5f},{lon:.5f}?q={lat:.5f},{lon:.5f}({label})"
-    osm = f"https://www.openstreetmap.org/?mlat={lat:.5f}&mlon={lon:.5f}#map=16/{lat:.5f}/{lon:.5f}"
     return (f'<span class="mono" style="font-size:13px">{lat:.5f}, {lon:.5f}</span><br>'
-            f'<a href="{e(geo)}">kaart-app</a> &middot; <a href="{e(osm)}" target="_blank">online</a>')
+            f'<a href="/posities?toon={e(adr)}">op de kaart</a>')
+
+
+def posities(inst, net):
+    """Laatst bekende posities van de aangemelde vrijwilligers (voor de kaart)."""
+    uit = []
+    for r in vrijwilligers(inst, net):
+        g = r["g"]
+        try:
+            lat, lon = float(g["lat"]), float(g["lon"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        accu = ", ".join(x for x in (
+            f"RNode {g['rbat']}%" if g.get("rbat") is not None else "",
+            f"telefoon {g['tbat']}%" + (" (laadt)" if g.get("tladen") else "") if g.get("tbat") is not None else "") if x)
+        uit.append({"adr": r["adr"], "naam": r["naam"], "lat": lat, "lon": lon, "status": r["status"],
+                    "stil": duur(r["stil"]) + " geleden" if r["stil"] is not None else "nog niet gehoord",
+                    "accu": accu})
+    return uit
+
+
+def html_posities(inst, net):
+    """Tabblad Posities: vrijwilligers op de offline kaart + kaart downloaden."""
+    k = offline_kaart.info() or {}
+    instel = {"midden": [k.get("lat", 52.255), k.get("lon", 6.163)], "zoom": k.get("zoom_start", 13),
+              "max_zoom": k.get("max_zoom", 16), "bron": k.get("bron", ""), "kaart": bool(k),
+              "posities": posities(inst, net)}
+    data = json.dumps(instel, ensure_ascii=False).replace("</", "<\\/")
+    return f"""<section><h2>Posities van vrijwilligers</h2>
+<p class="uitleg">Laatst bekende positie van elke aangemelde vrijwilliger (van zijn baken of melding).
+<span style="color:#2e7d32">&#9679;</span> actief &nbsp;<span style="color:#e67e00">&#9679;</span> accu bijna leeg
+&nbsp;<span style="color:#c00000">&#9679;</span> uit beeld (laatst gezien hier). Ververst elke 30 seconden.</p>
+{'' if k else "<div class='melding let'>Nog geen offline kaart: download hem hieronder (eenmalig, met internet). De posities staan er wel al op.</div>"}
+<link rel="stylesheet" href="/leaflet/leaflet.css">
+<div id="posities_kaart" style="height:65vh;min-height:320px;border-radius:8px;border:1px solid #ccd;background:#e8ecef"></div>
+<script src="/leaflet/leaflet.js"></script>
+<script>
+(function () {{
+  var D = {data};
+  var KLEUR = {{ok: "#2e7d32", laag: "#e67e00", uit: "#c00000", nooit: "#777777"}};
+  var map = L.map("posities_kaart", {{minZoom: 8, maxZoom: 19}}).setView(D.midden, D.zoom);
+  map.attributionControl.setPrefix("Leaflet");
+  if (D.kaart) L.tileLayer("/tegels/{{z}}/{{x}}/{{y}}.png", {{maxNativeZoom: D.max_zoom, maxZoom: 19, minZoom: 8,
+      attribution: D.bron}}).addTo(map);
+  var laag = L.layerGroup().addTo(map), markers = {{}};
+  function esc(t) {{ return String(t).replace(/[&<>"']/g, function (c) {{
+      return {{"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}}[c]; }}); }}
+  function teken(lijst, eerste) {{
+    laag.clearLayers(); markers = {{}};
+    lijst.forEach(function (p) {{
+      var m = L.circleMarker([p.lat, p.lon], {{radius: 10, color: "#fff", weight: 2, fillColor: KLEUR[p.status] || "#777",
+          fillOpacity: 0.95}}).addTo(laag);
+      m.bindTooltip(esc(p.naam), {{permanent: true, direction: "right", offset: [10, 0]}});
+      m.bindPopup("<b>" + esc(p.naam) + "</b><br>Laatst gehoord: " + esc(p.stil) +
+          (p.accu ? "<br>Accu: " + esc(p.accu) : "") + "<br><span style='font-family:monospace'>" +
+          p.lat.toFixed(5) + ", " + p.lon.toFixed(5) + "</span>");
+      markers[p.adr] = m;
+    }});
+    if (eerste) {{
+      var toon = new URLSearchParams(location.search).get("toon");
+      if (toon && markers[toon]) {{ map.setView(markers[toon].getLatLng(), 16); markers[toon].openPopup(); }}
+      else if (lijst.length) map.fitBounds(L.latLngBounds(lijst.map(function (p) {{ return [p.lat, p.lon]; }})),
+          {{maxZoom: 15, padding: [40, 40]}});
+    }}
+  }}
+  teken(D.posities, true);
+  setInterval(function () {{
+    fetch("/posities.json", {{credentials: "same-origin"}}).then(function (r) {{ return r.json(); }})
+      .then(function (l) {{ teken(l, false); }}).catch(function () {{}});
+  }}, 30000);
+}})();
+</script></section>""" + offline_kaart.html_beheer(net.get("gemeente", ""), verborgen(), "/posities")
 
 
 def html_vrijwilligers(inst, net):
@@ -1037,7 +1105,7 @@ def html_vrijwilligers(inst, net):
         accu = "<br>".join(x for x in (
             f"RNode {g['rbat']}%" if g.get("rbat") is not None else "",
             f"tel. {g['tbat']}%" + (" (laadt)" if g.get("tladen") else "") if g.get("tbat") is not None else "") if x) or "–"
-        waar = html_positie(g, r["naam"])
+        waar = html_positie(g, r["adr"])
         rijen += f"""<tr><td><span class="punt {punt}"></span>{e(r['naam'])}<div class="mono" style="color:var(--zacht)">{e(r['adr'][:8])}</div></td>
 <td>{tijd}</td><td>{accu}</td><td>{waar}</td>
 <td style="text-align:right"><form method="post" action="/afmelden" style="margin:0" onsubmit="return confirm('{e(r['naam'])} afmelden? Deze telefoon kan daarna niet meer melden tot opnieuw goedgekeurd.')">
@@ -1125,6 +1193,19 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def _bestand(self, pad, soort, max_leeftijd=0):
+        try:
+            with open(pad, "rb") as f:
+                data = f.read()
+        except OSError:
+            return self._stuur("", 404, "text/plain")
+        self.send_response(200)
+        self.send_header("Content-Type", soort)
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", f"max-age={max_leeftijd}" if max_leeftijd else "no-store")
+        self.end_headers()
+        self.wfile.write(data)
+
     def _terug(self, waar, melding=""):
         self.send_response(303)
         self.send_header("Location", waar + (("?m=" + quote(melding)) if melding else ""))
@@ -1167,6 +1248,19 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(data)
             return
+        if pad.startswith("tegels/"):
+            delen = pad.split("/")
+            bestand = offline_kaart.tegel_pad(*delen[1:4]) if len(delen) == 4 else None
+            if not bestand:
+                return self._stuur("", 404, "text/plain")
+            return self._bestand(bestand, "image/png", 3600)
+        if pad in ("leaflet/leaflet.js", "leaflet/leaflet.css"):
+            soort = "application/javascript" if pad.endswith(".js") else "text/css"
+            return self._bestand(os.path.join(MAP, pad), soort, 86400)
+        if pad == "posities.json":
+            return self._stuur(json.dumps(posities(inst, net), ensure_ascii=False), 200, "application/json")
+        if pad == "posities":
+            return self._stuur(pagina("posities", html_posities(inst, net), inst, meld))
         if pad == "backup.zip":
             data, naam = beheer.maak_backup("steunpunt", inst.get("roepnaam", ""))
             self.send_response(200)
@@ -1417,6 +1511,9 @@ class Handler(BaseHTTPRequestHandler):
                 wis_onbekend(adr)
             return self._terug("/vrijwilligers", "gewist")
 
+        if pad == "posities":
+            fout = offline_kaart.start_download(f.get("plaats", ""), f.get("straal", ""), f.get("zoom", ""))
+            return self._terug("/posities", ("fout:" + fout) if fout else "")
         if pad == "allen":
             tekst = " ".join(f.get("tekst", "").split())
             if not tekst:
