@@ -29,6 +29,7 @@ import hashlib
 import hmac
 import html
 import json
+import urllib.parse
 import os
 import re
 import secrets
@@ -1003,6 +1004,22 @@ steunpunt, één voor één (een paar seconden per telefoon). Vanaf je telefoon 
 <div class="balk" style="margin-top:8px"><button type="submit">Versturen aan allen</button></div></form>{laatste}</section>"""
 
 
+def html_positie(g, naam):
+    """Laatst bekende positie: coördinaten als tekst, een geo:-link (kaart-app van de telefoon, werkt
+    zonder internet als die app een offline kaart heeft) en OpenStreetMap (alleen met internet)."""
+    if "lat" not in g or "lon" not in g:
+        return "–"
+    try:
+        lat, lon = float(g["lat"]), float(g["lon"])
+    except (TypeError, ValueError):
+        return "–"
+    label = urllib.parse.quote(str(naam or "Vrijwilliger"))
+    geo = f"geo:{lat:.5f},{lon:.5f}?q={lat:.5f},{lon:.5f}({label})"
+    osm = f"https://www.openstreetmap.org/?mlat={lat:.5f}&mlon={lon:.5f}#map=16/{lat:.5f}/{lon:.5f}"
+    return (f'<span class="mono" style="font-size:13px">{lat:.5f}, {lon:.5f}</span><br>'
+            f'<a href="{e(geo)}">kaart-app</a> &middot; <a href="{e(osm)}" target="_blank">online</a>')
+
+
 def html_vrijwilligers(inst, net):
     vw = vrijwilligers(inst, net)
     if not vw:
@@ -1020,7 +1037,7 @@ def html_vrijwilligers(inst, net):
         accu = "<br>".join(x for x in (
             f"RNode {g['rbat']}%" if g.get("rbat") is not None else "",
             f"tel. {g['tbat']}%" + (" (laadt)" if g.get("tladen") else "") if g.get("tbat") is not None else "") if x) or "–"
-        waar = f'<a href="https://www.openstreetmap.org/?mlat={g["lat"]}&mlon={g["lon"]}#map=16/{g["lat"]}/{g["lon"]}" target="_blank">kaart</a>' if "lat" in g else "–"
+        waar = html_positie(g, r["naam"])
         rijen += f"""<tr><td><span class="punt {punt}"></span>{e(r['naam'])}<div class="mono" style="color:var(--zacht)">{e(r['adr'][:8])}</div></td>
 <td>{tijd}</td><td>{accu}</td><td>{waar}</td>
 <td style="text-align:right"><form method="post" action="/afmelden" style="margin:0" onsubmit="return confirm('{e(r['naam'])} afmelden? Deze telefoon kan daarna niet meer melden tot opnieuw goedgekeurd.')">
