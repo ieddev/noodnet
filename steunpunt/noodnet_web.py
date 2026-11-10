@@ -59,6 +59,7 @@ AANMELD_FILE = os.path.join(LXMF_DIR, "aanmeldingen.json")
 WACHTRIJ_FILE = os.path.join(LXMF_DIR, "brug_wachtrij.json")
 OPDRACHTEN_FILE = os.path.join(LXMF_DIR, "web_opdrachten.json")
 RONDZENDING_FILE = os.path.join(LXMF_DIR, "rondzending.json")
+BERICHTEN_FILE = os.path.join(LXMF_DIR, "berichten.json")
 ALLEN_MAX = 300
 ID_FILE = os.path.join(LXMF_DIR, "gateway.id")
 RNS_CONFIG = os.path.expanduser(os.environ.get("NOODNET_RNS_CONFIG", "~/.reticulum/config"))
@@ -979,8 +980,8 @@ Het adres staat in Sideband bij <i>Your address</i>.</p><form method="post" acti
     return onb_html + hand
 
 
-def html_allen():
-    """Formulier 'Bericht aan alle vrijwilligers' + wie het laatste bericht heeft ontvangen."""
+def html_allen(aan=""):
+    """Formulier 'Bericht aan vrijwilligers' (allen of één) + wie het heeft ontvangen."""
     rz = lees_json(RONDZENDING_FILE, {}) or {}
     laatste = ""
     if rz.get("ontv"):
@@ -997,12 +998,28 @@ def html_allen():
         laatste = (f"<p class='uitleg' style='margin-top:12px'>Laatste bericht, "
                    f"{time.strftime('%d-%m %H:%M', time.localtime(rz.get('t', 0)))} door {e(rz.get('door', '?'))}:<br>"
                    f"<i>&ldquo;{e(rz.get('tekst', ''))}&rdquo;</i><br>{regels}<br>Ververs de pagina voor de laatste stand.</p>")
-    return f"""<section><h2>Bericht aan alle vrijwilligers</h2>
-<p class="uitleg">Bijvoorbeeld <i>Einde oefening, bedankt allemaal!</i> Gaat via LoRa naar elke aangemelde vrijwilliger van dit
-steunpunt, één voor één (een paar seconden per telefoon). Vanaf je telefoon kan het ook: stuur <b>ALLEN &lt;tekst&gt;</b> naar het steunpunt.</p>
-<form method="post" action="/allen" onsubmit="return confirm('Dit bericht naar alle vrijwilligers sturen?')">{verborgen()}
-<textarea name="tekst" rows="3" maxlength="{ALLEN_MAX}" required placeholder="Einde oefening, bedankt allemaal!"></textarea>
-<div class="balk" style="margin-top:8px"><button type="submit">Versturen aan allen</button></div></form>{laatste}</section>"""
+    # Berichten aan één vrijwilliger
+    status = {"ok": "&#10003; afgeleverd", "mislukt": "<span style='color:var(--rood,#c0392b)'>niet aangekomen</span>",
+              "wacht": "onderweg"}
+    los = lees_json(BERICHTEN_FILE, []) or []
+    los_html = ""
+    if los:
+        rijen = "".join(f"<tr><td class='mono' style='white-space:nowrap'>{time.strftime('%H:%M', time.localtime(b.get('t', 0)))}</td>"
+                        f"<td><b>{e(b.get('naam', '?'))}</b><br><i>{e(b.get('tekst', ''))}</i></td>"
+                        f"<td>{status.get(b.get('st'), e(b.get('st', '')))}</td></tr>" for b in los[:8])
+        los_html = (f"<details style='margin-top:10px'><summary>Berichten aan één vrijwilliger</summary>"
+                    f"<table>{rijen}</table><p class='uitleg'>Ververs de pagina voor de laatste stand.</p></details>")
+    opties = '<option value="">Alle vrijwilligers</option>' + "".join(
+        f'<option value="{e(adr)}" {"selected" if adr == aan else ""}>{e(naam or adr[:8])}</option>'
+        for adr, naam, _ in sorted(witte_lijst(), key=lambda x: (x[1] or x[0]).lower()))
+    return f"""<section id="bericht"><h2>Bericht aan vrijwilligers</h2>
+<p class="uitleg">Gaat via LoRa naar de telefoon. Aan allen bijvoorbeeld <i>Einde oefening, bedankt allemaal!</i> (één voor één,
+een paar seconden per telefoon); aan één bijvoorbeeld <i>Ga naar de Brink</i>. Vanaf je telefoon kan het ook:
+<b>ALLEN &lt;tekst&gt;</b> of <b>AAN &lt;naam&gt; &lt;tekst&gt;</b> naar het steunpunt.</p>
+<form method="post" action="/allen" onsubmit="var s=this.aan; return confirm('Bericht sturen aan ' + s.options[s.selectedIndex].text + '?')">{verborgen()}
+<label>Aan</label><select name="aan">{opties}</select>
+<label>Bericht</label><textarea name="tekst" rows="3" maxlength="{ALLEN_MAX}" required placeholder="Ga naar de Brink"></textarea>
+<div class="balk" style="margin-top:8px"><button type="submit">Versturen</button></div></form>{laatste}{los_html}</section>"""
 
 
 def html_positie(g, adr):
@@ -1079,7 +1096,8 @@ def html_posities(inst, net):
       m.bindTooltip(esc(p.naam), {{permanent: true, direction: "right", offset: [10, 0]}});
       m.bindPopup("<b>" + esc(p.naam) + "</b><br>Laatst gehoord: " + esc(p.stil) +
           (p.accu ? "<br>Accu: " + esc(p.accu) : "") + "<br><span style='font-family:monospace'>" +
-          p.lat.toFixed(5) + ", " + p.lon.toFixed(5) + "</span>");
+          p.lat.toFixed(5) + ", " + p.lon.toFixed(5) + "</span><br><a href='/vrijwilligers?aan=" +
+          encodeURIComponent(p.adr) + "#bericht'>Bericht sturen</a>");
       markers[p.adr] = m;
     }});
     if (eerste) {{
@@ -1127,7 +1145,7 @@ def html_posities(inst, net):
 </script></section>""" + offline_kaart.html_beheer(net.get("gemeente", ""), verborgen(), "/posities")
 
 
-def html_vrijwilligers(inst, net):
+def html_vrijwilligers(inst, net, aan=""):
     vw = vrijwilligers(inst, net)
     if not vw:
         return "<section><h2>Vrijwilligers</h2><p>Nog niemand aangemeld.</p></section>" + html_onbekend_en_handmatig(inst)
@@ -1151,7 +1169,7 @@ def html_vrijwilligers(inst, net):
 {verborgen()}<input type="hidden" name="adres" value="{e(r['adr'])}"><button class="licht" type="submit">Afmelden</button></form></td></tr>"""
     return f"""<section><h2>Vrijwilligers</h2><p class="uitleg">Wie aandacht nodig heeft staat bovenaan. Uit beeld na {uit_beeld_na(inst, net) // 60} minuten stilte.
 Ververs de pagina voor de laatste stand.</p>
-<table><tr><th>Naam</th><th>Laatst gehoord</th><th>Accu</th><th>Positie</th><th></th></tr>{rijen}</table></section>""" + html_allen() + html_onbekend_en_handmatig(inst)
+<table><tr><th>Naam</th><th>Laatst gehoord</th><th>Accu</th><th>Positie</th><th></th></tr>{rijen}</table></section>""" + html_allen(aan) + html_onbekend_en_handmatig(inst)
 
 
 def html_qr_groot(inst, kaart_html):
@@ -1329,7 +1347,8 @@ class Handler(BaseHTTPRequestHandler):
         if pad == "netwerk":
             return self._stuur(pagina("netwerk", html_netwerk(net), inst, meld))
         if pad == "vrijwilligers":
-            return self._stuur(pagina("vrijwilligers", html_vrijwilligers(inst, net), inst, meld))
+            aan = parse_qs(url.query).get("aan", [""])[0].lower()
+            return self._stuur(pagina("vrijwilligers", html_vrijwilligers(inst, net, aan), inst, meld))
         if pad == "kaart":
             return self._stuur(pagina("kaart", html_radiocontrole(net) + html_kaart(inst), inst, meld))
         if pad == "radio":
@@ -1571,15 +1590,20 @@ class Handler(BaseHTTPRequestHandler):
                 return self._terug("/vrijwilligers", f"fout:Te lang (max. {ALLEN_MAX} tekens).")
             if dienst_status("noodnet-brug") != "active":
                 return self._terug("/vrijwilligers", "fout:De brug draait niet; start die eerst (Herstart).")
+            aan = f.get("aan", "").lower()
+            if aan and aan not in {a for a, _, _ in witte_lijst()}:
+                return self._terug("/vrijwilligers", "fout:Die vrijwilliger is niet (meer) aangemeld.")
             with SCHRIJF_LOCK:
                 lijst = lees_json(OPDRACHTEN_FILE, []) or []
-                lijst.append({"soort": "ALLEN", "tekst": tekst, "tijd": int(time.time())})
+                lijst.append({"soort": "AAN", "adres": aan, "tekst": tekst, "tijd": int(time.time())} if aan else
+                             {"soort": "ALLEN", "tekst": tekst, "tijd": int(time.time())})
                 schrijf_json(OPDRACHTEN_FILE, lijst)
             for _ in range(10):
                 time.sleep(0.5)
                 if not os.path.exists(OPDRACHTEN_FILE):
                     break
-            return self._terug("/vrijwilligers", "allen" if not os.path.exists(OPDRACHTEN_FILE) else
+            klaar = "ok:Bericht wordt verstuurd. Hieronder zie je of het aankomt." if aan else "allen"
+            return self._terug("/vrijwilligers", klaar if not os.path.exists(OPDRACHTEN_FILE) else
                                "fout:De brug heeft het bericht nog niet opgepakt; ververs zo de pagina.")
 
         if pad == "afmelden":

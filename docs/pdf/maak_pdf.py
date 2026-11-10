@@ -185,7 +185,7 @@ def zakkaart_beheer():
     opdrachten = [("WACHT", "open aanmeldingen"), ("JA &lt;nr&gt;", "aanmelding goedkeuren"),
                   ("NEE &lt;nr&gt;", "aanmelding afwijzen"), ("LIJST", "wie, laatst gehoord, accu"),
                   ("AF &lt;naam&gt;", "vrijwilliger afmelden"), ("CODE", "aanmeldcode tonen"),
-                  ("CODE &lt;nieuw&gt;", "nieuwe aanmeldcode"), ("ALLEN &lt;tekst&gt;", "bericht aan alle vrijwilligers"),
+                  ("CODE &lt;nieuw&gt;", "nieuwe aanmeldcode"), ("ALLEN &lt;tekst&gt;", "bericht aan alle vrijwilligers"), ("AAN &lt;naam&gt; &lt;tekst&gt;", "bericht aan één vrijwilliger"),
                   ("HELP", "alle opdrachten")]
     rijen = "".join('<tr><td class="opdr">%s</td><td>%s</td></tr>' % o for o in opdrachten)
     gegevens = "".join("<tr><th>%s</th><td></td></tr>" % g for g in

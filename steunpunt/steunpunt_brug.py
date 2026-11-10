@@ -124,6 +124,7 @@ AANMELD_FILE = os.path.join(storage_path, "aanmeldingen.json")
 GEHOORD_FILE = os.path.join(storage_path, "gehoord.json")
 OPDRACHTEN_FILE = os.path.join(storage_path, "web_opdrachten.json")   # van de beheerpagina
 RONDZENDING_FILE = os.path.join(storage_path, "rondzending.json")     # laatste bericht aan alle vrijwilligers
+BERICHTEN_FILE = os.path.join(storage_path, "berichten.json")         # laatste berichten aan één vrijwilliger
 
 
 def log(msg):
@@ -1106,6 +1107,110 @@ class Rondzending:
 rondzending = Rondzending()
 
 
+class Berichten:
+    """De laatste berichten aan één vrijwilliger (AAN), met of ze zijn aangekomen. Voor de beheerpagina."""
+    MAX = 15
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        try:
+            with open(BERICHTEN_FILE, "r", encoding="utf-8") as f:
+                self.lijst = json.load(f)
+        except (OSError, ValueError):
+            self.lijst = []
+
+    def _bewaar(self):
+        try:
+            tmp = BERICHTEN_FILE + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(self.lijst, f, ensure_ascii=False)
+            os.replace(tmp, BERICHTEN_FILE)
+        except OSError as e:
+            log(f"[-] Kon {BERICHTEN_FILE} niet bewaren: {e}")
+
+    def nieuw(self, adr, naam, tekst, door):
+        with self.lock:
+            bid = f"{int(time.time() * 1000)}"
+            self.lijst.insert(0, {"id": bid, "t": int(time.time()), "adr": adr, "naam": naam, "tekst": tekst,
+                                  "door": door, "st": "wacht"})
+            del self.lijst[self.MAX:]
+            self._bewaar()
+            return bid
+
+    def zet(self, bid, status):
+        with self.lock:
+            for b in self.lijst:
+                if b["id"] == bid and b["st"] != "ok":
+                    b["st"] = status
+                    self._bewaar()
+
+
+berichten = Berichten()
+
+
+def zoek_ontvanger(arg):
+    """'Liesbeth de Haan Ga naar de Brink' -> (adres, naam, tekst, fout).
+    Eerst de langste volledige naam, dan een unieke voornaam (of begin van het adres, min. 6 tekens).
+    Een dubbele punt na de naam mag ook: 'Liesbeth: Ga naar de Brink'."""
+    wl = whitelist_entries()                                   # {adres: naam}
+    arg = " ".join(arg.split())
+    if ":" in arg:
+        wie, tekst = (x.strip() for x in arg.split(":", 1))
+        kandidaten = [(wie, tekst)]
+    else:
+        woorden = arg.split(" ")
+        kandidaten = [(" ".join(woorden[:k]), " ".join(woorden[k:])) for k in range(len(woorden) - 1, 0, -1)]
+        if not kandidaten:                                     # alleen een naam, geen tekst
+            kandidaten = [(arg, "")]
+    # 1. volledige naam (langste eerst)
+    for wie, tekst in kandidaten:
+        hits = [(a, n) for a, n in wl.items() if n and n.lower() == wie.lower()]
+        if len(hits) == 1 and tekst:
+            return hits[0][0], hits[0][1], tekst, ""
+        if len(hits) > 1:
+            return None, None, "", f"Meerdere vrijwilligers heten '{wie}'. Gebruik het begin van het adres (zie LIJST)."
+    # 2. voornaam of begin van het adres
+    wie, tekst = kandidaten[-1] if ":" not in arg else kandidaten[0]
+    if not tekst:
+        return None, None, "", "Geen tekst. Voorbeeld: AAN Liesbeth Ga naar de Brink"
+    z = wie.lower()
+    hits = [(a, n) for a, n in wl.items()
+            if (n and (n.lower().split(" ")[0] == z or n.lower().startswith(z + " "))) or (len(z) >= 6 and a.startswith(z))]
+    if len(hits) == 1:
+        return hits[0][0], hits[0][1] or hits[0][0][:8], tekst, ""
+    if len(hits) > 1:
+        return None, None, "", ("Welke bedoel je: " + ", ".join(n or a[:8] for a, n in hits) +
+                                "? Gebruik de volledige naam, bijv. AAN " + (hits[0][1] or hits[0][0][:8]) + ": tekst")
+    return None, None, "", f"Niemand gevonden voor '{wie}'. Stuur LIJST voor de namen."
+
+
+def stuur_aan_een(adr, naam, tekst, door, melder=None):
+    """Bericht aan één vrijwilliger. melder: adres (bytes) van de beheerder die bericht krijgt of het aankwam."""
+    tekst = " ".join(tekst.split())
+    if not tekst:
+        return False, "Geen tekst."
+    if len(tekst) > ALLEN_MAX:
+        return False, f"Te lang ({len(tekst)} tekens, max. {ALLEN_MAX}). Maak het bericht korter."
+    bid = berichten.nieuw(adr, naam, tekst, door)
+
+    def afgeleverd(_a):
+        berichten.zet(bid, "ok")
+        if melder:
+            stuur_lxmf(melder, f"Afgeleverd bij {naam}.")
+
+    def mislukt(_a):
+        berichten.zet(bid, "mislukt")
+        if melder:
+            stuur_lxmf(melder, f"Niet aangekomen bij {naam} (RNode uit of buiten bereik?). Probeer het later opnieuw.")
+    try:
+        stuur_lxmf(bytes.fromhex(adr), f"Bericht van {STEUNPUNT_NAAM}: {tekst}", afgeleverd=afgeleverd, mislukt=mislukt)
+    except ValueError:
+        berichten.zet(bid, "mislukt")
+        return False, f"Adres van {naam} klopt niet."
+    log(f"[>] Bericht aan {naam} door {door}: {tekst}")
+    return True, f"Bericht aan {naam} verstuurd. Je hoort of het aankomt."
+
+
 def stuur_aan_allen(tekst, door, behalve=None):
     """Stuurt tekst naar alle aangemelde vrijwilligers. Geeft (ok, antwoord voor de beheerder)."""
     tekst = " ".join(tekst.split())
@@ -1129,7 +1234,7 @@ def stuur_aan_allen(tekst, door, behalve=None):
     return True, f"Verstuurd naar {n} vrijwilliger{'s' if n != 1 else ''}.{duur} Stuur LIJST om te zien wie het heeft ontvangen."
 BEHEER_HELP = ("Opdrachten: JA <nr> | NEE <nr> | WACHT (open aanmeldingen) | "
                "LIJST (aangemeld, laatst gehoord, accu) | AF <naam> | CODE (toon) | CODE <nieuw> | "
-               "ALLEN <tekst> (bericht aan alle vrijwilligers)")
+               "ALLEN <tekst> (bericht aan alle vrijwilligers) | AAN <naam> <tekst> (aan één vrijwilliger)")
 
 
 def is_beheerder(hash_bytes):
@@ -1239,6 +1344,15 @@ def verwerk_web_opdrachten():
             if o.get("soort") == "NIET_WACHTEN":
                 log(f"[i] Beheerpagina: " + outbox.niet_meer_wachten(str(o.get("id", "")), str(o.get("call", ""))))
                 continue
+            if o.get("soort") == "AAN":
+                adr = str(o.get("adres", "")).lower()
+                naam = whitelist_entries().get(adr)
+                if naam is None:
+                    log(f"[i] Beheerpagina: bericht aan onbekend adres <{adr}> niet verstuurd")
+                else:
+                    ok, antwoord = stuur_aan_een(adr, naam or adr[:8], str(o.get("tekst", "")), "beheerpagina")
+                    log(f"[i] Beheerpagina: {antwoord}")
+                continue
             if o.get("soort") == "ALLEN":
                 ok, antwoord = stuur_aan_allen(str(o.get("tekst", "")), "beheerpagina")
                 log(f"[i] Beheerpagina: {antwoord}")
@@ -1289,6 +1403,14 @@ def handle_beheer(src, tekst):
         return True
     if opdracht == "ALLEN":
         ok, antwoord = stuur_aan_allen(arg, door, behalve=src.hex())
+        stuur_lxmf(src, antwoord)
+        return True
+    if opdracht == "AAN":
+        adr, naam, tekst, fout = zoek_ontvanger(arg)
+        if fout:
+            stuur_lxmf(src, fout)
+            return True
+        ok, antwoord = stuur_aan_een(adr, naam, tekst, door, melder=src)
         stuur_lxmf(src, antwoord)
         return True
     if opdracht == "AF" and arg:

@@ -42,6 +42,10 @@ via de hotspot.
 | B7b | V2 uit, opnieuw `ALLEN …`, na een paar minuten `LIJST` | "ontvangen door 1 van 2. Nog niet: V2" | ☐ |
 | B7c | Beheerpagina → Vrijwilligers → *Bericht aan alle vrijwilligers* | Groene melding; V1 en V2 (en B) krijgen het; onder het veld staat wie het heeft ontvangen (pagina verversen) | ☐ |
 | B7d | `ALLEN` zonder tekst, en een tekst van meer dan 300 tekens | Uitleg terug, er wordt niets verstuurd | ☐ |
+| B8 | `AAN <voornaam V1> Testbericht` | Alleen V1 krijgt "Bericht van <steunpunt>: Testbericht"; B krijgt *verstuurd* en daarna *Afgeleverd bij …* | ☐ |
+| B8a | V2 uit; `AAN <naam V2> hallo` | B krijgt na een tijd *Niet aangekomen bij …* | ☐ |
+| B8b | Twee vrijwilligers met dezelfde voornaam; `AAN <voornaam> hallo` | B krijgt *Welke bedoel je: …*; er wordt niets verstuurd | ☐ |
+| B8c | Beheerpagina: Posities → tik op V1 → *Bericht sturen* | Vrijwilligers opent met V1 bij *Aan*; versturen; V1 krijgt het; onder *Berichten aan één vrijwilliger* staat *afgeleverd* | ☐ |
 
 ## C. Melden
 

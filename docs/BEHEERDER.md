@@ -51,6 +51,7 @@ hetzelfde gesprek.
 | `CODE` | Toont de huidige aanmeldcode | `CODE` |
 | `CODE <nieuw>` | Zet een nieuwe aanmeldcode (bijv. als een kaart kwijt is) | `CODE ZOMER26` |
 | `ALLEN <tekst>` | Stuurt een bericht naar alle aangemelde vrijwilligers van dit steunpunt | `ALLEN Einde oefening, bedankt!` |
+| `AAN <naam> <tekst>` | Stuurt een bericht naar één vrijwilliger; je hoort of het is aangekomen | `AAN Liesbeth Ga naar de Brink` |
 | `HELP` | Toont alle opdrachten | `HELP` |
 
 Controleer bij een aanmelding wie het is voordat je `JA` stuurt. Twijfel je: stuur `NEE`, of laat de
@@ -61,6 +62,11 @@ aanmelding even staan.
 Jij krijgt terug naar hoeveel vrijwilligers het gaat. Stuur daarna `LIJST`: onderaan staat wie het
 bericht heeft ontvangen en wie nog niet (RNode uit of buiten bereik). Het bericht gaat alleen naar de
 vrijwilligers van dit steunpunt.
+
+**Bericht aan één vrijwilliger.** Met `AAN` gaat je tekst naar één vrijwilliger. Een voornaam is
+genoeg als die uniek is (`AAN Liesbeth …`); anders de volledige naam, eventueel met een dubbele punt
+(`AAN Gert de Haan: kom terug`). Zijn er twee met dezelfde voornaam, dan krijg je de keuze terug.
+Je krijgt eerst *Bericht aan … verstuurd*, en daarna *Afgeleverd bij …* of *Niet aangekomen bij …*.
 
 Na een nieuwe aanmeldcode werken de oude kaarten niet meer om je aan te melden. Wie al is aangemeld,
 merkt er niets van. Maak dan op de beheerpagina een nieuwe kaart (tabblad **Kaart**).
@@ -87,7 +93,7 @@ Verbind met de wifi **Noodnet-…** van het steunpunt en open **http://10.42.0.1
 | Aanmelding goedkeuren of afwijzen | **Status** → *Wachten op goedkeuring* |
 | Wie is actief, accu's, afmelden | Tabblad **Vrijwilligers** (ook *Onbekende telefoons*) |
 | Waar is een vrijwilliger? | Tabblad **Posities**: alle vrijwilligers op de offline kaart (groen actief, oranje accu laag, rood uit beeld, blauw vierkant = het steunpunt; tik voor details). Of **Vrijwilligers** → *op de kaart* bij één persoon. De kaart downloadt de zendamateur eenmalig met internet op hetzelfde tabblad. |
-| Bericht aan alle vrijwilligers | **Vrijwilligers** → *Bericht aan alle vrijwilligers*; daaronder zie je wie het heeft ontvangen |
+| Bericht aan alle vrijwilligers of aan één | **Vrijwilligers** → *Bericht aan vrijwilligers* → kies bij *Aan* iedereen of één naam. Of op **Posities**: tik op iemand → *Bericht sturen*. Daaronder zie je of het is aangekomen |
 | Vrijwilliger laten aanmelden zonder printer | **Kaart** → **QR-code groot tonen** en laat scannen van je scherm |
 | Melding blijft *Nog niet bevestigd* | **Status**: die eindpost staat uit of is buiten bereik. Bestaat hij niet: **Niet meer wachten op …** |
 | Radio controleren | Tabblad **Radio** → *Gehoorde stations* en *Testuitzending* |
