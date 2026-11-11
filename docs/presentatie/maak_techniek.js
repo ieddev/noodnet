@@ -307,7 +307,7 @@ async function icoon(Icon, kleur, px = 256) {
   s.addText("Installeren en beheren zonder Linux-kennis", { placeholder: "title" });
   code(s, [["bash <(curl -sL https://raw.githubusercontent.com/ieddev/noodnet/main/installeer.sh)", "8FD18F"]], 0.5, 1.15, 9.0, 0.45, 11);
   kaartjes(s, [
-    ["download", "Eén opdracht", "Kies steunpunt of eindpost; de rest gaat vanzelf. Bijwerken: noodnet-bijwerken."],
+    ["download", "Eén opdracht", "Kies steunpunt of eindpost; de rest gaat vanzelf. Bijwerken met één knop op de beheerpagina."],
     ["plug", "Zoek mijn set", "Herkent de set via USB en zet CAT goed (o.a. Icom IC-9700/705/7100, Yaesu FT-991/817/857, Kenwood TS-2000)."],
     ["mobile", "Beheer met de telefoon", "Via de eigen wifi: status, radio, netwerk, vrijwilligers, kaart, back-up, uitzetten."],
     ["check", "Testplan en handleidingen", "Testplan om af te vinken; procedure, beheerder- en vrijwilligershandleiding als PDF."]],
