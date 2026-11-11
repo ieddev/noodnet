@@ -288,6 +288,7 @@ def html_status(inst):
 <section><h2>Steunpunten</h2>{sp_html}</section>
 {radio.html_hotspot()}
 <section><h2>Log van de ontvanger</h2><pre>{e(log_regels())}</pre></section>
+{beheer.html_bijwerken_sectie(verborgen())}
 {beheer.html_pi_knoppen(verborgen())}"""
 
 
@@ -514,6 +515,10 @@ class Handler(BaseHTTPRequestHandler):
                 except OSError:
                     pass
             return self._stuur("Niet gevonden", 404, "text/plain; charset=utf-8")
+        if pad == "bijwerken.json":
+            return self._stuur(beheer.bijwerken_json(), soort="application/json; charset=utf-8")
+        if pad == "bijwerken":
+            return self._stuur(pagina("status", beheer.html_bijwerken_voortgang(), inst, meld))
         if pad == "status":
             return self._stuur(pagina("status", html_status(inst), inst, meld))
         if pad == "instellingen":
@@ -623,6 +628,14 @@ class Handler(BaseHTTPRequestHandler):
                 return self._terug("/status", "ok:" + tekst)
             schrijf_operator_in_logboek(vorige)
             return self._terug("/status", "ok:" + tekst)
+        if pad == "bijwerken":
+            if f.get("stap") == "start":
+                fout_bw = beheer.start_bijwerken()
+                if fout_bw:
+                    return self._terug("/status", "fout:" + fout_bw)
+                sys.stderr.write("Noodnet bijwerken gestart via de beheerpagina\n")
+                return self._terug("/bijwerken")
+            return self._stuur(pagina("status", beheer.html_bijwerken_controle(verborgen()), inst))
         if pad == "pi":
             uit = beheer.pi_actie(f.get("actie", ""))
             if uit:

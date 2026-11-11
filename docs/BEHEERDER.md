@@ -98,7 +98,7 @@ Verbind met de wifi **Noodnet-…** van het steunpunt en open **http://10.42.0.1
 | Melding blijft *Nog niet bevestigd* | **Status**: die eindpost staat uit of is buiten bereik. Bestaat hij niet: **Niet meer wachten op …** |
 | Radio controleren | Tabblad **Radio** → *Gehoorde stations* en *Testuitzending* |
 | Steunpunt uitzetten | **Status** → onderaan **Pi uitschakelen** |
-| Welke versie van Noodnet staat erop? | **Rechtsboven** in de rode balk, bijv. *versie 074705e 2026-11-09*. Bijwerken (met internet): `noodnet-bijwerken`; daarna biedt het steunpunt ook de nieuwste app aan op http://10.42.0.1 |
+| Welke versie van Noodnet staat erop? | **Rechtsboven** in de rode balk, bijv. *versie 074705e 2026-11-09*. Bijwerken (met netwerkkabel naar internet): **Status** → *Noodnet bijwerken* → **Controleren op nieuwe versie** → **Nu bijwerken**, of via ssh `noodnet-bijwerken`; daarna biedt het steunpunt ook de nieuwste app aan op http://10.42.0.1 |
 
 ## Begin en einde van een inzet
 

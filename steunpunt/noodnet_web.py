@@ -752,6 +752,19 @@ def verborgen():
     return f'<input type="hidden" name="csrf" value="{CSRF}">'
 
 
+def wachtrij_waarschuwing():
+    """Tekst als er nog meldingen in de 2 m-wachtrij staan (dan liever niet bijwerken)."""
+    wr = lees_json(WACHTRIJ_FILE, {}) or {}
+    items = wr.get("items", []) if isinstance(wr, dict) else (wr if isinstance(wr, list) else [])
+    mth = sum(1 for it in items if it.get("soort") == "MTH")
+    if mth:
+        return (f"Let op: er {'staat' if mth == 1 else 'staan'} nog {mth} M/ETHANE-melding{'' if mth == 1 else 'en'} "
+                "in de wachtrij. Is er een inzet bezig? Werk dan later bij. De wachtrij blijft wel bewaard.")
+    if items:
+        return f"Er staan nog {len(items)} berichten in de wachtrij. Die blijven bewaard en gaan na het bijwerken verder."
+    return ""
+
+
 def html_status(inst, net):
     rijen = ""
     for d, titel in DIENSTEN:
@@ -829,6 +842,7 @@ def html_status(inst, net):
 {radio.html_hotspot()}
 <section><h2>Log van de brug</h2><p class="uitleg">De laatste regels; nieuwste onderaan. Ververs de pagina voor nieuwe regels.</p>
 <pre>{e(log_regels())}</pre></section>
+{beheer.html_bijwerken_sectie(verborgen())}
 {beheer.html_pi_knoppen(verborgen())}"""
 
 
@@ -1340,6 +1354,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self._stuur(open(KAART_HTML, encoding="utf-8").read())
             except OSError:
                 return self._stuur("Nog geen kaart gemaakt.", 404, "text/plain; charset=utf-8")
+        if pad == "bijwerken.json":
+            return self._stuur(beheer.bijwerken_json(), 200, "application/json; charset=utf-8")
+        if pad == "bijwerken":
+            return self._stuur(pagina("status", beheer.html_bijwerken_voortgang(), inst, meld))
         if pad == "status":
             return self._stuur(pagina("status", html_status(inst, net), inst, meld))
         if pad == "steunpunt":
@@ -1544,6 +1562,14 @@ class Handler(BaseHTTPRequestHandler):
                                   "vorige": vorige.get("roepnaam", ""), "tijd": int(time.time())})
                     schrijf_json(OPDRACHTEN_FILE, lijst)
             return self._terug("/status", "ok:" + tekst)
+        if pad == "bijwerken":
+            if f.get("stap") == "start":
+                fout_bw = beheer.start_bijwerken()
+                if fout_bw:
+                    return self._terug("/status", "fout:" + fout_bw)
+                sys.stderr.write("Noodnet bijwerken gestart via de beheerpagina\n")
+                return self._terug("/bijwerken")
+            return self._stuur(pagina("status", beheer.html_bijwerken_controle(verborgen(), wachtrij_waarschuwing()), inst))
         if pad == "pi":
             uit = beheer.pi_actie(f.get("actie", ""))
             if uit:

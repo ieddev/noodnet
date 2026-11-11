@@ -1,0 +1,12 @@
+[Unit]
+Description=Noodnet bijwerken (gestart vanaf de beheerpagina)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=@GEBRUIKER@
+WorkingDirectory=@MAP@
+ExecStart=/bin/bash @MAP@/bijwerken_achtergrond.sh
+TimeoutStartSec=90min
+# Niet stoppen als de installatie de beheerpagina en andere diensten herstart
+KillMode=process

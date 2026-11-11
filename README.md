@@ -36,7 +36,7 @@ bash <(curl -sL https://raw.githubusercontent.com/ieddev/noodnet/main/installeer
    **http://10.42.0.1:8080**. Kies op het tabblad **Radio** de geluidskaart, PTT
    (en bij een steunpunt de RNode-poorten).
 
-Bijwerken: `noodnet-bijwerken` (instellingen blijven bewaard).
+Bijwerken: op de beheerpagina (Status → *Noodnet bijwerken*) of via ssh met `noodnet-bijwerken` (instellingen blijven bewaard).
 
 De volledige procedure staat in [docs/PROCEDURE.md](docs/PROCEDURE.md), en om af te drukken
 als PDF: [docs/Noodnet-procedure.pdf](docs/Noodnet-procedure.pdf).

@@ -244,6 +244,159 @@ h1{{font-size:24px}}p{{font-size:18px;max-width:520px;margin:12px auto}}</style>
 
 
 # ---------------------------------------------------------------------------
+# Noodnet bijwerken vanaf de beheerpagina (zelfde als 'noodnet-bijwerken' via ssh)
+# ---------------------------------------------------------------------------
+
+REPO_GIT = "https://github.com/ieddev/noodnet"
+BIJWERK_DIENST = "noodnet-bijwerken"
+BIJWERK_LOG = os.path.join(MAP, "bijwerken.log")
+
+def _zonder_kleur(t):
+    import re
+    return re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", t).replace("\r", "")
+
+
+def bijwerken_bezig():
+    try:
+        st = subprocess.run([SYSTEMCTL, "is-active", BIJWERK_DIENST], capture_output=True, text=True, timeout=5).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return st in ("activating", "active", "reloading")
+
+
+def bijwerken_log():
+    """(regels, einde) uit het log; einde = None (bezig/onbekend), 0 (gelukt) of een foutcode."""
+    try:
+        with open(BIJWERK_LOG, encoding="utf-8", errors="replace") as f:
+            regels = _zonder_kleur(f.read()).splitlines()
+    except OSError:
+        return [], None
+    einde = None
+    for r in reversed(regels[-3:]):
+        if r.startswith("== EINDE "):
+            try:
+                einde = int(r.split()[2])
+            except (IndexError, ValueError):
+                einde = 1
+            break
+    return regels, einde
+
+
+def nieuwste_versie(timeout=10):
+    """(hash, None) van de nieuwste versie op GitHub, of (None, fouttekst) zonder internet."""
+    try:
+        r = subprocess.run(["git", "ls-remote", REPO_GIT, "refs/heads/main"], capture_output=True, text=True,
+                           timeout=timeout, env=dict(os.environ, GIT_TERMINAL_PROMPT="0"))
+    except subprocess.TimeoutExpired:
+        return None, "GitHub antwoordt niet (geen internet?)."
+    except OSError:
+        return None, "git ontbreekt op deze Pi."
+    if r.returncode != 0 or not r.stdout.strip():
+        return None, "Geen verbinding met GitHub. Heeft de Pi internet (netwerkkabel)?"
+    return r.stdout.split()[0], None
+
+
+def start_bijwerken():
+    """Start de achtergronddienst. Geeft None of een fouttekst."""
+    if bijwerken_bezig():
+        return None
+    try:                                         # oud verslag weg, zodat de voortgang niet meteen 'klaar' zegt
+        with open(BIJWERK_LOG, "w", encoding="utf-8") as f:
+            f.write("== START (wordt gestart)\n")
+    except OSError:
+        pass
+    try:
+        r = subprocess.run([SUDO, "-n", SYSTEMCTL, "start", "--no-block", BIJWERK_DIENST],
+                           capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.SubprocessError) as ex:
+        return str(ex)
+    if r.returncode != 0:
+        try:
+            os.remove(BIJWERK_LOG)
+        except OSError:
+            pass
+        return ("Starten lukte niet. Werk deze Pi één keer bij via ssh met: noodnet-bijwerken. "
+                "Daarna werkt deze knop. (" + (r.stderr.strip() or r.stdout.strip())[:200] + ")")
+    return None
+
+
+def html_bijwerken_sectie(verborgen):
+    v = noodnet_versie() or "onbekend"
+    bezig = bijwerken_bezig()
+    regels, einde = bijwerken_log()
+    laatst = ""
+    if bezig:
+        laatst = '<p class="melding let">Bijwerken is bezig. <a href="/bijwerken">Voortgang bekijken</a></p>'
+    elif einde not in (None, 0):
+        laatst = '<p class="melding fout">Het laatste bijwerken is mislukt. <a href="/bijwerken">Bekijk het verslag</a></p>'
+    return f"""<section><h2>Noodnet bijwerken</h2><p class="uitleg">Geïnstalleerd: <b>versie {html.escape(v)}</b>.
+Bijwerken kan alleen als de Pi internet heeft (netwerkkabel). Doe het thuis of vóór een inzet, niet tijdens een inzet.
+Instellingen, vrijwilligers en logboek blijven bewaard.</p>{laatst}
+<form method="post" action="/bijwerken" class="balk" style="margin-top:0">{verborgen}
+<input type="hidden" name="stap" value="controleer"><button type="submit" class="licht">Controleren op nieuwe versie</button></form></section>"""
+
+
+def html_bijwerken_controle(verborgen, waarschuwing=""):
+    """Pagina na 'Controleren': nieuwe versie ja/nee, met knop om te starten."""
+    nu = (noodnet_versie() or "").split(" ")[0]
+    nieuw, fout = nieuwste_versie()
+    if fout:
+        return f"""<section><h2>Noodnet bijwerken</h2><p class="melding fout">{html.escape(fout)}</p>
+<p class="uitleg">Sluit een netwerkkabel aan (thuisrouter) en probeer het opnieuw. Je telefoon blijft via de wifi van
+de Pi verbonden met deze pagina.</p><p><a href="/status">Terug naar Status</a></p></section>"""
+    zelfde = bool(nu) and nieuw.startswith(nu)
+    if zelfde:
+        kop = '<p class="melding ok">Je hebt al de nieuwste versie van Noodnet.</p>'
+        knop = "Toch bijwerken (ook Raspberry Pi OS)"
+    else:
+        kop = (f'<p class="melding let">Er is een nieuwe versie: <b>{html.escape(nieuw[:7])}</b> '
+               f'(geïnstalleerd: {html.escape(nu or "onbekend")}).</p>')
+        knop = "Nu bijwerken"
+    let = f'<p class="melding fout">{html.escape(waarschuwing)}</p>' if waarschuwing else ""
+    return f"""<section><h2>Noodnet bijwerken</h2>{kop}{let}
+<p class="uitleg">Bijwerken duurt meestal 2–10 minuten (langer als Raspberry Pi OS veel updates heeft). Tijdens het
+bijwerken herstarten de diensten: het steunpunt of de eindpost werkt dan even niet, en deze pagina en de wifi kunnen
+een halve minuut wegvallen. Blijf verbonden; de voortgang komt vanzelf terug.</p>
+<form method="post" action="/bijwerken" class="balk">{verborgen}<input type="hidden" name="stap" value="start">
+<button type="submit" onclick="return confirm('Noodnet nu bijwerken? De diensten herstarten.')">{knop}</button>
+<a href="/status" style="align-self:center">Annuleren</a></form></section>"""
+
+
+def html_bijwerken_voortgang():
+    regels, einde = bijwerken_log()
+    return f"""<section><h2>Noodnet bijwerken</h2><p id="bw_stand" class="melding let">Bezig met bijwerken…</p>
+<p class="uitleg">Laat deze pagina open. Valt de verbinding even weg, dan probeert de pagina het vanzelf opnieuw.</p>
+<pre id="bw_log" style="max-height:420px;overflow:auto">{html.escape(chr(10).join(regels[-60:]))}</pre>
+<p><a href="/status">Naar Status</a></p></section>
+<script>
+(function(){{
+  var stand=document.getElementById('bw_stand'), log=document.getElementById('bw_log'), mis=0;
+  function kijk(){{
+    fetch('/bijwerken.json',{{cache:'no-store'}}).then(function(r){{return r.json();}}).then(function(d){{
+      mis=0; log.textContent=d.log; log.scrollTop=log.scrollHeight;
+      if(!d.bezig && d.einde===0){{ stand.className='melding ok';
+        stand.innerHTML='Klaar: bijgewerkt naar versie '+d.versie+'.'+(d.herstart?' <b>Herstart de Pi</b> (Status &rarr; Pi herstarten): er is een nieuwe kernel.':''); return; }}
+      if(!d.bezig && d.einde!==null){{ stand.className='melding fout';
+        stand.textContent='Bijwerken mislukt (code '+d.einde+'). Zie het verslag hieronder; de oude versie blijft werken.'; return; }}
+      stand.className='melding let'; stand.textContent='Bezig met bijwerken…';
+      setTimeout(kijk,3000);
+    }}).catch(function(){{ mis++; stand.className='melding let';
+      stand.textContent='Beheerpagina herstart of wifi even weg… ('+mis+')'; setTimeout(kijk,4000); }});
+  }}
+  setTimeout(kijk,2000);
+}})();
+</script>"""
+
+
+def bijwerken_json():
+    regels, einde = bijwerken_log()
+    bezig = bijwerken_bezig()
+    return json.dumps({"bezig": bezig, "einde": None if bezig else einde, "log": "\n".join(regels[-60:]),
+                       "versie": noodnet_versie(), "herstart": os.path.exists("/var/run/reboot-required")},
+                      ensure_ascii=False)
+
+
+# ---------------------------------------------------------------------------
 # Dienstdoende operator
 # ---------------------------------------------------------------------------
 

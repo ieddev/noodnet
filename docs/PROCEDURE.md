@@ -249,12 +249,21 @@ Status staat *Tijd van de Pi* met de bron.
 
 ## Bijwerken
 
-Sluit de Pi met een **netwerkkabel** aan op internet (of tijdelijk thuis-wifi:
-`~/noodnet/hotspot.sh thuiswifi`) en typ:
+Sluit de Pi met een **netwerkkabel** aan op internet. Daarna kan het op twee manieren:
+
+- **Via de beheerpagina** (geen ssh nodig): tabblad **Status** → onderaan *Noodnet bijwerken* →
+  **Controleren op nieuwe versie**. Je ziet of er een nieuwe versie is; tik op **Nu bijwerken**. De
+  voortgang verschijnt op het scherm. Tijdens het bijwerken herstarten de diensten; de pagina en de
+  wifi kunnen een halve minuut wegvallen en komen vanzelf terug. Staat er nog een M/ETHANE in de
+  wachtrij, dan waarschuwt het steunpunt eerst.
+- **Via ssh** (of tijdelijk thuis-wifi: `~/noodnet/hotspot.sh thuiswifi`):
 
 ```bash
 noodnet-bijwerken
 ```
+
+De knop werkt pas nadat de Pi één keer met de nieuwe versie is bijgewerkt (een Pi van vóór
+november 2026: de eerste keer nog via ssh). Meldt de pagina *Starten lukte niet*, werk dan via ssh bij.
 
 Instellingen, aanmeldingen en het logboek blijven bewaard. De nieuwste app
 wordt meteen op de downloadpagina gezet.

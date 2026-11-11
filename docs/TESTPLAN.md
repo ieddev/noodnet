@@ -138,6 +138,11 @@ via de hotspot.
 | H13 | Bestand op GitHub/website zetten; op de eindpost **Ophalen** met de link | Frequentie en disciplines overgenomen; daarna knop *Opnieuw ophalen* | ☐ |
 | H14 | Status op alle Pi's | Overal dezelfde *Netwerkinstellingen: … versie … door …* | ☐ |
 | H11 | FT-818 + SCU-17 (steunpunt): Zoek mijn set | FT-818 gevonden; PTT en frequentie werken (of: terug naar RTS als het niet lukt) | ☐ |
+| H15 | Zonder internet: Status → **Controleren op nieuwe versie** | Rode melding *Geen verbinding met GitHub…*; niets veranderd | ☐ |
+| H16 | Met netwerkkabel: **Controleren op nieuwe versie** | *Er is een nieuwe versie* of *Je hebt al de nieuwste versie* | ☐ |
+| H17 | Steunpunt met een M/ETHANE in de wachtrij (eindpost uit): Controleren | Rode waarschuwing over de wachtrij boven de knop | ☐ |
+| H18 | **Nu bijwerken**, pagina openhouden | Verslag loopt mee; pagina valt even weg en komt terug; *Klaar: bijgewerkt naar versie …*; rechtsboven de nieuwe versie | ☐ |
+| H19 | Na H18 (steunpunt): wachtrij uit H17 | Melding gaat na het bijwerken verder en wordt bevestigd zodra de eindpost aan is | ☐ |
 
 ## Notities
 

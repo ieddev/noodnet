@@ -271,6 +271,7 @@ REGEL="$GEBRUIKER ALL=(root) NOPASSWD:"; EERSTE=1
 for d in $DIENSTEN; do [ $EERSTE = 1 ] && EERSTE=0 || REGEL="$REGEL,"; REGEL="$REGEL $SC restart $d"; done
 REGEL="$REGEL, $(command -v date) -s *"      # klok gelijkzetten met de telefoon van de beheerder
 REGEL="$REGEL, $SC poweroff, $SC reboot"     # knoppen Pi uitschakelen/herstarten op de beheerpagina
+REGEL="$REGEL, $SC start --no-block noodnet-bijwerken"   # knop Noodnet bijwerken op de beheerpagina
 TMP=$(mktemp); echo "$REGEL" > "$TMP"
 sudo visudo -cf "$TMP" >/dev/null && sudo install -m 0440 "$TMP" /etc/sudoers.d/noodnet; rm -f "$TMP"
 sudo rm -f /etc/sudoers.d/noodnet-web /etc/sudoers.d/noodnet-eindpost
