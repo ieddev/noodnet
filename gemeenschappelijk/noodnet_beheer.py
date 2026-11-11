@@ -249,6 +249,7 @@ h1{{font-size:24px}}p{{font-size:18px;max-width:520px;margin:12px auto}}</style>
 
 REPO_GIT = "https://github.com/ieddev/noodnet"
 BIJWERK_DIENST = "noodnet-bijwerken"
+BIJWERK_THUISWIFI = "noodnet-bijwerken-thuiswifi"
 BIJWERK_LOG = os.environ.get("NOODNET_BIJWERK_LOG", "/var/log/noodnet-bijwerken.log")   # door root geschreven
 _BIJWERK_GESTART = [0.0]
 
@@ -258,11 +259,28 @@ def _zonder_kleur(t):
 
 
 def bijwerken_bezig():
+    for d in (BIJWERK_DIENST, BIJWERK_THUISWIFI):
+        try:
+            st = subprocess.run([SYSTEMCTL, "is-active", d], capture_output=True, text=True, timeout=5).stdout.strip()
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if st in ("activating", "active", "reloading"):
+            return True
+    return False
+
+
+def thuiswifi_naam():
+    """Naam van de bekende thuis-wifi (uit de installatie), of None."""
     try:
-        st = subprocess.run([SYSTEMCTL, "is-active", BIJWERK_DIENST], capture_output=True, text=True, timeout=5).stdout.strip()
+        uit = subprocess.run(["nmcli", "-t", "-f", "NAME,TYPE", "con", "show"], capture_output=True, text=True,
+                             timeout=5).stdout
     except (OSError, subprocess.SubprocessError):
-        return False
-    return st in ("activating", "active", "reloading")
+        return None
+    for regel in uit.splitlines():
+        naam, _, soort = regel.rpartition(":")
+        if soort == "802-11-wireless" and naam:
+            return naam.replace("\\:", ":")
+    return None
 
 
 def bijwerken_log():
@@ -273,7 +291,7 @@ def bijwerken_log():
     except OSError:
         return [], None
     einde = None
-    for r in reversed(regels[-3:]):
+    for r in reversed(regels[-8:]):
         if r.startswith("== EINDE "):
             try:
                 einde = int(r.split()[2])
@@ -297,12 +315,12 @@ def nieuwste_versie(timeout=10):
     return r.stdout.split()[0], None
 
 
-def start_bijwerken():
+def start_bijwerken(thuiswifi=False):
     """Start de achtergronddienst. Geeft None of een fouttekst."""
     if bijwerken_bezig():
         return None
     try:
-        r = subprocess.run([SUDO, "-n", SYSTEMCTL, "start", "--no-block", BIJWERK_DIENST],
+        r = subprocess.run([SUDO, "-n", SYSTEMCTL, "start", "--no-block", BIJWERK_THUISWIFI if thuiswifi else BIJWERK_DIENST],
                            capture_output=True, text=True, timeout=20)
     except (OSError, subprocess.SubprocessError) as ex:
         return str(ex)
@@ -323,10 +341,56 @@ def html_bijwerken_sectie(verborgen):
     elif einde not in (None, 0):
         laatst = '<p class="melding fout">Het laatste bijwerken is mislukt. <a href="/bijwerken">Bekijk het verslag</a></p>'
     return f"""<section><h2>Noodnet bijwerken</h2><p class="uitleg">Geïnstalleerd: <b>versie {html.escape(v)}</b>.
-Bijwerken kan alleen als de Pi internet heeft (netwerkkabel). Doe het thuis of vóór een inzet, niet tijdens een inzet.
+Bijwerken heeft internet nodig: een netwerkkabel, je thuis-wifi of USB-tethering met je telefoon. Doe het thuis of vóór een inzet, niet tijdens een inzet.
 Instellingen, vrijwilligers en logboek blijven bewaard.</p>{laatst}
 <form method="post" action="/bijwerken" class="balk" style="margin-top:0">{verborgen}
-<input type="hidden" name="stap" value="controleer"><button type="submit" class="licht">Controleren op nieuwe versie</button></form></section>"""
+<input type="hidden" name="stap" value="controleer"><button type="submit" class="licht">Controleren op nieuwe versie</button></form>
+{_thuiswifi_knop(verborgen)}</section>"""
+
+
+def _thuiswifi_knop(verborgen):
+    naam = thuiswifi_naam()
+    if not naam:
+        return ('<p class="uitleg" style="margin-top:10px">Geen netwerkkabel? Deze Pi kent geen thuis-wifi. '
+                'Gebruik dan USB-tethering met je telefoon (zie de procedure).</p>')
+    return f"""<p class="uitleg" style="margin-top:12px">Geen netwerkkabel? Dan kan de Pi even je thuis-wifi
+<b>{html.escape(naam)}</b> gebruiken.</p>
+<form method="post" action="/bijwerken" class="balk" style="margin-top:0">{verborgen}
+<input type="hidden" name="stap" value="thuiswifi_vraag"><button type="submit" class="licht">Bijwerken via thuis-wifi</button></form>"""
+
+
+def html_bijwerken_thuiswifi(verborgen, waarschuwing=""):
+    naam = thuiswifi_naam()
+    if not naam:
+        return ('<section><h2>Bijwerken via thuis-wifi</h2><p class="melding fout">Deze Pi kent geen thuis-wifi.</p>'
+                '<p><a href="/status">Terug naar Status</a></p></section>')
+    let = f'<p class="melding fout">{html.escape(waarschuwing)}</p>' if waarschuwing else ""
+    return f"""<section><h2>Bijwerken via thuis-wifi</h2>{let}
+<p>Zo gaat het:</p><ol>
+<li>De hotspot van de Pi gaat uit en de Pi verbindt met <b>{html.escape(naam)}</b>.
+<b>Je telefoon verliest de verbinding met deze pagina.</b></li>
+<li>De Pi werkt bij (meestal 2–10 minuten, langer als Raspberry Pi OS veel updates heeft).</li>
+<li>Daarna zet de Pi de hotspot vanzelf weer aan, ook als er iets misgaat. Lukt de thuis-wifi niet, dan
+is de hotspot binnen 2 minuten terug. Uiterlijk na 45 minuten, en na een herstart, is hij er altijd weer.</li>
+<li>Verbind je telefoon na een kwartier weer met de wifi van de Pi en open
+<b>http://10.42.0.1:8080/bijwerken</b>: daar staat het verslag.</li></ol>
+<p class="uitleg">Het steunpunt of de eindpost werkt tijdens het bijwerken niet. Doe dit thuis, niet tijdens een inzet.</p>
+<form method="post" action="/bijwerken" class="balk">{verborgen}<input type="hidden" name="stap" value="start_thuiswifi">
+<button type="submit">Nu bijwerken via {html.escape(naam)}</button>
+<a href="/status" style="align-self:center">Annuleren</a></form></section>"""
+
+
+def verwerk_bijwerken(f, verborgen, waarschuwing=""):
+    """POST /bijwerken. Geeft ('naar', url, melding) of ('html', inhoud)."""
+    stap = f.get("stap", "controleer")
+    if stap in ("start", "start_thuiswifi"):
+        fout = start_bijwerken(thuiswifi=stap == "start_thuiswifi")
+        if fout:
+            return ("naar", "/status", "fout:" + fout)
+        return ("naar", "/bijwerken" + ("?thuiswifi=1" if stap == "start_thuiswifi" else ""), None)
+    if stap == "thuiswifi_vraag":
+        return ("html", html_bijwerken_thuiswifi(verborgen, waarschuwing))
+    return ("html", html_bijwerken_controle(verborgen, waarschuwing))
 
 
 def html_bijwerken_controle(verborgen, waarschuwing=""):
@@ -336,7 +400,7 @@ def html_bijwerken_controle(verborgen, waarschuwing=""):
     if fout:
         return f"""<section><h2>Noodnet bijwerken</h2><p class="melding fout">{html.escape(fout)}</p>
 <p class="uitleg">Sluit een netwerkkabel aan (thuisrouter) en probeer het opnieuw. Je telefoon blijft via de wifi van
-de Pi verbonden met deze pagina.</p><p><a href="/status">Terug naar Status</a></p></section>"""
+de Pi verbonden met deze pagina.</p>{_thuiswifi_knop(verborgen)}<p><a href="/status">Terug naar Status</a></p></section>"""
     zelfde = bool(nu) and nieuw.startswith(nu)
     if zelfde:
         kop = '<p class="melding ok">Je hebt al de nieuwste versie van Noodnet.</p>'
@@ -355,9 +419,13 @@ een halve minuut wegvallen. Blijf verbonden; de voortgang komt vanzelf terug.</p
 <a href="/status" style="align-self:center">Annuleren</a></form></section>"""
 
 
-def html_bijwerken_voortgang():
+def html_bijwerken_voortgang(thuiswifi=False):
     regels, einde = bijwerken_log()
-    return f"""<section><h2>Noodnet bijwerken</h2><p id="bw_stand" class="melding let">Bezig met bijwerken…</p>
+    tw = ("" if not thuiswifi else
+          '<p class="melding let"><b>De Pi gaat nu naar je thuis-wifi; deze pagina verliest zo de verbinding.</b> '
+          'Verbind je telefoon over een kwartier weer met de wifi van de Pi en open deze pagina opnieuw '
+          '(http://10.42.0.1:8080/bijwerken).</p>')
+    return f"""<section><h2>Noodnet bijwerken</h2>{tw}<p id="bw_stand" class="melding let">Bezig met bijwerken…</p>
 <p class="uitleg">Laat deze pagina open. Valt de verbinding even weg, dan probeert de pagina het vanzelf opnieuw.</p>
 <pre id="bw_log" style="max-height:420px;overflow:auto">{html.escape(chr(10).join(regels[-60:]))}</pre>
 <p><a href="/status">Naar Status</a></p></section>

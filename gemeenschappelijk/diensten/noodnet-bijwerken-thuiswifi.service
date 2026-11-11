@@ -1,0 +1,10 @@
+[Unit]
+Description=Noodnet bijwerken via de thuis-wifi (gestart vanaf de beheerpagina)
+Conflicts=noodnet-bijwerken.service
+
+[Service]
+Type=oneshot
+# Als root: hotspot uit, thuis-wifi aan, bijwerken als @GEBRUIKER@, hotspot weer aan
+ExecStart=/bin/bash /usr/local/lib/noodnet/noodnet-bijwerken.sh @GEBRUIKER@ @MAP@ thuiswifi
+TimeoutStartSec=90min
+KillMode=process

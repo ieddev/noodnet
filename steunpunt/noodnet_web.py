@@ -1357,7 +1357,7 @@ class Handler(BaseHTTPRequestHandler):
         if pad == "bijwerken.json":
             return self._stuur(beheer.bijwerken_json(), 200, "application/json; charset=utf-8")
         if pad == "bijwerken":
-            return self._stuur(pagina("status", beheer.html_bijwerken_voortgang(), inst, meld))
+            return self._stuur(pagina("status", beheer.html_bijwerken_voortgang("thuiswifi" in self.path), inst, meld))
         if pad == "status":
             return self._stuur(pagina("status", html_status(inst, net), inst, meld))
         if pad == "steunpunt":
@@ -1566,13 +1566,13 @@ class Handler(BaseHTTPRequestHandler):
                     schrijf_json(OPDRACHTEN_FILE, lijst)
             return self._terug("/status", "ok:" + tekst)
         if pad == "bijwerken":
-            if f.get("stap") == "start":
-                fout_bw = beheer.start_bijwerken()
-                if fout_bw:
-                    return self._terug("/status", "fout:" + fout_bw)
-                sys.stderr.write("Noodnet bijwerken gestart via de beheerpagina\n")
-                return self._terug("/bijwerken")
-            return self._stuur(pagina("status", beheer.html_bijwerken_controle(verborgen(), wachtrij_waarschuwing()), inst))
+            uit_bw = beheer.verwerk_bijwerken(f, verborgen(), wachtrij_waarschuwing())
+            if uit_bw[0] == "naar":
+                if uit_bw[2] is None:
+                    sys.stderr.write("Noodnet bijwerken gestart via de beheerpagina\n")
+                    return self._terug(uit_bw[1])
+                return self._terug(uit_bw[1], uit_bw[2])
+            return self._stuur(pagina("status", uit_bw[1], inst))
         if pad == "pi":
             uit = beheer.pi_actie(f.get("actie", ""))
             if uit:

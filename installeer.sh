@@ -264,7 +264,9 @@ for f in "$BRON"/gemeenschappelijk/diensten/*.service "$BRON"/gemeenschappelijk/
 # Bijwerken vanaf de beheerpagina: script van root (niet door de gebruiker te wijzigen); een achtergebleven
 # tijdelijke sudo-regel (stroom eraf tijdens bijwerken) wordt bij het opstarten opgeruimd
 sudo install -d -m 0755 /usr/local/lib/noodnet
-sudo install -m 0755 -o root -g root "$BRON/gemeenschappelijk/diensten/noodnet-bijwerken.sh" /usr/local/lib/noodnet/
+# (via een tijdelijke naam + mv: dit script kan zelf het bijwerken uitvoeren dat nu loopt)
+sudo install -m 0755 -o root -g root "$BRON/gemeenschappelijk/diensten/noodnet-bijwerken.sh" /usr/local/lib/noodnet/.noodnet-bijwerken.sh.nieuw
+sudo mv -f /usr/local/lib/noodnet/.noodnet-bijwerken.sh.nieuw /usr/local/lib/noodnet/noodnet-bijwerken.sh
 echo "r /etc/sudoers.d/noodnet-bijwerken-tijdelijk" | sudo tee /etc/tmpfiles.d/noodnet-bijwerken.conf >/dev/null
 if [ "$ROL" = "steunpunt" ]; then
   DIENSTEN="noodnet-rigctld direwolf rnsd noodnet-brug noodnet-web noodnet-download"; WEB="noodnet_web.py"
@@ -276,7 +278,7 @@ REGEL="$GEBRUIKER ALL=(root) NOPASSWD:"; EERSTE=1
 for d in $DIENSTEN; do [ $EERSTE = 1 ] && EERSTE=0 || REGEL="$REGEL,"; REGEL="$REGEL $SC restart $d"; done
 REGEL="$REGEL, $(command -v date) -s *"      # klok gelijkzetten met de telefoon van de beheerder
 REGEL="$REGEL, $SC poweroff, $SC reboot"     # knoppen Pi uitschakelen/herstarten op de beheerpagina
-REGEL="$REGEL, $SC start --no-block noodnet-bijwerken"   # knop Noodnet bijwerken op de beheerpagina
+REGEL="$REGEL, $SC start --no-block noodnet-bijwerken, $SC start --no-block noodnet-bijwerken-thuiswifi"   # knoppen Noodnet bijwerken
 TMP=$(mktemp); echo "$REGEL" > "$TMP"
 sudo visudo -cf "$TMP" >/dev/null && sudo install -m 0440 "$TMP" /etc/sudoers.d/noodnet; rm -f "$TMP"
 sudo rm -f /etc/sudoers.d/noodnet-web /etc/sudoers.d/noodnet-eindpost

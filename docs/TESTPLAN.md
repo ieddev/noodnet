@@ -143,6 +143,10 @@ via de hotspot.
 | H17 | Steunpunt met een M/ETHANE in de wachtrij (eindpost uit): Controleren | Rode waarschuwing over de wachtrij boven de knop | ☐ |
 | H18 | **Nu bijwerken**, pagina openhouden | Verslag loopt mee; pagina valt even weg en komt terug; *Klaar: bijgewerkt naar versie …*; rechtsboven de nieuwe versie | ☐ |
 | H19 | Na H18 (steunpunt): wachtrij uit H17 | Melding gaat na het bijwerken verder en wordt bevestigd zodra de eindpost aan is | ☐ |
+| H20 | Zonder kabel: Status → **Bijwerken via thuis-wifi** | Naam van je thuis-wifi staat erbij; uitlegpagina met de 4 stappen (en wachtrij-waarschuwing als er een M/ETHANE wacht) | ☐ |
+| H21 | **Nu bijwerken via …**, na een kwartier weer met Noodnet-… verbinden, /bijwerken openen | Hotspot is terug; verslag toont *Verbonden, internet werkt*, het bijwerken en *Hotspot is weer aan*; *Klaar* | ☐ |
+| H22 | Thuis-wifi uit (router uit) en H21 herhalen | Binnen ± 2 min is de hotspot terug; verslag: *verbinden … lukte niet* (code 4) | ☐ |
+| H23 | USB-tethering met de telefoon (telefoon op de wifi van de Pi), dan **Controleren op nieuwe versie** | Pi heeft internet; bijwerken werkt zoals H18 | ☐ |
 
 ## Notities
 
