@@ -316,8 +316,8 @@ def html_instellingen(inst, form=None):
 <label>Naam <small>bijv. Brandweer Deventer, Gemeentehuis</small></label><input type="text" name="eindpost_naam" value="{w('eindpost_naam')}" required>
 <label>Roepnaam op 2 m <small>met SSID; zo bevestigt deze post (ACK). Moet ook in het Netwerk van de steunpunten staan.</small></label>
 <input type="text" name="roepnaam" value="{w('roepnaam')}" placeholder="PD3PAM-2" required>
-<label>2 m-frequentie van de gemeente <small>MHz; dezelfde als op de steunpunten (tabblad Netwerk). Afspreken met de buurgemeenten.</small></label>
-<input type="text" name="frequentie_2m" value="{e(v.get('frequentie_2m', '') if form is not None else radio.rig.mhz(inst.get('frequentie_2m') or radio.rig.STANDAARD_FREQ).replace(' MHz', '').replace(',', '.'))}" inputmode="decimal" placeholder="144.925"></section>
+<label>2 m-frequentie van de gemeente <small>Dezelfde als op de steunpunten (tabblad Netwerk). Meestal neemt de eindpost hem over uit het netwerkbestand.</small></label>
+{radio.rig.html_frequentie_keuze(v.get('frequentie_2m', '') if form is not None else (inst.get('frequentie_2m') or radio.rig.STANDAARD_FREQ))}</section>
 <section><h2>Welke meldingen</h2><p class="uitleg">Meldingen voor deze disciplines worden getoond én bevestigd.
 Zelfde namen als op het tabblad Netwerk van de steunpunten.</p>
 {disc_html}

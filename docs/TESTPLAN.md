@@ -124,8 +124,8 @@ via de hotspot.
 
 | # | Scenario | Verwacht | OK |
 |---|---|---|---|
-| H1 | Steunpunt, tabblad Netwerk: 2 m-frequentie wijzigen (bijv. 144.950) | Opgeslagen; zonder CAT: melding "zet de set op …"; met CAT: set gaat mee | ☐ |
-| H2 | 144.800 of 145.500 invullen | Waarschuwing (APRS / buiten digitaal segment); 146.500: geweigerd | ☐ |
+| H1 | Steunpunt, tabblad Netwerk: 2 m-frequentie kiezen in de keuzelijst (bijv. 144,950) | Opgeslagen; zonder CAT: melding "zet de set op …"; met CAT: set gaat mee | ☐ |
+| H2 | Keuzelijst openen (steunpunt én eindpost → Instellingen) | Alleen 144,8125 t/m 144,9875 in stappen van 12,5 kHz; geen 144,800; huidige frequentie geselecteerd | ☐ |
 | H3 | Netwerk → **Exporteren**, op de eindpost (Instellingen) **Inladen** | Eindpost neemt frequentie en zijn eigen disciplines over | ☐ |
 | H4 | Zelfde bestand op een tweede steunpunt **Inladen** | Tabblad Netwerk gelijk aan het eerste steunpunt | ☐ |
 | H5 | Radio → **Zoek mijn set** (IC-9700 aan) | IC-9700 gevonden met poort en snelheid → **Gebruiken** | ☐ |

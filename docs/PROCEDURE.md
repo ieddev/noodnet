@@ -287,8 +287,10 @@ op **Instellingen** van elke eindpost.
 | **25 kHz** (twee kanalen) | **Aanbevolen voor buurgemeenten**, bijv. 144,925 en 144,950. |
 
 Kies een frequentie op het raster van 12,5 kHz (144,9125 / 144,925 / 144,9375 / 144,950 …): veel
-sets kunnen zonder CAT alleen in die stappen afstemmen. De beheerpagina accepteert alleen
-frequenties op het raster. Stem af met de buurgemeenten en de plaatselijke
+sets kunnen zonder CAT alleen in die stappen afstemmen. Op de beheerpagina kies je de frequentie
+uit een **keuzelijst** (144,8125 tot 144,9875 MHz, in stappen van 12,5 kHz; 144,800 = APRS staat er
+niet in), dus typefouten kunnen niet. Staat er nog een oude frequentie buiten het raster ingesteld,
+dan meldt de pagina dat en stelt de dichtstbijzijnde voor. Stem af met de buurgemeenten en de plaatselijke
 afdeling: er zijn ook andere digitale gebruikers in het segment.
 
 **Netwerkbestand (supervisor).** Eén persoon, de supervisor, stelt in overleg met de gemeente het

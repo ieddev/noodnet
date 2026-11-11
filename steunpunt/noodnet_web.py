@@ -944,8 +944,8 @@ def html_netwerk(net, form=None):
     return f"""{html_radiocontrole(net) if form is None else ""}<form method="post" action="/netwerk">{verborgen()}
 <div class="melding let">Dit deel geldt voor de hele gemeente. Houd het bestand gelijk op alle steunpunten van {g or 'de gemeente'}, en maak na een wijziging nieuwe kaarten.</div>
 <section><h2>Gemeente</h2><label>Naam van de gemeente</label><input type="text" name="gemeente" value="{g}">
-<label>2 m-frequentie <small>MHz; voor alle steunpunten én eindposten van de gemeente. Afspreken met de buurgemeenten, zodat jullie elkaar niet storen.</small></label>
-<input type="text" name="frequentie_2m" value="{e(v.get('frequentie_2m', '') if form is not None else radio.rig.mhz(net.get('frequentie_2m') or radio.rig.STANDAARD_FREQ).replace(' MHz', '').replace(',', '.'))}" inputmode="decimal" placeholder="144.925"></section>
+<label>2 m-frequentie <small>Voor alle steunpunten én eindposten van de gemeente. Stappen van 12,5 kHz; buurgemeenten bij voorkeur 25 kHz uit elkaar.</small></label>
+{radio.rig.html_frequentie_keuze(v.get('frequentie_2m', '') if form is not None else (net.get('frequentie_2m') or radio.rig.STANDAARD_FREQ))}</section>
 <section><h2>Disciplines en eindposten</h2>
 <p class="uitleg">Vul bij elke discipline de roepnaam van de eindpost in (bijv. PD3PAM-2), meerdere met een komma.
 Zet hier <b>alleen</b> eindposten die echt draaien: een M/ETHANE wordt herhaald tot elke genoemde post bevestigt.</p>

@@ -56,9 +56,9 @@
     "max_interval_s": 1800,
     "afstand_m": 300
   },
-  "frequentie_2m": 144930000,
+  "frequentie_2m": 144925000,
   "versie": {
-    "datum": "2026-11-06 12:53",
+    "datum": "2026-11-11 13:00",
     "door": "PD3PAM"
   },
   "ifac_weggelaten": true

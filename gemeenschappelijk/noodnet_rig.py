@@ -122,6 +122,32 @@ def controleer_frequentie(tekst):
     return hz, [], let
 
 
+def frequentie_keuzes():
+    """Alle frequenties op het 12,5 kHz-raster in het digitale segment (144,794-144,990 MHz), zonder APRS."""
+    return [hz for hz in range(144800000, 144990001, 12500) if hz != 144800000]
+
+
+def html_frequentie_keuze(huidig, naam="frequentie_2m"):
+    """Keuzelijst voor de 2 m-frequentie: geen typefouten, altijd op het raster."""
+    import html as _h
+    try:
+        hz, _, _ = controleer_frequentie(huidig) if isinstance(huidig, str) else (int(huidig), [], [])
+    except (TypeError, ValueError):
+        hz = None
+    hz = hz or STANDAARD_FREQ
+    keuzes = frequentie_keuzes()
+    opties, let = "", ""
+    if hz not in keuzes:          # oude instelling buiten het raster/segment: dichtstbijzijnde voorstellen
+        let = (f'<p class="melding let" style="margin:6px 0">Nu ingesteld: {_h.escape(mhz(hz))}. Die staat niet in de '
+               'lijst (niet op het 12,5 kHz-raster of buiten het segment voor digitale modes). Kies een frequentie '
+               'en sla op; spreek hem af met de andere posten.</p>')
+        hz = min(keuzes, key=lambda k: abs(k - hz))
+    for k in keuzes:
+        opties += (f'<option value="{k / 1e6:.4f}"{" selected" if k == hz else ""}>'
+                   f'{_h.escape(mhz(k))}{" (standaard)" if k == STANDAARD_FREQ else ""}</option>')
+    return f'{let}<select name="{naam}">{opties}</select>'
+
+
 def mode_goed(r, mode):
     """Staat de set in de juiste mode? Datamode, of FM als dat zo is ingesteld (set zonder datamode)."""
     mode = (mode or "").upper()
