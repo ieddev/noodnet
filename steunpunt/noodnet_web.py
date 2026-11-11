@@ -1462,11 +1462,12 @@ class Handler(BaseHTTPRequestHandler):
             ok, fout = herstart("noodnet-brug")
             if not ok:
                 fouten_h.append("Opgeslagen, maar herstart van de brug lukte niet: " + fout)
+            set_info, meld_set = "", []
             if nieuw.get("frequentie_2m") != net.get("frequentie_2m"):
                 if radio.rig.cat_actief(radio.instellingen()):
                     meld_set = radio.rig.zet_set(radio.instellingen(), nieuw["frequentie_2m"])
                     radio.rig.log(f"Nieuwe frequentie {radio.rig.mhz(nieuw['frequentie_2m'])} ingesteld" + (": " + "; ".join(meld_set) if meld_set else ""))
-                    radio_info.append(f"Set (CAT) op {radio.rig.mhz(nieuw['frequentie_2m'])} gezet." + (" " + "; ".join(meld_set) if meld_set else ""))
+                    set_info = f"Set (CAT) op {radio.rig.mhz(nieuw['frequentie_2m'])} gezet." + (" " + "; ".join(meld_set) if meld_set else "")
                 else:
                     let = list(let) + [f"Nieuwe 2 m-frequentie: zet de set op {radio.rig.mhz(nieuw['frequentie_2m'])}, en ook de eindposten (tabblad Instellingen)."]
             melding = meldingen(ok="Opgeslagen. Maak ook een nieuwe kaart (tabblad Kaart) en laat de telefoons die opnieuw scannen."
@@ -1474,6 +1475,8 @@ class Handler(BaseHTTPRequestHandler):
             if radio_info:
                 melding += "<div class='melding ok'><b>RNodes van deze Pi:</b><ul style='margin:6px 0 0 18px;padding:0'>" + \
                            "".join(f"<li>{e(x)}</li>" for x in radio_info) + "</ul></div>"
+            if set_info:
+                melding += f"<div class='melding {'let' if meld_set else 'ok'}'>{e(set_info)}</div>"
             return self._stuur(pagina("netwerk", html_netwerk(nieuw), inst, melding))
 
         if pad == "tijd":
