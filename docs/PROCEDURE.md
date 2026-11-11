@@ -262,8 +262,11 @@ Sluit de Pi met een **netwerkkabel** aan op internet. Daarna kan het op twee man
 noodnet-bijwerken
 ```
 
-De knop werkt pas nadat de Pi één keer met de nieuwe versie is bijgewerkt (een Pi van vóór
-november 2026: de eerste keer nog via ssh). Meldt de pagina *Starten lukte niet*, werk dan via ssh bij.
+De knop werkt pas nadat de Pi één keer via ssh is bijgewerkt met een versie van 11 november 2026 of
+later (rechtsboven op de beheerpagina). Meldt de pagina *Starten lukte niet* of *sudo vraagt om een
+wachtwoord*, werk dan nog één keer via ssh bij. Een wachtwoord is daarna niet nodig: het bijwerken via
+de knop draait als systeemdienst en haalt altijd de code van GitHub. Het verslag staat ook in
+`/var/log/noodnet-bijwerken.log`.
 
 Instellingen, aanmeldingen en het logboek blijven bewaard. De nieuwste app
 wordt meteen op de downloadpagina gezet.

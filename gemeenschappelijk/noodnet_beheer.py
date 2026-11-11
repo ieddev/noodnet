@@ -249,7 +249,8 @@ h1{{font-size:24px}}p{{font-size:18px;max-width:520px;margin:12px auto}}</style>
 
 REPO_GIT = "https://github.com/ieddev/noodnet"
 BIJWERK_DIENST = "noodnet-bijwerken"
-BIJWERK_LOG = os.path.join(MAP, "bijwerken.log")
+BIJWERK_LOG = os.environ.get("NOODNET_BIJWERK_LOG", "/var/log/noodnet-bijwerken.log")   # door root geschreven
+_BIJWERK_GESTART = [0.0]
 
 def _zonder_kleur(t):
     import re
@@ -300,23 +301,15 @@ def start_bijwerken():
     """Start de achtergronddienst. Geeft None of een fouttekst."""
     if bijwerken_bezig():
         return None
-    try:                                         # oud verslag weg, zodat de voortgang niet meteen 'klaar' zegt
-        with open(BIJWERK_LOG, "w", encoding="utf-8") as f:
-            f.write("== START (wordt gestart)\n")
-    except OSError:
-        pass
     try:
         r = subprocess.run([SUDO, "-n", SYSTEMCTL, "start", "--no-block", BIJWERK_DIENST],
                            capture_output=True, text=True, timeout=20)
     except (OSError, subprocess.SubprocessError) as ex:
         return str(ex)
     if r.returncode != 0:
-        try:
-            os.remove(BIJWERK_LOG)
-        except OSError:
-            pass
         return ("Starten lukte niet. Werk deze Pi één keer bij via ssh met: noodnet-bijwerken. "
                 "Daarna werkt deze knop. (" + (r.stderr.strip() or r.stdout.strip())[:200] + ")")
+    _BIJWERK_GESTART[0] = time.time()
     return None
 
 
@@ -388,9 +381,21 @@ def html_bijwerken_voortgang():
 </script>"""
 
 
+def _oud_verslag():
+    """Net op de knop gedrukt, maar het verslag is nog van de vorige keer (dienst nog niet gestart)."""
+    if time.time() - _BIJWERK_GESTART[0] > 60:
+        return False
+    try:
+        return os.path.getmtime(BIJWERK_LOG) < _BIJWERK_GESTART[0] - 1
+    except OSError:
+        return True
+
+
 def bijwerken_json():
     regels, einde = bijwerken_log()
-    bezig = bijwerken_bezig()
+    bezig = bijwerken_bezig() or _oud_verslag()
+    if bezig and _oud_verslag():
+        regels = ["Bijwerken wordt gestart…"]
     return json.dumps({"bezig": bezig, "einde": None if bezig else einde, "log": "\n".join(regels[-60:]),
                        "versie": noodnet_versie(), "herstart": os.path.exists("/var/run/reboot-required")},
                       ensure_ascii=False)

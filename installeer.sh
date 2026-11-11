@@ -261,6 +261,11 @@ stap "Diensten"
 plaats() { sed -e "s#@GEBRUIKER@#$GEBRUIKER#g" -e "s#@MAP@#$DOEL#g" -e "s#@VENV@#$VENV#g" "$1" \
              | sudo tee "/etc/systemd/system/$(basename "$1")" >/dev/null; }
 for f in "$BRON"/gemeenschappelijk/diensten/*.service "$BRON"/gemeenschappelijk/diensten/*.timer "$BRON/$ROL"/diensten/*.service; do plaats "$f"; done
+# Bijwerken vanaf de beheerpagina: script van root (niet door de gebruiker te wijzigen); een achtergebleven
+# tijdelijke sudo-regel (stroom eraf tijdens bijwerken) wordt bij het opstarten opgeruimd
+sudo install -d -m 0755 /usr/local/lib/noodnet
+sudo install -m 0755 -o root -g root "$BRON/gemeenschappelijk/diensten/noodnet-bijwerken.sh" /usr/local/lib/noodnet/
+echo "r /etc/sudoers.d/noodnet-bijwerken-tijdelijk" | sudo tee /etc/tmpfiles.d/noodnet-bijwerken.conf >/dev/null
 if [ "$ROL" = "steunpunt" ]; then
   DIENSTEN="noodnet-rigctld direwolf rnsd noodnet-brug noodnet-web noodnet-download"; WEB="noodnet_web.py"
 else

@@ -4,9 +4,8 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-User=@GEBRUIKER@
-WorkingDirectory=@MAP@
-ExecStart=/bin/bash @MAP@/bijwerken_achtergrond.sh
+# Als root, zodat sudo geen wachtwoord vraagt; de installatie zelf draait als @GEBRUIKER@
+ExecStart=/bin/bash /usr/local/lib/noodnet/noodnet-bijwerken.sh @GEBRUIKER@ @MAP@
 TimeoutStartSec=90min
 # Niet stoppen als de installatie de beheerpagina en andere diensten herstart
 KillMode=process
