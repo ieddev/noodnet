@@ -12,6 +12,7 @@ import email.policy
 import io
 import json
 import os
+import socket
 import subprocess
 import time
 import zipfile
@@ -249,9 +250,11 @@ h1{{font-size:24px}}p{{font-size:18px;max-width:520px;margin:12px auto}}</style>
 
 REPO_GIT = "https://github.com/ieddev/noodnet"
 BIJWERK_DIENST = "noodnet-bijwerken"
-BIJWERK_THUISWIFI = "noodnet-bijwerken-thuiswifi"
 BIJWERK_LOG = os.environ.get("NOODNET_BIJWERK_LOG", "/var/log/noodnet-bijwerken.log")   # door root geschreven
+THUISWIFI_STAND = os.environ.get("NOODNET_THUISWIFI_STAND", "/run/noodnet-thuiswifi")   # bestaat = hotspot tijdelijk uit
+THUISWIFI_ADRES = "/var/lib/noodnet/thuiswifi-adres"     # adres van de Pi op de thuis-wifi, vorige keer
 _BIJWERK_GESTART = [0.0]
+
 
 def _zonder_kleur(t):
     import re
@@ -259,15 +262,14 @@ def _zonder_kleur(t):
 
 
 def bijwerken_bezig():
-    for d in (BIJWERK_DIENST, BIJWERK_THUISWIFI):
-        try:
-            st = subprocess.run([SYSTEMCTL, "is-active", d], capture_output=True, text=True, timeout=5).stdout.strip()
-        except (OSError, subprocess.SubprocessError):
-            continue
-        if st in ("activating", "active", "reloading"):
-            return True
-    return False
+    try:
+        st = subprocess.run([SYSTEMCTL, "is-active", BIJWERK_DIENST], capture_output=True, text=True, timeout=5).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return st in ("activating", "active", "reloading")
 
+
+# --- wifi: hotspot of (tijdelijk) thuis-wifi ---------------------------------
 
 def thuiswifi_naam():
     """Naam van de bekende thuis-wifi (uit de installatie), of None."""
@@ -282,6 +284,60 @@ def thuiswifi_naam():
             return naam.replace("\\:", ":")
     return None
 
+
+def thuiswifi_actief():
+    """Naam van de thuis-wifi als de hotspot bewust tijdelijk uit staat, anders None."""
+    try:
+        with open(THUISWIFI_STAND, encoding="utf-8") as f:
+            return f.read().strip() or "thuis-wifi"
+    except OSError:
+        return None
+
+
+def wlan_adres():
+    try:
+        uit = subprocess.run(["ip", "-4", "-o", "addr", "show", "dev", "wlan0"], capture_output=True, text=True,
+                             timeout=5).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    for d in uit.split():
+        if "/" in d and d[0].isdigit() and not d.startswith("10.42.0."):
+            return d.split("/")[0]
+    return None
+
+
+def vorig_thuisadres():
+    try:
+        with open(THUISWIFI_ADRES, encoding="utf-8") as f:
+            return f.read().strip() or None
+    except OSError:
+        return None
+
+
+def wifi_actie(actie):
+    """'thuiswifi' of 'hotspot' via de root-dienst noodnet-wifi@. Geeft None of een fouttekst."""
+    try:
+        r = subprocess.run([SUDO, "-n", SYSTEMCTL, "start", "--no-block", f"noodnet-wifi@{actie}"],
+                           capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.SubprocessError) as ex:
+        return str(ex)
+    if r.returncode != 0:
+        return ("Dat lukte niet. Werk deze Pi één keer bij (netwerkkabel of USB-tethering, of via ssh met "
+                "noodnet-bijwerken); daarna werkt deze knop. (" + (r.stderr.strip() or r.stdout.strip())[:200] + ")")
+    return None
+
+
+def _adres_tekst(poort=8080):
+    """Waar de beheerpagina op de thuis-wifi te vinden is (voor vóór het omschakelen)."""
+    naam = socket.gethostname()
+    vorig = vorig_thuisadres()
+    regels = [f"<b>http://{html.escape(naam)}.local:{poort}</b>"]
+    if vorig:
+        regels.append(f"of <b>http://{html.escape(vorig)}:{poort}</b> (het adres van de vorige keer)")
+    return " ".join(regels)
+
+
+# --- bijwerken -----------------------------------------------------------------
 
 def bijwerken_log():
     """(regels, einde) uit het log; einde = None (bezig/onbekend), 0 (gelukt) of een foutcode."""
@@ -311,16 +367,16 @@ def nieuwste_versie(timeout=10):
     except OSError:
         return None, "git ontbreekt op deze Pi."
     if r.returncode != 0 or not r.stdout.strip():
-        return None, "Geen verbinding met GitHub. Heeft de Pi internet (netwerkkabel)?"
+        return None, "Geen verbinding met GitHub: deze Pi heeft geen internet."
     return r.stdout.split()[0], None
 
 
-def start_bijwerken(thuiswifi=False):
+def start_bijwerken():
     """Start de achtergronddienst. Geeft None of een fouttekst."""
     if bijwerken_bezig():
         return None
     try:
-        r = subprocess.run([SUDO, "-n", SYSTEMCTL, "start", "--no-block", BIJWERK_THUISWIFI if thuiswifi else BIJWERK_DIENST],
+        r = subprocess.run([SUDO, "-n", SYSTEMCTL, "start", "--no-block", BIJWERK_DIENST],
                            capture_output=True, text=True, timeout=20)
     except (OSError, subprocess.SubprocessError) as ex:
         return str(ex)
@@ -340,56 +396,83 @@ def html_bijwerken_sectie(verborgen):
         laatst = '<p class="melding let">Bijwerken is bezig. <a href="/bijwerken">Voortgang bekijken</a></p>'
     elif einde not in (None, 0):
         laatst = '<p class="melding fout">Het laatste bijwerken is mislukt. <a href="/bijwerken">Bekijk het verslag</a></p>'
+    controleer = f"""<form method="post" action="/bijwerken" class="balk" style="margin-top:0">{verborgen}
+<input type="hidden" name="stap" value="controleer"><button type="submit">Controleren op nieuwe versie</button></form>"""
+    tw = thuiswifi_actief()
+    if tw:
+        adres = wlan_adres()
+        wifi = f"""<p class="melding ok"><b>Thuis-wifi actief: {html.escape(tw)}.</b> De hotspot staat tijdelijk uit.
+{('Deze Pi: <b>http://' + html.escape(adres) + ':8080</b>. ') if adres else ''}Controleer nu op een nieuwe versie en werk bij.
+Na het bijwerken gaat de hotspot na 1 minuut vanzelf weer aan (en anders uiterlijk na een uur).</p>
+{controleer}
+<form method="post" action="/bijwerken" class="balk">{verborgen}<input type="hidden" name="stap" value="hotspot_aan">
+<button type="submit" class="licht">Hotspot nu weer aanzetten</button></form>"""
+    else:
+        naam = thuiswifi_naam()
+        thuis = (f"""<p class="uitleg" style="margin-top:12px">Geen netwerkkabel? Zet de hotspot tijdelijk uit; de Pi gebruikt
+dan je thuis-wifi <b>{html.escape(naam)}</b>.</p>
+<form method="post" action="/bijwerken" class="balk" style="margin-top:0">{verborgen}
+<input type="hidden" name="stap" value="hotspot_uit_vraag"><button type="submit" class="licht">Hotspot tijdelijk uitschakelen</button></form>"""
+                 if naam else
+                 '<p class="uitleg" style="margin-top:10px">Geen netwerkkabel? Gebruik USB-tethering met je telefoon '
+                 '(zie de procedure). Deze Pi kent geen thuis-wifi.</p>')
+        wifi = f"""<p class="uitleg">Bijwerken heeft internet nodig: een netwerkkabel naar je router, USB-tethering met je
+telefoon, of je thuis-wifi.</p>{controleer}{thuis}"""
     return f"""<section><h2>Noodnet bijwerken</h2><p class="uitleg">Geïnstalleerd: <b>versie {html.escape(v)}</b>.
-Bijwerken heeft internet nodig: een netwerkkabel, je thuis-wifi of USB-tethering met je telefoon. Doe het thuis of vóór een inzet, niet tijdens een inzet.
-Instellingen, vrijwilligers en logboek blijven bewaard.</p>{laatst}
-<form method="post" action="/bijwerken" class="balk" style="margin-top:0">{verborgen}
-<input type="hidden" name="stap" value="controleer"><button type="submit" class="licht">Controleren op nieuwe versie</button></form>
-{_thuiswifi_knop(verborgen)}</section>"""
+Doe het thuis of vóór een inzet, niet tijdens een inzet. Instellingen, vrijwilligers en logboek blijven bewaard.</p>
+{laatst}{wifi}</section>"""
 
 
-def _thuiswifi_knop(verborgen):
+def html_hotspot_uit_vraag(verborgen, waarschuwing=""):
     naam = thuiswifi_naam()
     if not naam:
-        return ('<p class="uitleg" style="margin-top:10px">Geen netwerkkabel? Deze Pi kent geen thuis-wifi. '
-                'Gebruik dan USB-tethering met je telefoon (zie de procedure).</p>')
-    return f"""<p class="uitleg" style="margin-top:12px">Geen netwerkkabel? Dan kan de Pi even je thuis-wifi
-<b>{html.escape(naam)}</b> gebruiken.</p>
-<form method="post" action="/bijwerken" class="balk" style="margin-top:0">{verborgen}
-<input type="hidden" name="stap" value="thuiswifi_vraag"><button type="submit" class="licht">Bijwerken via thuis-wifi</button></form>"""
-
-
-def html_bijwerken_thuiswifi(verborgen, waarschuwing=""):
-    naam = thuiswifi_naam()
-    if not naam:
-        return ('<section><h2>Bijwerken via thuis-wifi</h2><p class="melding fout">Deze Pi kent geen thuis-wifi.</p>'
+        return ('<section><h2>Hotspot tijdelijk uitschakelen</h2><p class="melding fout">Deze Pi kent geen thuis-wifi.</p>'
                 '<p><a href="/status">Terug naar Status</a></p></section>')
     let = f'<p class="melding fout">{html.escape(waarschuwing)}</p>' if waarschuwing else ""
-    return f"""<section><h2>Bijwerken via thuis-wifi</h2>{let}
-<p>Zo gaat het:</p><ol>
-<li>De hotspot van de Pi gaat uit en de Pi verbindt met <b>{html.escape(naam)}</b>.
-<b>Je telefoon verliest de verbinding met deze pagina.</b></li>
-<li>De Pi werkt bij (meestal 2–10 minuten, langer als Raspberry Pi OS veel updates heeft).</li>
-<li>Daarna zet de Pi de hotspot vanzelf weer aan, ook als er iets misgaat. Lukt de thuis-wifi niet, dan
-is de hotspot binnen 2 minuten terug. Uiterlijk na 45 minuten, en na een herstart, is hij er altijd weer.</li>
-<li>Verbind je telefoon na een kwartier weer met de wifi van de Pi en open
-<b>http://10.42.0.1:8080/bijwerken</b>: daar staat het verslag.</li></ol>
-<p class="uitleg">Het steunpunt of de eindpost werkt tijdens het bijwerken niet. Doe dit thuis, niet tijdens een inzet.</p>
-<form method="post" action="/bijwerken" class="balk">{verborgen}<input type="hidden" name="stap" value="start_thuiswifi">
-<button type="submit">Nu bijwerken via {html.escape(naam)}</button>
+    return f"""<section><h2>Hotspot tijdelijk uitschakelen</h2>{let}
+<ol>
+<li>De hotspot gaat uit en de Pi verbindt met je thuis-wifi <b>{html.escape(naam)}</b>.
+Je telefoon verliest de verbinding met deze pagina.</li>
+<li>Verbind je telefoon ook met <b>{html.escape(naam)}</b> en open over een halve minuut {_adres_tekst()}.
+Lukt dat niet: zoek de Pi in de lijst met apparaten van je router.</li>
+<li>Je ziet dan <i>Thuis-wifi actief</i>. Kies <b>Controleren op nieuwe versie</b> en daarna <b>Nu bijwerken</b>.</li>
+<li>Na het bijwerken gaat de hotspot na 1 minuut weer aan. Verbind je telefoon dan weer met de wifi van de Pi.</li>
+</ol>
+<p class="uitleg">Vangnet: lukt de thuis-wifi niet, dan is de hotspot binnen 2 minuten terug. Na een uur, en na een
+herstart, staat de hotspot altijd weer aan. Het steunpunt of de eindpost werkt zonder hotspot niet voor de telefoons:
+doe dit thuis, niet tijdens een inzet.</p>
+<form method="post" action="/bijwerken" class="balk">{verborgen}<input type="hidden" name="stap" value="hotspot_uit">
+<button type="submit">Hotspot uit, thuis-wifi aan</button>
 <a href="/status" style="align-self:center">Annuleren</a></form></section>"""
+
+
+def html_hotspot_gaat_uit():
+    naam = thuiswifi_naam() or "je thuis-wifi"
+    return f"""<section><h2>Hotspot gaat uit</h2><p class="melding let"><b>De Pi schakelt nu over naar {html.escape(naam)}.</b>
+Deze pagina verliest zo de verbinding.</p>
+<p>Verbind je telefoon met <b>{html.escape(naam)}</b> en open {_adres_tekst()}.</p>
+<p class="uitleg">Zie je de Pi na een minuut niet op je thuis-wifi? Verbind dan weer met de wifi van de Pi en open
+http://10.42.0.1:8080: is de thuis-wifi mislukt, dan staat de hotspot binnen 2 minuten weer aan.</p></section>"""
 
 
 def verwerk_bijwerken(f, verborgen, waarschuwing=""):
     """POST /bijwerken. Geeft ('naar', url, melding) of ('html', inhoud)."""
     stap = f.get("stap", "controleer")
-    if stap in ("start", "start_thuiswifi"):
-        fout = start_bijwerken(thuiswifi=stap == "start_thuiswifi")
+    if stap == "start":
+        fout = start_bijwerken()
         if fout:
             return ("naar", "/status", "fout:" + fout)
-        return ("naar", "/bijwerken" + ("?thuiswifi=1" if stap == "start_thuiswifi" else ""), None)
-    if stap == "thuiswifi_vraag":
-        return ("html", html_bijwerken_thuiswifi(verborgen, waarschuwing))
+        return ("naar", "/bijwerken", None)
+    if stap == "hotspot_uit_vraag":
+        return ("html", html_hotspot_uit_vraag(verborgen, waarschuwing))
+    if stap == "hotspot_uit":
+        fout = wifi_actie("thuiswifi")
+        return ("naar", "/status", "fout:" + fout) if fout else ("html", html_hotspot_gaat_uit())
+    if stap == "hotspot_aan":
+        fout = wifi_actie("hotspot")
+        return ("naar", "/status", "fout:" + fout) if fout else (
+            "html", '<section><h2>Hotspot gaat weer aan</h2><p class="melding ok">De hotspot gaat binnen een halve '
+                    'minuut weer aan. Verbind je telefoon met de wifi van de Pi en open http://10.42.0.1:8080.</p></section>')
     return ("html", html_bijwerken_controle(verborgen, waarschuwing))
 
 
@@ -398,9 +481,12 @@ def html_bijwerken_controle(verborgen, waarschuwing=""):
     nu = (noodnet_versie() or "").split(" ")[0]
     nieuw, fout = nieuwste_versie()
     if fout:
+        hulp = ("Wacht een halve minuut en probeer het opnieuw; de thuis-wifi heeft misschien nog geen verbinding."
+                if thuiswifi_actief() else
+                "Sluit een netwerkkabel aan of zet USB-tethering aan, of zet de hotspot tijdelijk uit (Status) "
+                "om je thuis-wifi te gebruiken.")
         return f"""<section><h2>Noodnet bijwerken</h2><p class="melding fout">{html.escape(fout)}</p>
-<p class="uitleg">Sluit een netwerkkabel aan (thuisrouter) en probeer het opnieuw. Je telefoon blijft via de wifi van
-de Pi verbonden met deze pagina.</p>{_thuiswifi_knop(verborgen)}<p><a href="/status">Terug naar Status</a></p></section>"""
+<p class="uitleg">{hulp}</p><p><a href="/status">Terug naar Status</a></p></section>"""
     zelfde = bool(nu) and nieuw.startswith(nu)
     if zelfde:
         kop = '<p class="melding ok">Je hebt al de nieuwste versie van Noodnet.</p>'
@@ -410,22 +496,22 @@ de Pi verbonden met deze pagina.</p>{_thuiswifi_knop(verborgen)}<p><a href="/sta
                f'(geïnstalleerd: {html.escape(nu or "onbekend")}).</p>')
         knop = "Nu bijwerken"
     let = f'<p class="melding fout">{html.escape(waarschuwing)}</p>' if waarschuwing else ""
+    na = (" Na afloop gaat de hotspot na 1 minuut weer aan." if thuiswifi_actief() else "")
+    terug = ("" if not (zelfde and thuiswifi_actief()) else
+             f"""<form method="post" action="/bijwerken" class="balk">{verborgen}<input type="hidden" name="stap" value="hotspot_aan">
+<button type="submit" class="licht">Niet bijwerken, hotspot weer aanzetten</button></form>""")
     return f"""<section><h2>Noodnet bijwerken</h2>{kop}{let}
 <p class="uitleg">Bijwerken duurt meestal 2–10 minuten (langer als Raspberry Pi OS veel updates heeft). Tijdens het
-bijwerken herstarten de diensten: het steunpunt of de eindpost werkt dan even niet, en deze pagina en de wifi kunnen
-een halve minuut wegvallen. Blijf verbonden; de voortgang komt vanzelf terug.</p>
+bijwerken herstarten de diensten: het steunpunt of de eindpost werkt dan even niet, en deze pagina kan een halve minuut
+wegvallen. Laat de pagina open; de voortgang komt vanzelf terug.{na}</p>
 <form method="post" action="/bijwerken" class="balk">{verborgen}<input type="hidden" name="stap" value="start">
 <button type="submit" onclick="return confirm('Noodnet nu bijwerken? De diensten herstarten.')">{knop}</button>
-<a href="/status" style="align-self:center">Annuleren</a></form></section>"""
+<a href="/status" style="align-self:center">Annuleren</a></form>{terug}</section>"""
 
 
-def html_bijwerken_voortgang(thuiswifi=False):
+def html_bijwerken_voortgang():
     regels, einde = bijwerken_log()
-    tw = ("" if not thuiswifi else
-          '<p class="melding let"><b>De Pi gaat nu naar je thuis-wifi; deze pagina verliest zo de verbinding.</b> '
-          'Verbind je telefoon over een kwartier weer met de wifi van de Pi en open deze pagina opnieuw '
-          '(http://10.42.0.1:8080/bijwerken).</p>')
-    return f"""<section><h2>Noodnet bijwerken</h2>{tw}<p id="bw_stand" class="melding let">Bezig met bijwerken…</p>
+    return f"""<section><h2>Noodnet bijwerken</h2><p id="bw_stand" class="melding let">Bezig met bijwerken…</p>
 <p class="uitleg">Laat deze pagina open. Valt de verbinding even weg, dan probeert de pagina het vanzelf opnieuw.</p>
 <pre id="bw_log" style="max-height:420px;overflow:auto">{html.escape(chr(10).join(regels[-60:]))}</pre>
 <p><a href="/status">Naar Status</a></p></section>
@@ -436,13 +522,16 @@ def html_bijwerken_voortgang(thuiswifi=False):
     fetch('/bijwerken.json',{{cache:'no-store'}}).then(function(r){{return r.json();}}).then(function(d){{
       mis=0; log.textContent=d.log; log.scrollTop=log.scrollHeight;
       if(!d.bezig && d.einde===0){{ stand.className='melding ok';
-        stand.innerHTML='Klaar: bijgewerkt naar versie '+d.versie+'.'+(d.herstart?' <b>Herstart de Pi</b> (Status &rarr; Pi herstarten): er is een nieuwe kernel.':''); return; }}
+        stand.innerHTML='Klaar: bijgewerkt naar versie '+d.versie+'.'+(d.herstart?' <b>Herstart de Pi</b> (Status &rarr; Pi herstarten): er is een nieuwe kernel.':'')
+          +(d.thuiswifi?'<br><b>De hotspot schakelt over 1 minuut weer in.</b> Verbind je telefoon daarna weer met de wifi van de Pi (http://10.42.0.1:8080).':'');
+        return; }}
       if(!d.bezig && d.einde!==null){{ stand.className='melding fout';
-        stand.textContent='Bijwerken mislukt (code '+d.einde+'). Zie het verslag hieronder; de oude versie blijft werken.'; return; }}
+        stand.textContent='Bijwerken mislukt (code '+d.einde+'). Zie het verslag hieronder; de oude versie blijft werken.'
+          +(d.thuiswifi?' De thuis-wifi blijft aan: probeer het opnieuw, of zet op Status de hotspot weer aan.':''); return; }}
       stand.className='melding let'; stand.textContent='Bezig met bijwerken…';
       setTimeout(kijk,3000);
     }}).catch(function(){{ mis++; stand.className='melding let';
-      stand.textContent='Beheerpagina herstart of wifi even weg… ('+mis+')'; setTimeout(kijk,4000); }});
+      stand.textContent='Beheerpagina herstart even… ('+mis+')'; setTimeout(kijk,4000); }});
   }}
   setTimeout(kijk,2000);
 }})();
@@ -465,7 +554,8 @@ def bijwerken_json():
     if bezig and _oud_verslag():
         regels = ["Bijwerken wordt gestart…"]
     return json.dumps({"bezig": bezig, "einde": None if bezig else einde, "log": "\n".join(regels[-60:]),
-                       "versie": noodnet_versie(), "herstart": os.path.exists("/var/run/reboot-required")},
+                       "versie": noodnet_versie(), "herstart": os.path.exists("/var/run/reboot-required"),
+                       "thuiswifi": bool(thuiswifi_actief())},
                       ensure_ascii=False)
 
 

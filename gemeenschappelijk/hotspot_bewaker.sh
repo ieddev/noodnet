@@ -7,7 +7,7 @@
 #    (Gezien op een Pi 4 met Trixie: na de eerste herstart was de hotspot zichtbaar, maar de
 #    beheerpagina niet bereikbaar; na nog een start wel. Dit herstelt dat binnen een minuut.)
 [ -f /etc/noodnet/hostapd.conf ] || exit 0
-[ -f /run/noodnet-bijwerken-thuiswifi ] && exit 0     # bijwerken via thuis-wifi is bezig
+[ -f /run/noodnet-thuiswifi ] && exit 0     # hotspot bewust tijdelijk uit (beheerpagina); noodnet-wifi.sh zet hem terug
 systemctl is-enabled -q noodnet-ap 2>/dev/null || exit 0
 meld() { logger -t noodnet "hotspot: $*"; echo "hotspot: $*"; }
 

@@ -254,7 +254,7 @@ De Pi heeft voor het bijwerken internet nodig. Zijn eigen wifi is de hotspot, du
 | Internet via | Hoe | Let op |
 |---|---|---|
 | **Netwerkkabel** (het makkelijkst) | Kabel van de Pi naar je thuisrouter | Je telefoon blijft op de hotspot en ziet de voortgang |
-| **Thuis-wifi** | Knop **Bijwerken via thuis-wifi** (zie hieronder) | Je telefoon verliest tijdens het bijwerken de verbinding |
+| **Thuis-wifi** | Knop **Hotspot tijdelijk uitschakelen** (zie hieronder) | Je telefoon gaat dan ook op je thuis-wifi |
 | **USB-tethering** met je telefoon | USB-kabel van telefoon naar Pi; op Android: *Instellingen → Netwerk en internet → Hotspot en tethering → USB-tethering* aan. Telefoon blijft op de wifi van de Pi; mobiele data aan | Gaat van je databundel af: de Noodnet-update is klein, maar updates van Raspberry Pi OS kunnen honderden MB zijn. Niet elke telefoon deelt mobiele data als hij met wifi zonder internet verbonden is |
 
 Bij een netwerkkabel en USB-tethering gaat het verder zo:
@@ -271,15 +271,22 @@ noodnet-bijwerken
 ```
 
 **Via thuis-wifi.** De Pi kent je thuis-wifi nog van de installatie (Raspberry Pi Imager), alleen
-verbindt hij er niet meer vanzelf mee. Tabblad **Status** → *Noodnet bijwerken* → **Bijwerken via
-thuis-wifi** → **Nu bijwerken via …**. Dan:
+verbindt hij er niet meer vanzelf mee. Je zet de hotspot tijdelijk uit en werkt dan bij zoals met een
+netwerkkabel:
 
-1. De hotspot gaat uit en de Pi verbindt met je thuis-wifi. Je telefoon verliest de verbinding.
-2. De Pi werkt bij (meestal 2 tot 10 minuten).
-3. De Pi zet de hotspot vanzelf weer aan, ook als er iets misgaat. Lukt de thuis-wifi niet, dan is de
-   hotspot binnen 2 minuten terug; uiterlijk na 45 minuten, en na een herstart, is hij er altijd weer.
-4. Verbind je telefoon na een kwartier weer met de wifi **Noodnet-…** en open
-   **http://10.42.0.1:8080/bijwerken**: daar staat het verslag.
+1. Tabblad **Status** → *Noodnet bijwerken* → **Hotspot tijdelijk uitschakelen** → **Hotspot uit,
+   thuis-wifi aan**. De pagina toont het adres waarop je de Pi straks vindt, bijv.
+   *http://noodnet-steunpunt.local:8080* of het adres van de vorige keer. Schrijf het op.
+2. Je telefoon verliest de verbinding. Verbind hem met je **thuis-wifi** en open dat adres. Lukt dat
+   niet, zoek de Pi dan in de lijst met apparaten van je router.
+3. Op **Status** staat nu groen **Thuis-wifi actief**. Kies **Controleren op nieuwe versie** en dan
+   **Nu bijwerken**. De voortgang zie je op het scherm.
+4. Na het bijwerken: *De hotspot schakelt over 1 minuut weer in*. Verbind je telefoon dan weer met de
+   wifi **Noodnet-…** (http://10.42.0.1:8080).
+
+Wil je toch niet bijwerken: **Hotspot nu weer aanzetten**. Vangnetten: lukt de thuis-wifi niet, dan
+is de hotspot binnen 2 minuten terug; na een uur op thuis-wifi, en na een herstart, staat de hotspot
+altijd weer aan. Mislukt het bijwerken, dan blijft de thuis-wifi aan zodat je het opnieuw kunt proberen.
 
 Staat de knop er niet, dan kent de Pi geen thuis-wifi: gebruik een netwerkkabel of USB-tethering.
 

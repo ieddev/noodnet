@@ -267,6 +267,12 @@ sudo install -d -m 0755 /usr/local/lib/noodnet
 # (via een tijdelijke naam + mv: dit script kan zelf het bijwerken uitvoeren dat nu loopt)
 sudo install -m 0755 -o root -g root "$BRON/gemeenschappelijk/diensten/noodnet-bijwerken.sh" /usr/local/lib/noodnet/.noodnet-bijwerken.sh.nieuw
 sudo mv -f /usr/local/lib/noodnet/.noodnet-bijwerken.sh.nieuw /usr/local/lib/noodnet/noodnet-bijwerken.sh
+sudo install -m 0755 -o root -g root "$BRON/gemeenschappelijk/diensten/noodnet-wifi.sh" /usr/local/lib/noodnet/.noodnet-wifi.sh.nieuw
+sudo mv -f /usr/local/lib/noodnet/.noodnet-wifi.sh.nieuw /usr/local/lib/noodnet/noodnet-wifi.sh
+sudo rm -f /etc/systemd/system/noodnet-bijwerken-thuiswifi.service    # vervangen door noodnet-wifi@
+# Adres op de thuis-wifi onthouden (handig bij 'Hotspot tijdelijk uitschakelen')
+THUISADRES=$(ip -4 -o addr show dev wlan0 2>/dev/null | awk '{print $4}' | cut -d/ -f1 | grep -v '^10\.42\.0\.' | head -1)
+if [ -n "$THUISADRES" ]; then sudo mkdir -p /var/lib/noodnet; echo "$THUISADRES" | sudo tee /var/lib/noodnet/thuiswifi-adres >/dev/null; fi
 echo "r /etc/sudoers.d/noodnet-bijwerken-tijdelijk" | sudo tee /etc/tmpfiles.d/noodnet-bijwerken.conf >/dev/null
 if [ "$ROL" = "steunpunt" ]; then
   DIENSTEN="noodnet-rigctld direwolf rnsd noodnet-brug noodnet-web noodnet-download"; WEB="noodnet_web.py"
@@ -278,7 +284,8 @@ REGEL="$GEBRUIKER ALL=(root) NOPASSWD:"; EERSTE=1
 for d in $DIENSTEN; do [ $EERSTE = 1 ] && EERSTE=0 || REGEL="$REGEL,"; REGEL="$REGEL $SC restart $d"; done
 REGEL="$REGEL, $(command -v date) -s *"      # klok gelijkzetten met de telefoon van de beheerder
 REGEL="$REGEL, $SC poweroff, $SC reboot"     # knoppen Pi uitschakelen/herstarten op de beheerpagina
-REGEL="$REGEL, $SC start --no-block noodnet-bijwerken, $SC start --no-block noodnet-bijwerken-thuiswifi"   # knoppen Noodnet bijwerken
+REGEL="$REGEL, $SC start --no-block noodnet-bijwerken"   # knop Noodnet bijwerken
+REGEL="$REGEL, $SC start --no-block noodnet-wifi@thuiswifi, $SC start --no-block noodnet-wifi@hotspot"   # hotspot tijdelijk uit / weer aan
 TMP=$(mktemp); echo "$REGEL" > "$TMP"
 sudo visudo -cf "$TMP" >/dev/null && sudo install -m 0440 "$TMP" /etc/sudoers.d/noodnet; rm -f "$TMP"
 sudo rm -f /etc/sudoers.d/noodnet-web /etc/sudoers.d/noodnet-eindpost

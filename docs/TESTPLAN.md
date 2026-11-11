@@ -143,9 +143,10 @@ via de hotspot.
 | H17 | Steunpunt met een M/ETHANE in de wachtrij (eindpost uit): Controleren | Rode waarschuwing over de wachtrij boven de knop | ☐ |
 | H18 | **Nu bijwerken**, pagina openhouden | Verslag loopt mee; pagina valt even weg en komt terug; *Klaar: bijgewerkt naar versie …*; rechtsboven de nieuwe versie | ☐ |
 | H19 | Na H18 (steunpunt): wachtrij uit H17 | Melding gaat na het bijwerken verder en wordt bevestigd zodra de eindpost aan is | ☐ |
-| H20 | Zonder kabel: Status → **Bijwerken via thuis-wifi** | Naam van je thuis-wifi staat erbij; uitlegpagina met de 4 stappen (en wachtrij-waarschuwing als er een M/ETHANE wacht) | ☐ |
-| H21 | **Nu bijwerken via …**, na een kwartier weer met Noodnet-… verbinden, /bijwerken openen | Hotspot is terug; verslag toont *Verbonden, internet werkt*, het bijwerken en *Hotspot is weer aan*; *Klaar* | ☐ |
-| H22 | Thuis-wifi uit (router uit) en H21 herhalen | Binnen ± 2 min is de hotspot terug; verslag: *verbinden … lukte niet* (code 4) | ☐ |
+| H20 | Zonder kabel: Status → **Hotspot tijdelijk uitschakelen** | Uitlegpagina met naam thuis-wifi en het adres (….local:8080 en/of vorige keer); wachtrij-waarschuwing als er een M/ETHANE wacht | ☐ |
+| H21 | **Hotspot uit, thuis-wifi aan**; telefoon op thuis-wifi, adres openen | Status: groen *Thuis-wifi actief* met het adres van de Pi; **Controleren** en **Nu bijwerken** werken; daarna *De hotspot schakelt over 1 minuut weer in*; na ± 1 min is Noodnet-… er weer | ☐ |
+| H21a | Hotspot uit, dan **Hotspot nu weer aanzetten** (zonder bij te werken) | Hotspot binnen een halve minuut terug | ☐ |
+| H22 | Thuis-wifi uit (router uit), dan **Hotspot uit, thuis-wifi aan** | Binnen ± 2 min is de hotspot terug | ☐ |
 | H23 | USB-tethering met de telefoon (telefoon op de wifi van de Pi), dan **Controleren op nieuwe versie** | Pi heeft internet; bijwerken werkt zoals H18 | ☐ |
 
 ## Notities

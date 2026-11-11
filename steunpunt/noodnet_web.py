@@ -1357,7 +1357,7 @@ class Handler(BaseHTTPRequestHandler):
         if pad == "bijwerken.json":
             return self._stuur(beheer.bijwerken_json(), 200, "application/json; charset=utf-8")
         if pad == "bijwerken":
-            return self._stuur(pagina("status", beheer.html_bijwerken_voortgang("thuiswifi" in self.path), inst, meld))
+            return self._stuur(pagina("status", beheer.html_bijwerken_voortgang(), inst, meld))
         if pad == "status":
             return self._stuur(pagina("status", html_status(inst, net), inst, meld))
         if pad == "steunpunt":

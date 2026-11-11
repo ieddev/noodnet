@@ -1,0 +1,6 @@
+[Unit]
+Description=Noodnet: wifi wisselen (%i), gestart vanaf de beheerpagina
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /usr/local/lib/noodnet/noodnet-wifi.sh %i
