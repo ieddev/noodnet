@@ -298,7 +298,7 @@ async function icoon(Icon, kleur, px = 256) {
              "Wie meldt aan welke eindpost, met vangnet",
              "2 m-frequentie per gemeente op het 12,5 kHz-raster; buurgemeenten 25 kHz uit elkaar",
              "Versienummer: zo zie je of iedereen hetzelfde heeft",
-             "IFAC zit er niet in de openbare versie in"],
+             "IFAC zit niet in de openbare versie"],
          { x: 6.45, y: 1.2, w: 3.1, h: 3.9, fontSize: 12.5 });
   s.addNotes("Alles wat per gemeente verschilt, staat in één JSON-bestand: welke eindposten er zijn per discipline, het vangnet, de LoRa-instellingen en de 2 meter-frequentie. Een supervisor maakt het en deelt het; elke Pi laadt het met een paar tikken. Het IFAC-wachtwoord gaat apart, zodat het bestand openbaar kan.");
 
