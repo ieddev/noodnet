@@ -382,6 +382,8 @@ h2 { font-size: 13pt; margin: 12pt 0 4pt; }
 table { font-size: 8.4pt; margin: 4pt 0 6pt; }
 th, td { padding: 3pt 5pt; }
 td:first-child { width: 9mm; white-space: nowrap; }
+td:nth-child(2) { width: 24mm; font-size: 8pt; color: #2471a3; font-weight: 600; }
+th:nth-child(2) { width: 24mm; }
 td.ok { width: 10mm; text-align: center; vertical-align: middle; }
 td.ok .vakje { width: 11pt; height: 11pt; margin: 0; }
 th.notitie { width: 58mm; }
