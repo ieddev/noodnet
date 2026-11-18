@@ -369,6 +369,18 @@ gaan zenden.
 Staat je set er niet bij, gebruik dan RTS/DTR (bijv. met een Digirig) en zet de frequentie met de
 hand; de Pi toont welke.
 
+**Digirig (Mobile) met alleen een datakabel** (bijv. FT-818 via de DATA-aansluiting), getest:
+
+| Instelling | Waarde |
+|---|---|
+| Geluidskaart van de set | *USB-Audio – USB Audio Device* (de geluidskaart van de Digirig) |
+| Besturing van de set | **RTS – alleen PTT** |
+| PTT-poort | *Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller…* (ttyUSB0) |
+
+Zet de frequentie dan met de hand op de set, in PKT-mode. Wil je dat de Pi de set bestuurt, dan heb
+je bij de Digirig ook een **CAT-kabel** voor je set nodig (FT-817/818: naar de ACC-aansluiting). Kies dan
+*CAT*, set *Yaesu FT-818* en dezelfde CP2102N-poort, met de CAT-snelheid uit het menu van de set.
+
 ## Dienstdoende operator en aflossen
 
 Het station zendt altijd onder de roepnaam die bij de installatie is ingesteld; die verander je

@@ -585,7 +585,7 @@ Na opslaan worden Direwolf (en bij CAT rigctld) opnieuw gestart.</p>
 <p class="uitleg" style="margin-top:8px">De Pi zet de set op de frequentie van de gemeente in de <b>datamode</b> (FM-D/PKT): dan komt het
 geluid van USB. PTT gaat via CAT. Icom: CI-V-adres op standaard laten.</p></div>
 <div id="rts_deel"><label>PTT-poort</label><select name="ptt_poort">{poort_opties}</select>
-<p class="uitleg" style="margin-top:8px">FT-818 met SCU-17: poort B met RTS. IC-9700: in de set <i>MENU &gt; SET &gt; Connectors &gt; USB SEND</i> op
+<p class="uitleg" style="margin-top:8px">FT-818 met SCU-17: poort B met RTS. Digirig: de CP2102N-poort met RTS. IC-9700: in de set <i>MENU &gt; SET &gt; Connectors &gt; USB SEND</i> op
 <b>USB (A) RTS</b> zetten en hier poort A met RTS kiezen.</p></div></section>
 {rnode}
 <div class="balk"><button type="submit">Opslaan en herstarten</button></div></form>
