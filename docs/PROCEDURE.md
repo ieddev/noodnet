@@ -389,8 +389,14 @@ beep) uit**; verder aan te raden: **SAVE (batterijbesparing) uit**, **TDR (dual 
 
 **Motorola GM340 met Digirig (Mobile)**, getest: zelfgemaakte kabel van de accessoire-aansluiting
 achterop naar de TRRS-plug van de Digirig; verder dezelfde instellingen als hierboven. Programmeer met de
-CPS een kanaal op 144,925 MHz, 25 kHz breed, zonder CTCSS/DCS, en controleer of de programmeerbare pinnen
-van de accessoire-aansluiting voor PTT en audio goed staan. Zendniveau (Testuitzending): 48–50.
+CPS een kanaal op 144,925 MHz. Instellingen in de CPS:
+
+- **PTT op extern** (de accessoire-aansluiting);
+- per kanaal **X-PAND uit** (de compander vervormt de packettonen) en **CTCSS/DCS uit**;
+- kanaalbreedte: 25 kHz is het veiligst voor 1200 Bd packet; 12,5 kHz werkt ook in de test, maar houd
+  het binnen een gemeente op alle posten gelijk.
+
+Zendniveau (Testuitzending): 48–50.
 
 | Accessoire-aansluiting GM340 | Signaal | Digirig (TRRS-plug audio) |
 |---|---|---|
