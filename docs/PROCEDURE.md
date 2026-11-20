@@ -387,6 +387,11 @@ Digirig, **RTS – alleen PTT**, de CP2102N-poort). Een Baofeng heeft geen CAT: 
 beep) uit**; verder aan te raden: **SAVE (batterijbesparing) uit**, **TDR (dual watch) uit**, bandbreedte
 **wide** en squelch laag (1–3). Een ferrietkern om de kabel bij de Baofeng voorkomt HF-instraling.
 
+**Motorola GM340 met Digirig (Mobile)**, getest: zelfgemaakte kabel van de accessoire-aansluiting
+achterop naar de TRRS-plug van de Digirig; verder dezelfde instellingen als hierboven. Programmeer met de
+CPS een kanaal op 144,925 MHz, 25 kHz breed, zonder CTCSS/DCS, en controleer of de programmeerbare pinnen
+van de accessoire-aansluiting voor PTT en audio goed staan. Zendniveau (Testuitzending): 48–50.
+
 **Geteste sets**
 
 | Set | Verbinding | Besturing | Frequentie |
@@ -395,6 +400,7 @@ beep) uit**; verder aan te raden: **SAVE (batterijbesparing) uit**, **TDR (dual 
 | Yaesu FT-818 + SCU-17 | USB | CAT via poort A (of RTS via poort B) | Pi zet hem (met CAT) |
 | Yaesu FT-818 + Digirig Mobile | datakabel naar DATA | RTS – alleen PTT | met de hand |
 | Baofeng + Digirig Mobile | Baofeng-kabel (Kenwood-stekker) | RTS – alleen PTT | met de hand (kanaal) |
+| Motorola GM340 + Digirig Mobile | eigen kabel naar de accessoire-aansluiting | RTS – alleen PTT | kanaal (CPS) |
 
 ## Dienstdoende operator en aflossen
 
