@@ -392,6 +392,16 @@ achterop naar de TRRS-plug van de Digirig; verder dezelfde instellingen als hier
 CPS een kanaal op 144,925 MHz, 25 kHz breed, zonder CTCSS/DCS, en controleer of de programmeerbare pinnen
 van de accessoire-aansluiting voor PTT en audio goed staan. Zendniveau (Testuitzending): 48–50.
 
+| Accessoire-aansluiting GM340 | Signaal | Digirig (TRRS-plug audio) |
+|---|---|---|
+| pin 1 | audio in (naar de set) | Ring 1 |
+| pin 3 | PTT | Ring 2 |
+| pin 7 | massa | Sleeve |
+| pin 11 | audio uit (ontvangst) | Tip |
+
+Meet de pinnen na op je eigen set voordat je de kabel aansluit: de functies van een aantal pinnen
+zijn in de CPS te veranderen.
+
 **Geteste sets**
 
 | Set | Verbinding | Besturing | Frequentie |
