@@ -381,6 +381,21 @@ Zet de frequentie dan met de hand op de set, in PKT-mode. Wil je dat de Pi de se
 je bij de Digirig ook een **CAT-kabel** voor je set nodig (FT-817/818: naar de ACC-aansluiting). Kies dan
 *CAT*, set *Yaesu FT-818* en dezelfde CP2102N-poort, met de CAT-snelheid uit het menu van de set.
 
+**Baofeng met Digirig (Mobile)**, getest: dezelfde instellingen als hierboven (geluidskaart van de
+Digirig, **RTS – alleen PTT**, de CP2102N-poort). Een Baofeng heeft geen CAT: programmeer 144,925 MHz
+(of de frequentie van je gemeente) als kanaal. In het menu van de Baofeng: **VOX uit** en **ROGER (roger
+beep) uit**; verder aan te raden: **SAVE (batterijbesparing) uit**, **TDR (dual watch) uit**, bandbreedte
+**wide** en squelch laag (1–3). Een ferrietkern om de kabel bij de Baofeng voorkomt HF-instraling.
+
+**Geteste sets**
+
+| Set | Verbinding | Besturing | Frequentie |
+|---|---|---|---|
+| Icom IC-9700 | USB-kabel | CAT (geluid en PTT via USB) | Pi zet hem |
+| Yaesu FT-818 + SCU-17 | USB | CAT via poort A (of RTS via poort B) | Pi zet hem (met CAT) |
+| Yaesu FT-818 + Digirig Mobile | datakabel naar DATA | RTS – alleen PTT | met de hand |
+| Baofeng + Digirig Mobile | Baofeng-kabel (Kenwood-stekker) | RTS – alleen PTT | met de hand (kanaal) |
+
 ## Dienstdoende operator en aflossen
 
 Het station zendt altijd onder de roepnaam die bij de installatie is ingesteld; die verander je
